@@ -1,24 +1,62 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { Sidebar, type SectionId } from "@/components/aios/Sidebar";
+import { TopNav } from "@/components/aios/TopNav";
+import { Dashboard } from "@/components/aios/sections/Dashboard";
+import { Discover } from "@/components/aios/sections/Discover";
+import { VideoAnalyzer } from "@/components/aios/sections/VideoAnalyzer";
+import { ScriptHook } from "@/components/aios/sections/ScriptHook";
+import { Storyboard } from "@/components/aios/sections/Storyboard";
+import { VideoPrompt } from "@/components/aios/sections/VideoPrompt";
+import { Planner } from "@/components/aios/sections/Planner";
+import { Analyst } from "@/components/aios/sections/Analyst";
+import { ContentScore } from "@/components/aios/sections/ContentScore";
+import { DMManager } from "@/components/aios/sections/DMManager";
+import { AutoPilot } from "@/components/aios/sections/AutoPilot";
+import { Settings } from "@/components/aios/sections/Settings";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: App,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+const TITLES: Record<SectionId, string> = {
+  dashboard: "Dashboard",
+  discover: "Discover",
+  analyzer: "Video Analyzer",
+  script: "Script + Hook",
+  storyboard: "Storyboard",
+  prompt: "Video Prompt",
+  planner: "Planner",
+  analyst: "Analyst",
+  score: "Content Score",
+  dm: "DM Manager",
+  autopilot: "AutoPilot",
+  settings: "Settings",
+};
+
+function App() {
+  const [section, setSection] = useState<SectionId>("dashboard");
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-app text-fg">
+      <Sidebar active={section} onSelect={setSection} />
+      <TopNav title={TITLES[section]} />
+      <main className="ml-16 pt-14 min-h-screen">
+        <div className="p-6">
+          {section === "dashboard" && <Dashboard onNav={setSection} />}
+          {section === "discover" && <Discover />}
+          {section === "analyzer" && <VideoAnalyzer />}
+          {section === "script" && <ScriptHook />}
+          {section === "storyboard" && <Storyboard />}
+          {section === "prompt" && <VideoPrompt />}
+          {section === "planner" && <Planner />}
+          {section === "analyst" && <Analyst />}
+          {section === "score" && <ContentScore />}
+          {section === "dm" && <DMManager />}
+          {section === "autopilot" && <AutoPilot />}
+          {section === "settings" && <Settings />}
+        </div>
+      </main>
     </div>
   );
 }

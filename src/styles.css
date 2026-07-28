@@ -157,7 +157,19 @@
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--color-app);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 }
+
+@keyframes aios-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.aios-pulse { animation: aios-pulse 2s ease-in-out infinite; }
+
+.aios-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+.aios-scroll::-webkit-scrollbar-thumb { background: #1E2622; border-radius: 4px; }
+

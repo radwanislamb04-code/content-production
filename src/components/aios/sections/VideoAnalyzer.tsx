@@ -1,11 +1,25 @@
 import { useState } from "react";
-import { Card, PrimaryBtn, GhostBtn, Textarea, SectionHeader } from "../ui";
-import { RefreshCw, Copy, FileText, Hash, Video, Type, MessageSquare } from "lucide-react";
+import { Card, PrimaryBtn, GhostBtn, Textarea, SectionHeader, Input } from "../ui";
+import type { SectionId } from "../Sidebar";
+import {
+  RefreshCw,
+  Copy,
+  FileText,
+  Hash,
+  Video,
+  Type,
+  MessageSquare,
+  Plus,
+  Check,
+  X,
+} from "lucide-react";
 
 const OUT_TABS = ["Hooks", "Full Script", "Title", "Description", "Hashtags"] as const;
 type OTab = (typeof OUT_TABS)[number];
 
-export function VideoAnalyzer() {
+type Idea = { id: number; text: string; finalized: boolean };
+
+export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
   const [text, setText] = useState("");
   const [gen, setGen] = useState(false);
   const [otab, setOtab] = useState<OTab>("Hooks");
@@ -19,6 +33,7 @@ export function VideoAnalyzer() {
 
       <div className="mx-auto max-w-[800px]">
         <Card className="p-6">
+
           <div className="mb-2 text-xs text-fg2">Reference Transcript or Script</div>
           <Textarea
             value={text}

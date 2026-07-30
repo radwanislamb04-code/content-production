@@ -1,3 +1,4 @@
+import jepyLogo from "@/assets/jepy-logo.webp.asset.json";
 import {
   LayoutDashboard,
   Lightbulb,
@@ -49,16 +50,21 @@ export function Sidebar({
   onSelect: (id: SectionId) => void;
 }) {
   return (
-    <aside className="fixed left-0 top-0 z-30 flex h-screen w-[200px] flex-col justify-between border-r border-line bg-app2 py-4">
+    <aside className="fixed left-0 top-0 z-30 flex h-screen w-[200px] flex-col justify-between border-r border-line bg-app2 pb-4">
       <div className="flex flex-col gap-1 px-3">
-        <div className="mb-4 flex items-center gap-2.5 px-2">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-lime shadow-[0_0_20px_rgba(82,255,46,0.4)]">
-            <div className="h-3 w-3 rotate-45 bg-app" />
-          </div>
-          <span className="truncate text-[13px] font-medium text-fg2">
-            Content OS
+        <div className="mb-2 flex items-center gap-2 pb-4 pl-4 pr-4 pt-5">
+          <img
+            src={jepyLogo.url}
+            alt="Jepy Labs logo"
+            width={32}
+            height={32}
+            className="h-8 w-8 shrink-0 rounded-lg"
+          />
+          <span className="truncate text-[15px] font-semibold text-fg">
+            Jepy<span className="text-lime">Labs</span>
           </span>
         </div>
+
         {NAV.map((n) => (
           <NavItem
             key={n.id}

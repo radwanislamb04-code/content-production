@@ -11,9 +11,10 @@ import {
   Film,
   ArrowRight,
   Plus,
+  PlusCircle,
   Star,
   TrendingUp,
-  Sparkles,
+
   Activity,
 } from "lucide-react";
 
@@ -70,13 +71,13 @@ export function Dashboard({
   const QUICK: { label: string; Icon: typeof Plus; onClick: () => void }[] = [
     {
       label: "New Project",
-      Icon: Plus,
+      Icon: PlusCircle,
       onClick: () => {
         onTab("Projects");
         onNav("analyzer");
       },
     },
-    { label: "AI Ideation", Icon: Sparkles, onClick: () => onNav("discover") },
+    { label: "AI Ideation", Icon: Lightbulb, onClick: () => onNav("discover") },
     { label: "Content Score", Icon: Star, onClick: () => onNav("score") },
     {
       label: "Trend Analysis",
@@ -86,9 +87,10 @@ export function Dashboard({
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
+      {/* ---------- Left column ---------- */}
+      <div className="min-w-0 space-y-5">
+        <div>
           <h1 className="text-[28px] font-semibold text-fg">
             {greeting()}, Enzo
           </h1>
@@ -96,159 +98,161 @@ export function Dashboard({
             Personal AI Content Operating System
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3 lg:col-span-2">
-          {QUICK.map((q) => (
-            <button
-              key={q.label}
-              onClick={q.onClick}
-              className="rounded-[10px] border border-line bg-cardx p-4 text-left transition-all duration-200 hover:border-lime hover:shadow-[0_0_0_1px_rgba(82,255,46,0.15)]"
-            >
-              <q.Icon size={18} className="text-lime" />
-              <div className="mt-2 text-[13px] text-fg2">{q.label}</div>
-            </button>
-          ))}
-        </div>
-      </div>
 
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {STATS.map((s) => (
-          <Card key={s.label} className="p-5">
-            <div className="flex items-start justify-between">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {STATS.map((s) => (
+            <Card key={s.label} className="p-5">
               <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface text-lime">
                 <s.icon size={18} />
               </div>
-            </div>
-            <div className="mt-4 text-xs text-fg2">{s.label}</div>
-            <div className="text-[32px] font-bold text-lime leading-tight">
-              {s.value}
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[65fr_35fr]">
-        <div className="min-w-0 space-y-4">
-          <Card className="p-5">
-            <div className="mb-4 text-sm font-semibold text-fg2">Pipeline</div>
-            <div className="flex items-center gap-2 overflow-x-auto aios-scroll pb-2">
-              {PIPELINE.map((p, i) => (
-                <div key={p.label} className="flex items-center gap-2">
-                  <div className="min-w-[140px] rounded-lg border border-line bg-surface p-3">
-                    <div className="flex items-center gap-2 text-fg">
-                      <p.icon size={14} className="text-lime" />
-                      <span className="text-sm font-medium">{p.label}</span>
-                    </div>
-                    <div className="mt-2">
-                      {p.status === "ready" && (
-                        <span className="text-xs text-lime">✅ Ready</span>
-                      )}
-                      {p.status === "pending" && (
-                        <span className="text-xs text-warn">⏳ Pending</span>
-                      )}
-                      {p.status === "empty" && (
-                        <span className="text-xs text-mute">⚪ Not started</span>
-                      )}
-                    </div>
-                  </div>
-                  {i < PIPELINE.length - 1 && (
-                    <ArrowRight
-                      size={18}
-                      className={`text-line2 ${
-                        PIPELINE[i].status === "ready" && PIPELINE[i + 1].status !== "empty"
-                          ? "text-lime aios-pulse"
-                          : ""
-                      }`}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-[#101513] to-[#0C100E] p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-mute">
-              Continue Working
-            </div>
-            <div className="mt-3 flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-lg bg-surface text-lime">
-                <PenLine size={20} />
+              <div className="mt-4 text-xs text-fg2">{s.label}</div>
+              <div className="text-[32px] font-bold leading-tight text-lime">
+                {s.value}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-base font-semibold text-fg">
-                  Script — Morning routine hack
-                </div>
-                <div className="text-xs text-mute">Last modified 2 hours ago</div>
-              </div>
-              <OutlineBtn onClick={() => onNav("script")}>Open</OutlineBtn>
-            </div>
-          </Card>
-        </div>
-
-        <div className="min-w-0 space-y-4">
-          <AIActivity />
-
-          <Card className="p-5">
-            <div className="mb-1 text-xs uppercase tracking-wide text-mute">
-              From Telegram
-            </div>
-            <div className="text-sm font-semibold text-fg">Today's Tasks</div>
-            <div className="mt-3 space-y-2">
-              {TASKS.map((t, i) => (
-                <label
-                  key={i}
-                  className="flex items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    defaultChecked={t.done}
-                    className="h-4 w-4 accent-[#52FF2E]"
-                  />
-                  <span
-                    className={`flex-1 ${t.done ? "text-mute line-through" : "text-fg"}`}
-                  >
-                    {t.text}
-                  </span>
-                  <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
-                    {t.time}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </Card>
-        </div>
-      </div>
-
-
-
-      <div>
-        <div className="mb-3 text-sm font-semibold text-fg2">
-          Recent Generations
-        </div>
-        <div className="flex gap-3 overflow-x-auto aios-scroll pb-3">
-          {RECENT.map((r, i) => (
-            <div
-              key={i}
-              className="min-w-[160px] max-w-[160px] shrink-0 rounded-xl border border-line bg-cardx p-3"
-              style={{ height: 200 }}
-            >
-              <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface text-lime">
-                <r.icon size={16} />
-              </div>
-              <div className="mt-3 line-clamp-3 text-sm text-fg">{r.title}</div>
-              <div className="mt-auto flex items-center justify-between pt-4">
-                <button className="rounded-md border border-line bg-surface px-2 py-1 text-[11px] text-lime hover:border-lime">
-                  Open
-                </button>
-                <span className="text-[10px] text-mute">{r.time}</span>
-              </div>
-            </div>
+            </Card>
           ))}
         </div>
+
+        <Card className="p-5">
+          <div className="mb-4 text-sm font-semibold text-fg2">Pipeline</div>
+          <div className="flex items-center gap-2 overflow-x-auto aios-scroll pb-2">
+            {PIPELINE.map((p, i) => (
+              <div key={p.label} className="flex items-center gap-2">
+                <div className="min-w-[140px] rounded-lg border border-line bg-surface p-3">
+                  <div className="flex items-center gap-2 text-fg">
+                    <p.icon size={14} className="text-lime" />
+                    <span className="text-sm font-medium">{p.label}</span>
+                  </div>
+                  <div className="mt-2">
+                    {p.status === "ready" && (
+                      <span className="text-xs text-lime">✅ Ready</span>
+                    )}
+                    {p.status === "pending" && (
+                      <span className="text-xs text-warn">⏳ Pending</span>
+                    )}
+                    {p.status === "empty" && (
+                      <span className="text-xs text-mute">⚪ Not started</span>
+                    )}
+                  </div>
+                </div>
+                {i < PIPELINE.length - 1 && (
+                  <ArrowRight
+                    size={18}
+                    className={`text-line2 ${
+                      PIPELINE[i].status === "ready" &&
+                      PIPELINE[i + 1].status !== "empty"
+                        ? "text-lime aios-pulse"
+                        : ""
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-[#101513] to-[#0C100E] p-5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-mute">
+            Continue Working
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-lg bg-surface text-lime">
+              <PenLine size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-base font-semibold text-fg">
+                Script — Morning routine hack
+              </div>
+              <div className="text-xs text-mute">Last modified 2 hours ago</div>
+            </div>
+            <OutlineBtn onClick={() => onNav("script")}>Open</OutlineBtn>
+          </div>
+        </Card>
+
+        <div>
+          <div className="mb-3 text-sm font-semibold text-fg2">
+            Recent Generations
+          </div>
+          <div className="flex gap-3 overflow-x-auto aios-scroll pb-3">
+            {RECENT.map((r, i) => (
+              <div
+                key={i}
+                className="flex min-w-[160px] max-w-[160px] shrink-0 flex-col rounded-xl border border-line bg-cardx p-3"
+                style={{ height: 200 }}
+              >
+                <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface text-lime">
+                  <r.icon size={16} />
+                </div>
+                <div className="mt-3 line-clamp-3 text-sm text-fg">
+                  {r.title}
+                </div>
+                <div className="mt-auto flex items-center justify-between pt-4">
+                  <button className="rounded-md border border-line bg-surface px-2 py-1 text-[11px] text-lime hover:border-lime">
+                    Open
+                  </button>
+                  <span className="text-[10px] text-mute">{r.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ---------- Right column ---------- */}
+      <div className="min-w-0 space-y-5 lg:sticky lg:top-20 lg:self-start">
+        <Card className="p-5">
+          <div className="mb-3 text-sm font-semibold text-fg">
+            Quick Actions
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {QUICK.map((q) => (
+              <button
+                key={q.label}
+                onClick={q.onClick}
+                className="rounded-[10px] border border-line bg-surface p-4 text-left transition-all duration-200 hover:border-lime hover:shadow-[0_0_0_1px_rgba(82,255,46,0.15)]"
+              >
+                <q.Icon size={18} className="text-lime" />
+                <div className="mt-2 text-[13px] text-fg2">{q.label}</div>
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        <AIActivity />
+
+        <Card className="p-5">
+          <div className="mb-1 text-xs uppercase tracking-wide text-mute">
+            From Telegram
+          </div>
+          <div className="text-sm font-semibold text-fg">Today's Tasks</div>
+          <div className="mt-3 space-y-2">
+            {TASKS.map((t, i) => (
+              <label
+                key={i}
+                className="flex items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  defaultChecked={t.done}
+                  className="h-4 w-4 accent-[#52FF2E]"
+                />
+                <span
+                  className={`flex-1 ${t.done ? "text-mute line-through" : "text-fg"}`}
+                >
+                  {t.text}
+                </span>
+                <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
+                  {t.time}
+                </span>
+              </label>
+            ))}
+          </div>
+        </Card>
       </div>
     </div>
   );
 }
+
 
 type ActivityItem = {
   id: string;
@@ -268,7 +272,7 @@ const ACTIVITY_ICONS: Record<string, typeof Lightbulb> = {
 
 function AIActivity() {
   const { data, loading, error } = useApi<ActivityItem[]>("/api/activity");
-  const items = (data ?? []).slice(0, 6);
+  const items = (data ?? []).slice(0, 5);
 
   return (
     <Card className="p-5">

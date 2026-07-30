@@ -11,9 +11,10 @@ import {
   Film,
   ArrowRight,
   Plus,
+  PlusCircle,
   Star,
   TrendingUp,
-  Sparkles,
+
   Activity,
 } from "lucide-react";
 

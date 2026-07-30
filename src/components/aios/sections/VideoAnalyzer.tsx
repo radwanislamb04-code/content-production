@@ -65,7 +65,11 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
             Clear
           </button>
         </Card>
+
+        <CustomIdeas onNav={onNav} />
       </div>
+
+
 
       {gen && (
         <div className="mx-auto max-w-[800px] space-y-4">

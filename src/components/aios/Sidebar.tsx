@@ -1,3 +1,4 @@
+import jepyLogo from "@/assets/jepy-logo.webp.asset.json";
 import {
   LayoutDashboard,
   Lightbulb,

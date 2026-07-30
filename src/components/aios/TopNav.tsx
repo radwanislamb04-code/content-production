@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Bell, X } from "lucide-react";
+import { Search, Bell, X, Menu } from "lucide-react";
 
 export const TABS = ["Dashboard", "Projects", "Templates", "Library"] as const;
 export type TabId = (typeof TABS)[number];
@@ -10,10 +10,12 @@ export function TopNav({
   title,
   activeTab,
   onTabChange,
+  onMenu,
 }: {
   title: string;
   activeTab: TabId;
   onTabChange: (t: TabId) => void;
+  onMenu?: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -30,13 +32,21 @@ export function TopNav({
 
   return (
     <>
-      <header className="fixed left-[200px] right-0 top-0 z-20 border-b border-line bg-[rgba(3,5,4,0.85)] backdrop-blur-md">
-        <div className="flex h-14 items-center gap-4 px-6">
-          <div className="min-w-0 shrink-0 truncate text-base font-semibold text-fg">
+      <header className="fixed left-0 right-0 top-0 z-20 border-b border-line bg-[rgba(3,5,4,0.85)] backdrop-blur-md lg:left-[200px]">
+        <div className="flex h-14 items-center gap-2 px-3 sm:gap-4 sm:px-6">
+          <button
+            onClick={onMenu}
+            aria-label="Open navigation"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-fg2 transition-colors hover:bg-cardx hover:text-fg lg:hidden"
+          >
+            <Menu size={20} />
+          </button>
+
+          <div className="min-w-0 flex-1 truncate text-base font-semibold text-fg sm:flex-none sm:shrink-0">
             {title}
           </div>
 
-          <div className="flex flex-1 justify-center">
+          <div className="hidden flex-1 justify-center sm:flex">
             <button
               onClick={() => setOpen(true)}
               className="group flex h-9 w-full max-w-[400px] items-center gap-2 rounded-lg border border-line bg-surface px-3.5 text-left transition-all hover:border-line2 focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] focus:outline-none"
@@ -51,15 +61,22 @@ export function TopNav({
             </button>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+            <button
+              onClick={() => setOpen(true)}
+              aria-label="Search"
+              className="grid h-11 w-11 place-items-center rounded-md text-fg2 transition-colors hover:bg-cardx hover:text-fg sm:hidden"
+            >
+              <Search size={18} />
+            </button>
             <div className="relative">
               <button
                 aria-label="Notifications"
-                className="grid h-9 w-9 place-items-center rounded-md text-fg2 transition-colors hover:bg-cardx hover:text-fg"
+                className="grid h-11 w-11 place-items-center rounded-md text-fg2 transition-colors hover:bg-cardx hover:text-fg sm:h-9 sm:w-9"
               >
                 <Bell size={16} />
               </button>
-              <span className="pointer-events-none absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-lime shadow-[0_0_6px_#52FF2E]" />
+              <span className="pointer-events-none absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-lime shadow-[0_0_6px_#52FF2E] sm:right-1.5 sm:top-1.5" />
             </div>
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-lime bg-surface text-xs font-semibold text-fg">
               EN
@@ -67,12 +84,13 @@ export function TopNav({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 overflow-x-auto border-t border-line px-4 aios-scroll">
+
+        <div className="flex items-center gap-1 overflow-x-auto border-t border-line px-2 aios-scroll sm:px-4">
           {TABS.map((t) => (
             <button
               key={t}
               onClick={() => onTabChange(t)}
-              className={`shrink-0 border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+              className={`shrink-0 border-b-2 px-3 py-3 text-sm sm:px-4 sm:py-2 font-medium transition-colors ${
                 activeTab === t
                   ? "border-lime text-fg"
                   : "border-transparent text-mute hover:text-fg2"

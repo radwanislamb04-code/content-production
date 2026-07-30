@@ -49,7 +49,7 @@ export function Storyboard() {
         <button className="ml-2 text-lime hover:text-lime2">View Full</button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
         <Card className="p-4">
           <div className="mb-2 flex items-center justify-between">
             <div className="text-sm font-semibold text-fg">Characters</div>

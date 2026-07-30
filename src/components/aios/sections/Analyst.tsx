@@ -32,17 +32,18 @@ export function Analyst() {
               <s.icon size={16} />
             </div>
             <div className="mt-4 text-xs text-fg2">{s.label}</div>
-            <div className="text-[32px] font-bold text-lime">{s.value}</div>
+            <div className="text-[clamp(1.5rem,5vw,2rem)] font-bold text-lime">{s.value}</div>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Card className="overflow-hidden">
           <div className="border-b border-line px-5 py-3 text-sm font-semibold text-fg">
             Top 5 Posts
           </div>
-          <table className="w-full text-sm">
+          <div className="w-full overflow-x-auto aios-scroll">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="bg-surface text-left text-xs text-fg2">
                 <th className="px-4 py-2">#</th>
@@ -69,6 +70,7 @@ export function Analyst() {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
 
         <Card className="p-5">

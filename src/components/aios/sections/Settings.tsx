@@ -15,7 +15,7 @@ const KEYS = [
 export function Settings() {
   const [tab, setTab] = useState(NAV[0]);
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
       <Card className="p-2">
         {NAV.map((n) => (
           <button
@@ -61,8 +61,8 @@ function ApiKeys() {
 function KeyRow({ label }: { label: string }) {
   const [show, setShow] = useState(false);
   return (
-    <div className="grid grid-cols-[180px_1fr_auto_auto] items-center gap-2">
-      <div className="text-sm text-fg">{label}</div>
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:grid-cols-[180px_minmax(0,1fr)_auto_auto]">
+      <div className="col-span-3 text-sm text-fg sm:col-span-1">{label}</div>
       <Input
         type={show ? "text" : "password"}
         defaultValue="••••••••••••••••••"

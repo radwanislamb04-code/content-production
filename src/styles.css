@@ -173,3 +173,6 @@
 .aios-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
 .aios-scroll::-webkit-scrollbar-thumb { background: #1E2622; border-radius: 4px; }
 
+
+html, body { overflow-x: hidden; max-width: 100%; }
+img, video, canvas, svg { max-width: 100%; }

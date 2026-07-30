@@ -87,11 +87,11 @@ export function Dashboard({
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
+    <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       {/* ---------- Left column ---------- */}
       <div className="min-w-0 space-y-5">
         <div>
-          <h1 className="text-[28px] font-semibold text-fg">
+          <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">
             {greeting()}, Enzo
           </h1>
           <p className="mt-1 text-sm text-mute">
@@ -106,7 +106,7 @@ export function Dashboard({
                 <s.icon size={18} />
               </div>
               <div className="mt-4 text-xs text-fg2">{s.label}</div>
-              <div className="text-[32px] font-bold leading-tight text-lime">
+              <div className="text-[clamp(1.5rem,7vw,2rem)] font-bold leading-tight text-lime">
                 {s.value}
               </div>
             </Card>

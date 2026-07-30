@@ -31,7 +31,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
         subtitle="Paste a transcript or script reference to generate content"
       />
 
-      <div className="mx-auto max-w-[800px]">
+      <div className="mx-auto w-full max-w-[800px]">
         <Card className="p-6">
 
           <div className="mb-2 text-xs text-fg2">Reference Transcript or Script</div>
@@ -72,7 +72,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
 
 
       {gen && (
-        <div className="mx-auto max-w-[800px] space-y-4">
+        <div className="mx-auto w-full max-w-[800px] space-y-4">
           <div className="flex flex-wrap gap-2">
             {OUT_TABS.map((t) => (
               <button

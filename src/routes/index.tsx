@@ -56,22 +56,30 @@ const TITLES: Record<SectionId, string> = {
 function App() {
   const [section, setSection] = useState<SectionId>("dashboard");
   const [tab, setTab] = useState<TabId>("Dashboard");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const navigate = (id: SectionId) => {
     setSection(id);
     setTab("Dashboard");
+    setMenuOpen(false);
   };
 
   return (
-    <div className="min-h-screen bg-app text-fg">
-      <Sidebar active={section} onSelect={navigate} />
+    <div className="min-h-screen overflow-x-hidden bg-app text-fg">
+      <Sidebar
+        active={section}
+        onSelect={navigate}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+      />
       <TopNav
         title={tab === "Dashboard" ? TITLES[section] : tab}
         activeTab={tab}
         onTabChange={setTab}
+        onMenu={() => setMenuOpen(true)}
       />
-      <main className="ml-[200px] min-h-screen pt-[97px]">
-        <div className="p-6">
+      <main className="min-h-screen pt-[105px] sm:pt-[97px] lg:ml-[200px]">
+        <div className="p-4 sm:p-6">
           {tab === "Projects" && <Projects onNav={setSection} onTab={setTab} />}
           {tab === "Templates" && (
             <Templates onNav={setSection} onTab={setTab} />

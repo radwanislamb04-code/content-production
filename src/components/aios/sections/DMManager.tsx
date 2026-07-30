@@ -13,7 +13,7 @@ export function DMManager() {
   const [i, setI] = useState(0);
   const dm = DMS[i];
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
       <Card className="overflow-hidden p-0">
         <div className="border-b border-line px-4 py-3 text-sm font-semibold text-fg">
           Inbox

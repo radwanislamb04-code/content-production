@@ -272,7 +272,7 @@ const ACTIVITY_ICONS: Record<string, typeof Lightbulb> = {
 
 function AIActivity() {
   const { data, loading, error } = useApi<ActivityItem[]>("/api/activity");
-  const items = (data ?? []).slice(0, 6);
+  const items = (data ?? []).slice(0, 5);
 
   return (
     <Card className="p-5">

@@ -143,7 +143,7 @@ export function SectionHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+    <div className="mb-5 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:mb-6 sm:gap-4">
       <div className="min-w-0">
         <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-bold text-fg">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-mute">{subtitle}</p>}

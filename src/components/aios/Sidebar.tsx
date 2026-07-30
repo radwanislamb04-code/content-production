@@ -99,7 +99,8 @@ export function Sidebar({
           onClick={() => onSelect("settings")}
         />
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 

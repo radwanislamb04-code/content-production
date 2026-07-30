@@ -45,12 +45,28 @@ const NAV: { id: SectionId; label: string; Icon: typeof LayoutDashboard }[] = [
 export function Sidebar({
   active,
   onSelect,
+  open = false,
+  onClose,
 }: {
   active: SectionId;
   onSelect: (id: SectionId) => void;
+  open?: boolean;
+  onClose?: () => void;
 }) {
   return (
-    <aside className="fixed left-0 top-0 z-30 flex h-screen w-[200px] flex-col justify-between border-r border-line bg-app2 pb-4">
+    <>
+      {open && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 z-30 bg-[rgba(3,5,4,0.7)] backdrop-blur-sm lg:hidden"
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-[80vw] max-w-[240px] flex-col justify-between overflow-y-auto border-r border-line bg-app2 pb-4 transition-transform duration-200 lg:w-[200px] lg:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
       <div className="flex flex-col gap-1 px-3">
         <div className="mb-2 flex items-center gap-2 pb-4 pl-4 pr-4 pt-5">
           <img

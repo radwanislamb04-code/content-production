@@ -1,12 +1,12 @@
 import {
-  LayoutGrid,
+  LayoutDashboard,
   Lightbulb,
   Video,
   PenLine,
   LayoutPanelLeft,
   Film,
   Calendar,
-  BarChart3,
+  BarChart2,
   Star,
   MessageCircle,
   Bot,
@@ -27,17 +27,17 @@ export type SectionId =
   | "autopilot"
   | "settings";
 
-const NAV: { id: SectionId; label: string; Icon: typeof LayoutGrid }[] = [
-  { id: "dashboard", label: "Dashboard", Icon: LayoutGrid },
-  { id: "discover", label: "Discover", Icon: Lightbulb },
-  { id: "analyzer", label: "Video Analyzer", Icon: Video },
-  { id: "script", label: "Script + Hook", Icon: PenLine },
+const NAV: { id: SectionId; label: string; Icon: typeof LayoutDashboard }[] = [
+  { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
+  { id: "discover", label: "Ideator", Icon: Lightbulb },
+  { id: "analyzer", label: "Video analyzer", Icon: Video },
+  { id: "script", label: "Script + hook", Icon: PenLine },
   { id: "storyboard", label: "Storyboard", Icon: LayoutPanelLeft },
-  { id: "prompt", label: "Video Prompt", Icon: Film },
+  { id: "prompt", label: "Video prompt", Icon: Film },
   { id: "planner", label: "Planner", Icon: Calendar },
-  { id: "analyst", label: "Analyst", Icon: BarChart3 },
-  { id: "score", label: "Content Score", Icon: Star },
-  { id: "dm", label: "DM Manager", Icon: MessageCircle },
+  { id: "analyst", label: "Analyst", Icon: BarChart2 },
+  { id: "score", label: "Content score", Icon: Star },
+  { id: "dm", label: "DM manager", Icon: MessageCircle },
   { id: "autopilot", label: "AutoPilot", Icon: Bot },
 ];
 
@@ -49,13 +49,18 @@ export function Sidebar({
   onSelect: (id: SectionId) => void;
 }) {
   return (
-    <aside className="fixed left-0 top-0 z-30 flex h-screen w-16 flex-col items-center justify-between border-r border-line bg-app2 py-4">
-      <div className="flex flex-col items-center gap-1">
-        <div className="mb-3 grid h-8 w-8 place-items-center rounded-md bg-lime shadow-[0_0_20px_rgba(82,255,46,0.4)]">
-          <div className="h-3 w-3 rotate-45 bg-app" />
+    <aside className="fixed left-0 top-0 z-30 flex h-screen w-[200px] flex-col justify-between border-r border-line bg-app2 py-4">
+      <div className="flex flex-col gap-1 px-3">
+        <div className="mb-4 flex items-center gap-2.5 px-2">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-lime shadow-[0_0_20px_rgba(82,255,46,0.4)]">
+            <div className="h-3 w-3 rotate-45 bg-app" />
+          </div>
+          <span className="truncate text-[13px] font-medium text-fg2">
+            Content OS
+          </span>
         </div>
         {NAV.map((n) => (
-          <NavIcon
+          <NavItem
             key={n.id}
             {...n}
             isActive={active === n.id}
@@ -63,8 +68,8 @@ export function Sidebar({
           />
         ))}
       </div>
-      <div>
-        <NavIcon
+      <div className="px-3">
+        <NavItem
           id="settings"
           label="Settings"
           Icon={SettingsIcon}
@@ -76,7 +81,7 @@ export function Sidebar({
   );
 }
 
-function NavIcon({
+function NavItem({
   label,
   Icon,
   isActive,
@@ -84,29 +89,22 @@ function NavIcon({
 }: {
   id: SectionId;
   label: string;
-  Icon: typeof LayoutGrid;
+  Icon: typeof LayoutDashboard;
   isActive: boolean;
   onClick: () => void;
 }) {
   return (
-    <div className="group relative">
-      <button
-        onClick={onClick}
-        className={`relative flex h-11 w-11 items-center justify-center rounded-md transition-colors ${
-          isActive
-            ? "bg-[rgba(82,255,46,0.1)] text-lime"
-            : "text-mute hover:text-fg2"
-        }`}
-        aria-label={label}
-      >
-        {isActive && (
-          <span className="absolute left-[-8px] top-1/2 h-6 w-[2px] -translate-y-1/2 rounded bg-lime" />
-        )}
-        <Icon size={20} strokeWidth={1.8} />
-      </button>
-      <span className="pointer-events-none absolute left-14 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-line bg-cardhi px-2 py-1 text-xs text-fg opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-        {label}
-      </span>
-    </div>
+    <button
+      onClick={onClick}
+      aria-current={isActive ? "page" : undefined}
+      className={`flex h-10 w-full items-center gap-3 rounded-md border-l-2 pl-2.5 pr-2 text-left transition-colors ${
+        isActive
+          ? "border-lime bg-[rgba(82,255,46,0.08)] text-lime"
+          : "border-transparent text-mute hover:bg-[rgba(255,255,255,0.03)] hover:text-fg2"
+      }`}
+    >
+      <Icon size={20} strokeWidth={1.8} className="shrink-0" />
+      <span className="truncate text-[13px]">{label}</span>
+    </button>
   );
 }

@@ -143,8 +143,8 @@ export function SectionHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex items-end justify-between">
-      <div>
+    <div className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+      <div className="min-w-0">
         <h1 className="text-[28px] font-bold text-fg">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-mute">{subtitle}</p>}
       </div>
@@ -152,3 +152,64 @@ export function SectionHeader({
     </div>
   );
 }
+
+export function SkeletonRow({ className = "" }: { className?: string }) {
+  return (
+    <div
+      className={`aios-pulse rounded-md bg-cardhi ${className || "h-4 w-full"}`}
+    />
+  );
+}
+
+export function SkeletonList({
+  rows = 4,
+  height = 44,
+}: {
+  rows?: number;
+  height?: number;
+}) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div
+          key={i}
+          className="aios-pulse rounded-lg bg-cardhi"
+          style={{ height }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonCards({ count = 3 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="aios-pulse rounded-xl border border-line bg-cardhi"
+          style={{ height: 168 }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function EmptyState({
+  icon,
+  message,
+  action,
+}: {
+  icon?: ReactNode;
+  message: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line bg-surface px-6 py-10 text-center">
+      {icon && <div className="text-mute">{icon}</div>}
+      <p className="max-w-sm text-sm text-mute">{message}</p>
+      {action}
+    </div>
+  );
+}
+

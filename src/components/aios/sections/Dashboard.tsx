@@ -1,5 +1,7 @@
-import { Card, OutlineBtn } from "../ui";
+import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
+import type { TabId } from "../TopNav";
+import { useApi } from "@/hooks/useApi";
 import {
   Lightbulb,
   PenLine,
@@ -8,7 +10,13 @@ import {
   Video,
   Film,
   ArrowRight,
+  Plus,
+  Star,
+  TrendingUp,
+  Sparkles,
+  Activity,
 } from "lucide-react";
+
 
 const STATS = [
   { icon: Lightbulb, label: "Ideas", value: 42 },
@@ -52,17 +60,56 @@ function greeting() {
   return "Good Evening";
 }
 
-export function Dashboard({ onNav }: { onNav: (id: SectionId) => void }) {
+export function Dashboard({
+  onNav,
+  onTab,
+}: {
+  onNav: (id: SectionId) => void;
+  onTab: (t: TabId) => void;
+}) {
+  const QUICK: { label: string; Icon: typeof Plus; onClick: () => void }[] = [
+    {
+      label: "New Project",
+      Icon: Plus,
+      onClick: () => {
+        onTab("Projects");
+        onNav("analyzer");
+      },
+    },
+    { label: "AI Ideation", Icon: Sparkles, onClick: () => onNav("discover") },
+    { label: "Content Score", Icon: Star, onClick: () => onNav("score") },
+    {
+      label: "Trend Analysis",
+      Icon: TrendingUp,
+      onClick: () => onNav("discover"),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[28px] font-semibold text-fg">
-          {greeting()}, Enzo
-        </h1>
-        <p className="mt-1 text-sm text-mute">
-          Personal AI Content Operating System
-        </p>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <h1 className="text-[28px] font-semibold text-fg">
+            {greeting()}, Enzo
+          </h1>
+          <p className="mt-1 text-sm text-mute">
+            Personal AI Content Operating System
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:col-span-2">
+          {QUICK.map((q) => (
+            <button
+              key={q.label}
+              onClick={q.onClick}
+              className="rounded-[10px] border border-line bg-cardx p-4 text-left transition-all duration-200 hover:border-lime hover:shadow-[0_0_0_1px_rgba(82,255,46,0.15)]"
+            >
+              <q.Icon size={18} className="text-lime" />
+              <div className="mt-2 text-[13px] text-fg2">{q.label}</div>
+            </button>
+          ))}
+        </div>
       </div>
+
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {STATS.map((s) => (
@@ -80,91 +127,99 @@ export function Dashboard({ onNav }: { onNav: (id: SectionId) => void }) {
         ))}
       </div>
 
-      <Card className="p-5">
-        <div className="mb-4 text-sm font-semibold text-fg2">Pipeline</div>
-        <div className="flex items-center gap-2 overflow-x-auto aios-scroll pb-2">
-          {PIPELINE.map((p, i) => (
-            <div key={p.label} className="flex items-center gap-2">
-              <div className="min-w-[140px] rounded-lg border border-line bg-surface p-3">
-                <div className="flex items-center gap-2 text-fg">
-                  <p.icon size={14} className="text-lime" />
-                  <span className="text-sm font-medium">{p.label}</span>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[65fr_35fr]">
+        <div className="min-w-0 space-y-4">
+          <Card className="p-5">
+            <div className="mb-4 text-sm font-semibold text-fg2">Pipeline</div>
+            <div className="flex items-center gap-2 overflow-x-auto aios-scroll pb-2">
+              {PIPELINE.map((p, i) => (
+                <div key={p.label} className="flex items-center gap-2">
+                  <div className="min-w-[140px] rounded-lg border border-line bg-surface p-3">
+                    <div className="flex items-center gap-2 text-fg">
+                      <p.icon size={14} className="text-lime" />
+                      <span className="text-sm font-medium">{p.label}</span>
+                    </div>
+                    <div className="mt-2">
+                      {p.status === "ready" && (
+                        <span className="text-xs text-lime">✅ Ready</span>
+                      )}
+                      {p.status === "pending" && (
+                        <span className="text-xs text-warn">⏳ Pending</span>
+                      )}
+                      {p.status === "empty" && (
+                        <span className="text-xs text-mute">⚪ Not started</span>
+                      )}
+                    </div>
+                  </div>
+                  {i < PIPELINE.length - 1 && (
+                    <ArrowRight
+                      size={18}
+                      className={`text-line2 ${
+                        PIPELINE[i].status === "ready" && PIPELINE[i + 1].status !== "empty"
+                          ? "text-lime aios-pulse"
+                          : ""
+                      }`}
+                    />
+                  )}
                 </div>
-                <div className="mt-2">
-                  {p.status === "ready" && (
-                    <span className="text-xs text-lime">✅ Ready</span>
-                  )}
-                  {p.status === "pending" && (
-                    <span className="text-xs text-warn">⏳ Pending</span>
-                  )}
-                  {p.status === "empty" && (
-                    <span className="text-xs text-mute">⚪ Not started</span>
-                  )}
-                </div>
-              </div>
-              {i < PIPELINE.length - 1 && (
-                <ArrowRight
-                  size={18}
-                  className={`text-line2 ${
-                    PIPELINE[i].status === "ready" && PIPELINE[i + 1].status !== "empty"
-                      ? "text-lime aios-pulse"
-                      : ""
-                  }`}
-                />
-              )}
+              ))}
             </div>
-          ))}
+          </Card>
+
+          <Card className="bg-gradient-to-br from-[#101513] to-[#0C100E] p-5">
+            <div className="text-xs font-semibold uppercase tracking-wide text-mute">
+              Continue Working
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-lg bg-surface text-lime">
+                <PenLine size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-base font-semibold text-fg">
+                  Script — Morning routine hack
+                </div>
+                <div className="text-xs text-mute">Last modified 2 hours ago</div>
+              </div>
+              <OutlineBtn onClick={() => onNav("script")}>Open</OutlineBtn>
+            </div>
+          </Card>
         </div>
-      </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <Card className="lg:col-span-3 bg-gradient-to-br from-[#101513] to-[#0C100E] p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-mute">
-            Continue Working
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-lg bg-surface text-lime">
-              <PenLine size={20} />
-            </div>
-            <div className="flex-1">
-              <div className="text-base font-semibold text-fg">
-                Script — Morning routine hack
-              </div>
-              <div className="text-xs text-mute">Last modified 2 hours ago</div>
-            </div>
-            <OutlineBtn onClick={() => onNav("script")}>Open</OutlineBtn>
-          </div>
-        </Card>
+        <div className="min-w-0 space-y-4">
+          <AIActivity />
 
-        <Card className="lg:col-span-2 p-5">
-          <div className="mb-1 text-xs uppercase tracking-wide text-mute">
-            From Telegram
-          </div>
-          <div className="text-sm font-semibold text-fg">Today's Tasks</div>
-          <div className="mt-3 space-y-2">
-            {TASKS.map((t, i) => (
-              <label
-                key={i}
-                className="flex items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  defaultChecked={t.done}
-                  className="h-4 w-4 accent-[#52FF2E]"
-                />
-                <span
-                  className={`flex-1 ${t.done ? "text-mute line-through" : "text-fg"}`}
+          <Card className="p-5">
+            <div className="mb-1 text-xs uppercase tracking-wide text-mute">
+              From Telegram
+            </div>
+            <div className="text-sm font-semibold text-fg">Today's Tasks</div>
+            <div className="mt-3 space-y-2">
+              {TASKS.map((t, i) => (
+                <label
+                  key={i}
+                  className="flex items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
                 >
-                  {t.text}
-                </span>
-                <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
-                  {t.time}
-                </span>
-              </label>
-            ))}
-          </div>
-        </Card>
+                  <input
+                    type="checkbox"
+                    defaultChecked={t.done}
+                    className="h-4 w-4 accent-[#52FF2E]"
+                  />
+                  <span
+                    className={`flex-1 ${t.done ? "text-mute line-through" : "text-fg"}`}
+                  >
+                    {t.text}
+                  </span>
+                  <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
+                    {t.time}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
+
+
 
       <div>
         <div className="mb-3 text-sm font-semibold text-fg2">
@@ -194,3 +249,65 @@ export function Dashboard({ onNav }: { onNav: (id: SectionId) => void }) {
     </div>
   );
 }
+
+type ActivityItem = {
+  id: string;
+  module?: string;
+  text: string;
+  time: string;
+};
+
+const ACTIVITY_ICONS: Record<string, typeof Lightbulb> = {
+  discover: Lightbulb,
+  script: PenLine,
+  storyboard: LayoutPanelLeft,
+  prompt: Film,
+  planner: Calendar,
+  analyzer: Video,
+};
+
+function AIActivity() {
+  const { data, loading, error } = useApi<ActivityItem[]>("/api/activity");
+  const items = (data ?? []).slice(0, 6);
+
+  return (
+    <Card className="p-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-fg">AI Activity</h2>
+        <button className="shrink-0 text-xs text-lime hover:text-lime2">
+          View all
+        </button>
+      </div>
+
+      {loading ? (
+        <SkeletonList rows={4} height={40} />
+      ) : error || !items.length ? (
+        <EmptyState
+          icon={<Activity size={20} />}
+          message="No activity yet — run a module to get started."
+        />
+      ) : (
+        <div>
+          {items.map((a, i) => {
+            const Icon = ACTIVITY_ICONS[a.module ?? ""] ?? Activity;
+            return (
+              <div
+                key={a.id}
+                className={`flex items-center gap-3 py-2.5 ${
+                  i < items.length - 1 ? "border-b border-line" : ""
+                }`}
+              >
+                <Icon size={16} className="shrink-0 text-lime" />
+                <span className="min-w-0 flex-1 truncate text-[13px] text-fg">
+                  {a.text}
+                </span>
+                <span className="shrink-0 text-[11px] text-mute">{a.time}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+

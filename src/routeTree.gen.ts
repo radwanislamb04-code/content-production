@@ -14,6 +14,7 @@ import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
+import { Route as ApiLibraryTypeIdRouteImport } from './routes/api/library.$type.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,20 +41,27 @@ const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
   path: '/api/library/$type',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLibraryTypeIdRoute = ApiLibraryTypeIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiLibraryTypeRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/search': typeof ApiSearchRoute
-  '/api/library/$type': typeof ApiLibraryTypeRoute
+  '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
+  '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/search': typeof ApiSearchRoute
-  '/api/library/$type': typeof ApiLibraryTypeRoute
+  '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
+  '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,7 +69,8 @@ export interface FileRoutesById {
   '/api/activity': typeof ApiActivityRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/search': typeof ApiSearchRoute
-  '/api/library/$type': typeof ApiLibraryTypeRoute
+  '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
+  '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -71,6 +80,7 @@ export interface FileRouteTypes {
     | '/api/projects'
     | '/api/search'
     | '/api/library/$type'
+    | '/api/library/$type/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -78,6 +88,7 @@ export interface FileRouteTypes {
     | '/api/projects'
     | '/api/search'
     | '/api/library/$type'
+    | '/api/library/$type/$id'
   id:
     | '__root__'
     | '/'
@@ -85,6 +96,7 @@ export interface FileRouteTypes {
     | '/api/projects'
     | '/api/search'
     | '/api/library/$type'
+    | '/api/library/$type/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -92,7 +104,7 @@ export interface RootRouteChildren {
   ApiActivityRoute: typeof ApiActivityRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiSearchRoute: typeof ApiSearchRoute
-  ApiLibraryTypeRoute: typeof ApiLibraryTypeRoute
+  ApiLibraryTypeRoute: typeof ApiLibraryTypeRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -132,15 +144,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLibraryTypeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/library/$type/$id': {
+      id: '/api/library/$type/$id'
+      path: '/$id'
+      fullPath: '/api/library/$type/$id'
+      preLoaderRoute: typeof ApiLibraryTypeIdRouteImport
+      parentRoute: typeof ApiLibraryTypeRoute
+    }
   }
 }
+
+interface ApiLibraryTypeRouteChildren {
+  ApiLibraryTypeIdRoute: typeof ApiLibraryTypeIdRoute
+}
+
+const ApiLibraryTypeRouteChildren: ApiLibraryTypeRouteChildren = {
+  ApiLibraryTypeIdRoute: ApiLibraryTypeIdRoute,
+}
+
+const ApiLibraryTypeRouteWithChildren = ApiLibraryTypeRoute._addFileChildren(
+  ApiLibraryTypeRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiActivityRoute: ApiActivityRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiSearchRoute: ApiSearchRoute,
-  ApiLibraryTypeRoute: ApiLibraryTypeRoute,
+  ApiLibraryTypeRoute: ApiLibraryTypeRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

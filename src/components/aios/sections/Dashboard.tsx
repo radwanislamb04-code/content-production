@@ -60,17 +60,56 @@ function greeting() {
   return "Good Evening";
 }
 
-export function Dashboard({ onNav }: { onNav: (id: SectionId) => void }) {
+export function Dashboard({
+  onNav,
+  onTab,
+}: {
+  onNav: (id: SectionId) => void;
+  onTab: (t: TabId) => void;
+}) {
+  const QUICK: { label: string; Icon: typeof Plus; onClick: () => void }[] = [
+    {
+      label: "New Project",
+      Icon: Plus,
+      onClick: () => {
+        onTab("Projects");
+        onNav("analyzer");
+      },
+    },
+    { label: "AI Ideation", Icon: Sparkles, onClick: () => onNav("discover") },
+    { label: "Content Score", Icon: Star, onClick: () => onNav("score") },
+    {
+      label: "Trend Analysis",
+      Icon: TrendingUp,
+      onClick: () => onNav("discover"),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[28px] font-semibold text-fg">
-          {greeting()}, Enzo
-        </h1>
-        <p className="mt-1 text-sm text-mute">
-          Personal AI Content Operating System
-        </p>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <h1 className="text-[28px] font-semibold text-fg">
+            {greeting()}, Enzo
+          </h1>
+          <p className="mt-1 text-sm text-mute">
+            Personal AI Content Operating System
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:col-span-2">
+          {QUICK.map((q) => (
+            <button
+              key={q.label}
+              onClick={q.onClick}
+              className="rounded-[10px] border border-line bg-cardx p-4 text-left transition-all duration-200 hover:border-lime hover:shadow-[0_0_0_1px_rgba(82,255,46,0.15)]"
+            >
+              <q.Icon size={18} className="text-lime" />
+              <div className="mt-2 text-[13px] text-fg2">{q.label}</div>
+            </button>
+          ))}
+        </div>
       </div>
+
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {STATS.map((s) => (

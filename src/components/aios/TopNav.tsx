@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Bell, X } from "lucide-react";
+import { Search, Bell, X, Menu } from "lucide-react";
 
 export const TABS = ["Dashboard", "Projects", "Templates", "Library"] as const;
 export type TabId = (typeof TABS)[number];

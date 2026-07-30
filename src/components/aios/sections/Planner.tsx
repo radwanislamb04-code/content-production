@@ -41,6 +41,8 @@ export function Planner() {
       </div>
 
       <Card className="overflow-hidden">
+        <div className="overflow-x-auto aios-scroll">
+        <div className="min-w-[720px]">
         <div className="grid grid-cols-7 border-b border-line bg-surface">
           {DAYS.map((d) => (
             <div
@@ -81,6 +83,8 @@ export function Planner() {
               )}
             </div>
           ))}
+        </div>
+        </div>
         </div>
       </Card>
     </div>

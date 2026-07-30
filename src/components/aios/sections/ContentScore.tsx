@@ -26,7 +26,7 @@ export function ContentScore() {
   const c = 2 * Math.PI * 60;
   const dash = (SCORE / 100) * c;
   return (
-    <div className="mx-auto max-w-[700px] space-y-4">
+    <div className="mx-auto w-full max-w-[700px] space-y-4">
       <Card className="p-8 text-center">
         <div className="mx-auto grid h-40 w-40 place-items-center">
           <svg width="160" height="160" viewBox="0 0 160 160">

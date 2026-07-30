@@ -85,12 +85,12 @@ export function TopNav({
         </div>
 
 
-        <div className="flex items-center gap-1 overflow-x-auto border-t border-line px-4 aios-scroll">
+        <div className="flex items-center gap-1 overflow-x-auto border-t border-line px-2 aios-scroll sm:px-4">
           {TABS.map((t) => (
             <button
               key={t}
               onClick={() => onTabChange(t)}
-              className={`shrink-0 border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+              className={`shrink-0 border-b-2 px-3 py-3 text-sm sm:px-4 sm:py-2 font-medium transition-colors ${
                 activeTab === t
                   ? "border-lime text-fg"
                   : "border-transparent text-mute hover:text-fg2"

@@ -12,7 +12,7 @@ export function Discover() {
   return (
     <div className="space-y-6 pb-24">
       <div>
-        <h1 className="text-[28px] font-semibold text-fg">Discover</h1>
+        <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">Discover</h1>
         <p className="mt-1 text-sm text-mute">
           Ideator + Trend Spy — find your next hit.
         </p>
@@ -42,11 +42,11 @@ export function Discover() {
       )}
 
       {selected && (
-        <div className="fixed bottom-0 left-16 right-0 z-20 border-t border-lime bg-surface px-6 py-3 backdrop-blur">
-          <div className="flex items-center justify-between gap-4">
+        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-lime bg-surface px-4 py-3 backdrop-blur sm:px-6 lg:left-[200px]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-fg">
               <span className="text-mute">Selected:</span>{" "}
-              <span className="text-fg">{selected}</span>
+              <span className="break-words text-fg">{selected}</span>
             </div>
             <PrimaryBtn>Open Script →</PrimaryBtn>
           </div>
@@ -139,7 +139,7 @@ function Competitors() {
     { user: "@dailyloop", likes: "7.4k", cap: "One line changed my open rate 3x" },
   ];
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
       <Card className="p-4">
         <div className="mb-3 flex gap-2">
           <Input
@@ -400,7 +400,7 @@ function AllIdeas({
                   : "border-line bg-cardx hover:border-line2"
               }`}
             >
-              <div className="absolute right-4 top-4">
+              <div className="absolute right-3 top-4 max-w-[35%]">
                 <span
                   className={`rounded-full border bg-transparent px-2 py-0.5 text-[10px] font-semibold ${sourceColor}`}
                 >
@@ -408,7 +408,7 @@ function AllIdeas({
                 </span>
               </div>
               <div className="text-2xl font-bold text-lime">#{i.rank}</div>
-              <div className="mt-2 pr-24 text-[15px] text-fg">{i.text}</div>
+              <div className="mt-2 break-words pr-20 text-[15px] text-fg">{i.text}</div>
               <div className="mt-1 text-xs text-fg2">inspired by {i.inspired}</div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {i.tags.map((t) => (

@@ -1,5 +1,7 @@
-import { Card, OutlineBtn } from "../ui";
+import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
+import type { TabId } from "../TopNav";
+import { useApi } from "@/hooks/useApi";
 import {
   Lightbulb,
   PenLine,
@@ -8,7 +10,13 @@ import {
   Video,
   Film,
   ArrowRight,
+  Plus,
+  Star,
+  TrendingUp,
+  Sparkles,
+  Activity,
 } from "lucide-react";
+
 
 const STATS = [
   { icon: Lightbulb, label: "Ideas", value: 42 },

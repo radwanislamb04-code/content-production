@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Sidebar, type SectionId } from "@/components/aios/Sidebar";
-import { TopNav } from "@/components/aios/TopNav";
+import { TopNav, type TabId } from "@/components/aios/TopNav";
 import { Dashboard } from "@/components/aios/sections/Dashboard";
 import { Discover } from "@/components/aios/sections/Discover";
 import { VideoAnalyzer } from "@/components/aios/sections/VideoAnalyzer";
@@ -14,14 +14,33 @@ import { ContentScore } from "@/components/aios/sections/ContentScore";
 import { DMManager } from "@/components/aios/sections/DMManager";
 import { AutoPilot } from "@/components/aios/sections/AutoPilot";
 import { Settings } from "@/components/aios/sections/Settings";
+import { Projects } from "@/components/aios/sections/Projects";
+import { Templates } from "@/components/aios/sections/Templates";
+import { Library } from "@/components/aios/sections/Library";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "AI Content OS — Plan, Script & Ship Content" },
+      {
+        name: "description",
+        content:
+          "A dark, keyboard-fast content operating system: ideate, analyze video, write scripts, storyboard shots, and plan releases in one workspace.",
+      },
+      { property: "og:title", content: "AI Content OS — Plan, Script & Ship Content" },
+      {
+        property: "og:description",
+        content:
+          "Ideate, analyze video, write scripts, storyboard shots, and plan releases in one dark, keyboard-fast workspace.",
+      },
+    ],
+  }),
   component: App,
 });
 
 const TITLES: Record<SectionId, string> = {
   dashboard: "Dashboard",
-  discover: "Discover",
+  discover: "Ideator",
   analyzer: "Video Analyzer",
   script: "Script + Hook",
   storyboard: "Storyboard",
@@ -36,25 +55,47 @@ const TITLES: Record<SectionId, string> = {
 
 function App() {
   const [section, setSection] = useState<SectionId>("dashboard");
+  const [tab, setTab] = useState<TabId>("Dashboard");
+
+  const navigate = (id: SectionId) => {
+    setSection(id);
+    setTab("Dashboard");
+  };
 
   return (
     <div className="min-h-screen bg-app text-fg">
-      <Sidebar active={section} onSelect={setSection} />
-      <TopNav title={TITLES[section]} />
-      <main className="ml-16 pt-14 min-h-screen">
+      <Sidebar active={section} onSelect={navigate} />
+      <TopNav
+        title={tab === "Dashboard" ? TITLES[section] : tab}
+        activeTab={tab}
+        onTabChange={setTab}
+      />
+      <main className="ml-[200px] min-h-screen pt-[97px]">
         <div className="p-6">
-          {section === "dashboard" && <Dashboard onNav={setSection} />}
-          {section === "discover" && <Discover />}
-          {section === "analyzer" && <VideoAnalyzer />}
-          {section === "script" && <ScriptHook />}
-          {section === "storyboard" && <Storyboard />}
-          {section === "prompt" && <VideoPrompt />}
-          {section === "planner" && <Planner />}
-          {section === "analyst" && <Analyst />}
-          {section === "score" && <ContentScore />}
-          {section === "dm" && <DMManager />}
-          {section === "autopilot" && <AutoPilot />}
-          {section === "settings" && <Settings />}
+          {tab === "Projects" && <Projects onNav={setSection} onTab={setTab} />}
+          {tab === "Templates" && (
+            <Templates onNav={setSection} onTab={setTab} />
+          )}
+          {tab === "Library" && <Library />}
+
+          {tab === "Dashboard" && (
+            <>
+              {section === "dashboard" && (
+                <Dashboard onNav={setSection} onTab={setTab} />
+              )}
+              {section === "discover" && <Discover />}
+              {section === "analyzer" && <VideoAnalyzer onNav={navigate} />}
+              {section === "script" && <ScriptHook />}
+              {section === "storyboard" && <Storyboard />}
+              {section === "prompt" && <VideoPrompt />}
+              {section === "planner" && <Planner />}
+              {section === "analyst" && <Analyst />}
+              {section === "score" && <ContentScore />}
+              {section === "dm" && <DMManager />}
+              {section === "autopilot" && <AutoPilot />}
+              {section === "settings" && <Settings />}
+            </>
+          )}
         </div>
       </main>
     </div>

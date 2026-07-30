@@ -127,91 +127,99 @@ export function Dashboard({
         ))}
       </div>
 
-      <Card className="p-5">
-        <div className="mb-4 text-sm font-semibold text-fg2">Pipeline</div>
-        <div className="flex items-center gap-2 overflow-x-auto aios-scroll pb-2">
-          {PIPELINE.map((p, i) => (
-            <div key={p.label} className="flex items-center gap-2">
-              <div className="min-w-[140px] rounded-lg border border-line bg-surface p-3">
-                <div className="flex items-center gap-2 text-fg">
-                  <p.icon size={14} className="text-lime" />
-                  <span className="text-sm font-medium">{p.label}</span>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[65fr_35fr]">
+        <div className="min-w-0 space-y-4">
+          <Card className="p-5">
+            <div className="mb-4 text-sm font-semibold text-fg2">Pipeline</div>
+            <div className="flex items-center gap-2 overflow-x-auto aios-scroll pb-2">
+              {PIPELINE.map((p, i) => (
+                <div key={p.label} className="flex items-center gap-2">
+                  <div className="min-w-[140px] rounded-lg border border-line bg-surface p-3">
+                    <div className="flex items-center gap-2 text-fg">
+                      <p.icon size={14} className="text-lime" />
+                      <span className="text-sm font-medium">{p.label}</span>
+                    </div>
+                    <div className="mt-2">
+                      {p.status === "ready" && (
+                        <span className="text-xs text-lime">✅ Ready</span>
+                      )}
+                      {p.status === "pending" && (
+                        <span className="text-xs text-warn">⏳ Pending</span>
+                      )}
+                      {p.status === "empty" && (
+                        <span className="text-xs text-mute">⚪ Not started</span>
+                      )}
+                    </div>
+                  </div>
+                  {i < PIPELINE.length - 1 && (
+                    <ArrowRight
+                      size={18}
+                      className={`text-line2 ${
+                        PIPELINE[i].status === "ready" && PIPELINE[i + 1].status !== "empty"
+                          ? "text-lime aios-pulse"
+                          : ""
+                      }`}
+                    />
+                  )}
                 </div>
-                <div className="mt-2">
-                  {p.status === "ready" && (
-                    <span className="text-xs text-lime">✅ Ready</span>
-                  )}
-                  {p.status === "pending" && (
-                    <span className="text-xs text-warn">⏳ Pending</span>
-                  )}
-                  {p.status === "empty" && (
-                    <span className="text-xs text-mute">⚪ Not started</span>
-                  )}
-                </div>
-              </div>
-              {i < PIPELINE.length - 1 && (
-                <ArrowRight
-                  size={18}
-                  className={`text-line2 ${
-                    PIPELINE[i].status === "ready" && PIPELINE[i + 1].status !== "empty"
-                      ? "text-lime aios-pulse"
-                      : ""
-                  }`}
-                />
-              )}
+              ))}
             </div>
-          ))}
+          </Card>
+
+          <Card className="bg-gradient-to-br from-[#101513] to-[#0C100E] p-5">
+            <div className="text-xs font-semibold uppercase tracking-wide text-mute">
+              Continue Working
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-lg bg-surface text-lime">
+                <PenLine size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-base font-semibold text-fg">
+                  Script — Morning routine hack
+                </div>
+                <div className="text-xs text-mute">Last modified 2 hours ago</div>
+              </div>
+              <OutlineBtn onClick={() => onNav("script")}>Open</OutlineBtn>
+            </div>
+          </Card>
         </div>
-      </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <Card className="lg:col-span-3 bg-gradient-to-br from-[#101513] to-[#0C100E] p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-mute">
-            Continue Working
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-lg bg-surface text-lime">
-              <PenLine size={20} />
-            </div>
-            <div className="flex-1">
-              <div className="text-base font-semibold text-fg">
-                Script — Morning routine hack
-              </div>
-              <div className="text-xs text-mute">Last modified 2 hours ago</div>
-            </div>
-            <OutlineBtn onClick={() => onNav("script")}>Open</OutlineBtn>
-          </div>
-        </Card>
+        <div className="min-w-0 space-y-4">
+          <AIActivity />
 
-        <Card className="lg:col-span-2 p-5">
-          <div className="mb-1 text-xs uppercase tracking-wide text-mute">
-            From Telegram
-          </div>
-          <div className="text-sm font-semibold text-fg">Today's Tasks</div>
-          <div className="mt-3 space-y-2">
-            {TASKS.map((t, i) => (
-              <label
-                key={i}
-                className="flex items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  defaultChecked={t.done}
-                  className="h-4 w-4 accent-[#52FF2E]"
-                />
-                <span
-                  className={`flex-1 ${t.done ? "text-mute line-through" : "text-fg"}`}
+          <Card className="p-5">
+            <div className="mb-1 text-xs uppercase tracking-wide text-mute">
+              From Telegram
+            </div>
+            <div className="text-sm font-semibold text-fg">Today's Tasks</div>
+            <div className="mt-3 space-y-2">
+              {TASKS.map((t, i) => (
+                <label
+                  key={i}
+                  className="flex items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
                 >
-                  {t.text}
-                </span>
-                <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
-                  {t.time}
-                </span>
-              </label>
-            ))}
-          </div>
-        </Card>
+                  <input
+                    type="checkbox"
+                    defaultChecked={t.done}
+                    className="h-4 w-4 accent-[#52FF2E]"
+                  />
+                  <span
+                    className={`flex-1 ${t.done ? "text-mute line-through" : "text-fg"}`}
+                  >
+                    {t.text}
+                  </span>
+                  <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
+                    {t.time}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
+
+
 
       <div>
         <div className="mb-3 text-sm font-semibold text-fg2">

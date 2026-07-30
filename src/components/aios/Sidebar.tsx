@@ -120,7 +120,7 @@ function NavItem({
     <button
       onClick={onClick}
       aria-current={isActive ? "page" : undefined}
-      className={`flex h-10 w-full items-center gap-3 rounded-md border-l-2 pl-2.5 pr-2 text-left transition-colors ${
+      className={`flex h-11 w-full items-center lg:h-10 gap-3 rounded-md border-l-2 pl-2.5 pr-2 text-left transition-colors ${
         isActive
           ? "border-lime bg-[rgba(82,255,46,0.08)] text-lime"
           : "border-transparent text-mute hover:bg-[rgba(255,255,255,0.03)] hover:text-fg2"

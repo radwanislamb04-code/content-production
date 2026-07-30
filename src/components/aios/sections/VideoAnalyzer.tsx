@@ -178,6 +178,112 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
   );
 }
 
+function CustomIdeas({ onNav }: { onNav?: (id: SectionId) => void }) {
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [nextId, setNextId] = useState(1);
+  const [sending, setSending] = useState(false);
+
+  const finalized = ideas.filter((i) => i.finalized && i.text.trim());
+
+  const add = () => {
+    setIdeas((prev) => [...prev, { id: nextId, text: "", finalized: false }]);
+    setNextId((n) => n + 1);
+  };
+
+  const send = async () => {
+    setSending(true);
+    try {
+      await fetch("/api/workspace/selected_idea", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ideas: finalized.map((i) => i.text.trim()) }),
+      });
+    } catch {
+      /* offline-safe: still move the user forward */
+    }
+    setSending(false);
+    onNav?.("storyboard");
+  };
+
+  return (
+    <Card className="mt-4 p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-fg">Custom Ideas</h2>
+        <GhostBtn onClick={add}>
+          <Plus size={14} /> Add idea
+        </GhostBtn>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {ideas.length === 0 && (
+          <p className="text-sm text-mute">
+            No ideas yet — add one to send it through to Storyboard.
+          </p>
+        )}
+        {ideas.map((idea) => (
+          <div key={idea.id} className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <Input
+                value={idea.text}
+                readOnly={idea.finalized}
+                placeholder="Describe your idea..."
+                onChange={(e) =>
+                  setIdeas((prev) =>
+                    prev.map((i) =>
+                      i.id === idea.id ? { ...i, text: e.target.value } : i,
+                    ),
+                  )
+                }
+              />
+            </div>
+            {idea.finalized ? (
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[rgba(82,255,46,0.3)] bg-[rgba(82,255,46,0.1)] text-lime">
+                <Check size={16} />
+              </span>
+            ) : (
+              <button
+                onClick={() =>
+                  setIdeas((prev) =>
+                    prev.map((i) =>
+                      i.id === idea.id && i.text.trim()
+                        ? { ...i, finalized: true }
+                        : i,
+                    ),
+                  )
+                }
+                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-lime px-3 text-xs font-bold text-app hover:bg-lime2"
+              >
+                <Check size={14} /> Finalize
+              </button>
+            )}
+            <button
+              onClick={() =>
+                setIdeas((prev) => prev.filter((i) => i.id !== idea.id))
+              }
+              aria-label="Remove idea"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-err transition-colors hover:bg-[rgba(255,93,93,0.1)]"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {finalized.length > 0 && (
+        <button
+          onClick={send}
+          disabled={sending}
+          className="mt-4 h-12 w-full rounded-lg bg-lime text-sm font-bold text-app transition-colors hover:bg-lime2 disabled:opacity-60"
+        >
+          {sending ? "Saving..." : "Send to Storyboard →"}
+        </button>
+      )}
+    </Card>
+  );
+}
+
+
+
 function OutCard({
   title,
   Icon,

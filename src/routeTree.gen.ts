@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProjectsRoute = ApiProjectsRouteImport.update({
+  id: '/api/projects',
+  path: '/api/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiActivityRoute = ApiActivityRouteImport.update({
   id: '/api/activity',
   path: '/api/activity',
@@ -32,30 +38,34 @@ const ApiActivityRoute = ApiActivityRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/projects': typeof ApiProjectsRoute
   '/api/search': typeof ApiSearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/projects': typeof ApiProjectsRoute
   '/api/search': typeof ApiSearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/projects': typeof ApiProjectsRoute
   '/api/search': typeof ApiSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/activity' | '/api/search'
+  fullPaths: '/' | '/api/activity' | '/api/projects' | '/api/search'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/activity' | '/api/search'
-  id: '__root__' | '/' | '/api/activity' | '/api/search'
+  to: '/' | '/api/activity' | '/api/projects' | '/api/search'
+  id: '__root__' | '/' | '/api/activity' | '/api/projects' | '/api/search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiActivityRoute: typeof ApiActivityRoute
+  ApiProjectsRoute: typeof ApiProjectsRoute
   ApiSearchRoute: typeof ApiSearchRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/projects': {
+      id: '/api/projects'
+      path: '/api/projects'
+      fullPath: '/api/projects'
+      preLoaderRoute: typeof ApiProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/activity': {
       id: '/api/activity'
       path: '/api/activity'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiActivityRoute: ApiActivityRoute,
+  ApiProjectsRoute: ApiProjectsRoute,
   ApiSearchRoute: ApiSearchRoute,
 }
 export const routeTree = rootRouteImport

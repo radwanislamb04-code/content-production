@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
+import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const ApiActivityRoute = ApiActivityRouteImport.update({
   path: '/api/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
+  id: '/api/library/$type',
+  path: '/api/library/$type',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/library/$type': typeof ApiLibraryTypeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/library/$type': typeof ApiLibraryTypeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,30 @@ export interface FileRoutesById {
   '/api/activity': typeof ApiActivityRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/library/$type': typeof ApiLibraryTypeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/activity' | '/api/projects' | '/api/search'
+  fullPaths:
+    | '/'
+    | '/api/activity'
+    | '/api/projects'
+    | '/api/search'
+    | '/api/library/$type'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/activity' | '/api/projects' | '/api/search'
-  id: '__root__' | '/' | '/api/activity' | '/api/projects' | '/api/search'
+  to:
+    | '/'
+    | '/api/activity'
+    | '/api/projects'
+    | '/api/search'
+    | '/api/library/$type'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/activity'
+    | '/api/projects'
+    | '/api/search'
+    | '/api/library/$type'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +92,7 @@ export interface RootRouteChildren {
   ApiActivityRoute: typeof ApiActivityRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiSearchRoute: typeof ApiSearchRoute
+  ApiLibraryTypeRoute: typeof ApiLibraryTypeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/library/$type': {
+      id: '/api/library/$type'
+      path: '/api/library/$type'
+      fullPath: '/api/library/$type'
+      preLoaderRoute: typeof ApiLibraryTypeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +140,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiActivityRoute: ApiActivityRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiSearchRoute: ApiSearchRoute,
+  ApiLibraryTypeRoute: ApiLibraryTypeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

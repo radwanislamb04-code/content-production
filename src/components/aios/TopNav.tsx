@@ -11,11 +11,13 @@ export function TopNav({
   activeTab,
   onTabChange,
   onMenu,
+  hasUnread = true,
 }: {
   title: string;
   activeTab: TabId;
   onTabChange: (t: TabId) => void;
   onMenu?: () => void;
+  hasUnread?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
 import type { TabId } from "../TopNav";
@@ -290,3 +291,48 @@ function AIActivity() {
   );
 }
 
+
+function TelegramTasks() {
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+
+  const toggle = (id: string) =>
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
+    );
+
+  return (
+    <Card className="p-5">
+      <div className="mb-1 text-xs uppercase tracking-wide text-mute">
+        From Telegram
+      </div>
+      <div className="text-sm font-semibold text-fg">Today's Tasks</div>
+      <div className="mt-3 space-y-2">
+        {tasks.map((t) => (
+          <label
+            key={t.id}
+            className="flex cursor-pointer items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
+          >
+            <input
+              type="checkbox"
+              checked={t.completed}
+              onChange={() => toggle(t.id)}
+              className="h-4 w-4 accent-[#52FF2E]"
+            />
+            <span
+              className={
+                t.completed
+                  ? "flex-1 text-mute line-through opacity-60"
+                  : "flex-1 text-fg"
+              }
+            >
+              {t.text}
+            </span>
+            <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
+              {t.time}
+            </span>
+          </label>
+        ))}
+      </div>
+    </Card>
+  );
+}

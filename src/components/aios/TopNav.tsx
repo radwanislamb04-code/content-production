@@ -76,7 +76,12 @@ export function TopNav({
               >
                 <Bell size={16} />
               </button>
-              <span className="pointer-events-none absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-lime shadow-[0_0_6px_#52FF2E] sm:right-1.5 sm:top-1.5" />
+              {hasUnread && (
+                <span className="pointer-events-none absolute right-2.5 top-2.5 h-2 w-2 sm:right-1.5 sm:top-1.5">
+                  <span className="absolute inset-0 rounded-full bg-lime aios-ripple" />
+                  <span className="absolute inset-0 rounded-full bg-lime shadow-[0_0_6px_#52FF2E]" />
+                </span>
+              )}
             </div>
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-lime bg-surface text-xs font-semibold text-fg">
               EN

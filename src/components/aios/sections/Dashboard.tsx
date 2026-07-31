@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
 import type { TabId } from "../TopNav";
@@ -38,11 +39,13 @@ const PIPELINE: {
   { label: "Planner", status: "empty", icon: Calendar },
 ];
 
-const TASKS = [
-  { text: "Review 3 competitor reels", time: "10:00", done: true },
-  { text: "Approve script draft for Ep. 12", time: "13:30", done: false },
-  { text: "Post scheduled Reel", time: "18:00", done: false },
-  { text: "Reply to DMs bucket", time: "20:00", done: false },
+type Task = { id: string; text: string; time: string; completed: boolean };
+
+const INITIAL_TASKS: Task[] = [
+  { id: "t1", text: "Review 3 competitor reels", time: "10:00", completed: true },
+  { id: "t2", text: "Approve script draft for Ep. 12", time: "13:30", completed: false },
+  { id: "t3", text: "Post scheduled Reel", time: "18:00", completed: false },
+  { id: "t4", text: "Reply to DMs bucket", time: "20:00", completed: false },
 ];
 
 const RECENT = [
@@ -220,34 +223,7 @@ export function Dashboard({
 
         <AIActivity />
 
-        <Card className="p-5">
-          <div className="mb-1 text-xs uppercase tracking-wide text-mute">
-            From Telegram
-          </div>
-          <div className="text-sm font-semibold text-fg">Today's Tasks</div>
-          <div className="mt-3 space-y-2">
-            {TASKS.map((t, i) => (
-              <label
-                key={i}
-                className="flex items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  defaultChecked={t.done}
-                  className="h-4 w-4 accent-[#52FF2E]"
-                />
-                <span
-                  className={`flex-1 ${t.done ? "text-mute line-through" : "text-fg"}`}
-                >
-                  {t.text}
-                </span>
-                <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
-                  {t.time}
-                </span>
-              </label>
-            ))}
-          </div>
-        </Card>
+        <TelegramTasks />
       </div>
     </div>
   );
@@ -315,3 +291,48 @@ function AIActivity() {
   );
 }
 
+
+function TelegramTasks() {
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+
+  const toggle = (id: string) =>
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
+    );
+
+  return (
+    <Card className="p-5">
+      <div className="mb-1 text-xs uppercase tracking-wide text-mute">
+        From Telegram
+      </div>
+      <div className="text-sm font-semibold text-fg">Today's Tasks</div>
+      <div className="mt-3 space-y-2">
+        {tasks.map((t) => (
+          <label
+            key={t.id}
+            className="flex cursor-pointer items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
+          >
+            <input
+              type="checkbox"
+              checked={t.completed}
+              onChange={() => toggle(t.id)}
+              className="h-4 w-4 accent-[#52FF2E]"
+            />
+            <span
+              className={
+                t.completed
+                  ? "flex-1 text-mute line-through opacity-60"
+                  : "flex-1 text-fg"
+              }
+            >
+              {t.text}
+            </span>
+            <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
+              {t.time}
+            </span>
+          </label>
+        ))}
+      </div>
+    </Card>
+  );
+}

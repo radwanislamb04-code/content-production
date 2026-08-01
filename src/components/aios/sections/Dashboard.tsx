@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
 import type { TabId } from "../TopNav";
@@ -57,11 +57,13 @@ const RECENT = [
   { icon: Video, title: "Analyzed — Podcast transcript", time: "2d ago" },
 ];
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good Morning";
-  if (h < 18) return "Good Afternoon";
-  return "Good Evening";
+function useGreeting() {
+  const [text, setText] = useState("Hello");
+  useEffect(() => {
+    const h = new Date().getHours();
+    setText(h < 12 ? "Good Morning" : h < 18 ? "Good Afternoon" : "Good Evening");
+  }, []);
+  return text;
 }
 
 export function Dashboard({
@@ -71,6 +73,7 @@ export function Dashboard({
   onNav: (id: SectionId) => void;
   onTab: (t: TabId) => void;
 }) {
+  const greeting = useGreeting();
   const QUICK: { label: string; Icon: typeof Plus; onClick: () => void }[] = [
     {
       label: "New Project",
@@ -95,7 +98,7 @@ export function Dashboard({
       <div className="min-w-0 space-y-5">
         <div>
           <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">
-            {greeting()}, Enzo
+            {greeting}, Enzo
           </h1>
           <p className="mt-1 text-sm text-mute">
             Personal AI Content Operating System

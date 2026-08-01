@@ -17,6 +17,7 @@ import { Settings } from "@/components/aios/sections/Settings";
 import { Projects } from "@/components/aios/sections/Projects";
 import { Templates } from "@/components/aios/sections/Templates";
 import { Library } from "@/components/aios/sections/Library";
+import { Resources } from "@/components/aios/sections/Resources";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -85,6 +86,7 @@ function App() {
             <Templates onNav={setSection} onTab={setTab} />
           )}
           {tab === "Library" && <Library />}
+          {tab === "Resources" && <Resources />}
 
           {tab === "Dashboard" && (
             <>

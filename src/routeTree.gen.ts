@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiSearchRoute = ApiSearchRouteImport.update({
   id: '/api/search',
   path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResourcesRoute = ApiResourcesRouteImport.update({
+  id: '/api/resources',
+  path: '/api/resources',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiProjectsRoute = ApiProjectsRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/projects': typeof ApiProjectsRoute
+  '/api/resources': typeof ApiResourcesRoute
   '/api/search': typeof ApiSearchRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/projects': typeof ApiProjectsRoute
+  '/api/resources': typeof ApiResourcesRoute
   '/api/search': typeof ApiSearchRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/projects': typeof ApiProjectsRoute
+  '/api/resources': typeof ApiResourcesRoute
   '/api/search': typeof ApiSearchRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/activity'
     | '/api/projects'
+    | '/api/resources'
     | '/api/search'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/activity'
     | '/api/projects'
+    | '/api/resources'
     | '/api/search'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/activity'
     | '/api/projects'
+    | '/api/resources'
     | '/api/search'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiActivityRoute: typeof ApiActivityRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
+  ApiResourcesRoute: typeof ApiResourcesRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiLibraryTypeRoute: typeof ApiLibraryTypeRouteWithChildren
   ApiWorkspaceSelected_ideaRoute: typeof ApiWorkspaceSelected_ideaRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/api/search'
       fullPath: '/api/search'
       preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/resources': {
+      id: '/api/resources'
+      path: '/api/resources'
+      fullPath: '/api/resources'
+      preLoaderRoute: typeof ApiResourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/projects': {
@@ -191,6 +211,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiActivityRoute: ApiActivityRoute,
   ApiProjectsRoute: ApiProjectsRoute,
+  ApiResourcesRoute: ApiResourcesRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiLibraryTypeRoute: ApiLibraryTypeRouteWithChildren,
   ApiWorkspaceSelected_ideaRoute: ApiWorkspaceSelected_ideaRoute,

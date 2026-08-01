@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, Bell, X, Menu } from "lucide-react";
 
-export const TABS = ["Dashboard", "Projects", "Templates", "Library"] as const;
+export const TABS = [
+  "Dashboard",
+  "Projects",
+  "Templates",
+  "Library",
+  "Resources",
+] as const;
 export type TabId = (typeof TABS)[number];
 
 type SearchResult = { id: string; title: string; module: string; date: string };

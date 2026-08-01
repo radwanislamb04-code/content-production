@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS resources (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  category TEXT NOT NULL,
+  iframe INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL
+);

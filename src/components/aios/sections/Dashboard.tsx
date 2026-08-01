@@ -73,6 +73,7 @@ export function Dashboard({
   onNav: (id: SectionId) => void;
   onTab: (t: TabId) => void;
 }) {
+  const greeting = useGreeting();
   const QUICK: { label: string; Icon: typeof Plus; onClick: () => void }[] = [
     {
       label: "New Project",
@@ -97,7 +98,7 @@ export function Dashboard({
       <div className="min-w-0 space-y-5">
         <div>
           <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">
-            {greeting()}, Enzo
+            {greeting}, Enzo
           </h1>
           <p className="mt-1 text-sm text-mute">
             Personal AI Content Operating System

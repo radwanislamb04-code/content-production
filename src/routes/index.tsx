@@ -86,6 +86,7 @@ function App() {
             <Templates onNav={setSection} onTab={setTab} />
           )}
           {tab === "Library" && <Library />}
+          {tab === "Resources" && <Resources />}
 
           {tab === "Dashboard" && (
             <>

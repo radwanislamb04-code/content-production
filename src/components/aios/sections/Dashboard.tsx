@@ -57,11 +57,13 @@ const RECENT = [
   { icon: Video, title: "Analyzed — Podcast transcript", time: "2d ago" },
 ];
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good Morning";
-  if (h < 18) return "Good Afternoon";
-  return "Good Evening";
+function useGreeting() {
+  const [text, setText] = useState("Hello");
+  useEffect(() => {
+    const h = new Date().getHours();
+    setText(h < 12 ? "Good Morning" : h < 18 ? "Good Afternoon" : "Good Evening");
+  }, []);
+  return text;
 }
 
 export function Dashboard({

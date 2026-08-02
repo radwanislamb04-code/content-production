@@ -26,22 +26,6 @@ const STATIC_SITES: Site[] = [
     description: "Clean, ad-free downloader for most social platforms.",
   },
   {
-    id: "snapsave",
-    name: "SnapSave.app",
-    url: "https://snapsave.app",
-    category: "Video Download",
-    iframe: false,
-    description: "Grab Facebook and Instagram videos in HD.",
-  },
-  {
-    id: "ssyoutube",
-    name: "SSYouTube.com",
-    url: "https://ssyoutube.com",
-    category: "Video Download",
-    iframe: false,
-    description: "YouTube downloads by editing the video URL.",
-  },
-  {
     id: "savefrom",
     name: "SaveFrom.net",
     url: "https://savefrom.net",

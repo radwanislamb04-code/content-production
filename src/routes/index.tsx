@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Sidebar, type SectionId } from "@/components/aios/Sidebar";
-import { TopNav, type TabId } from "@/components/aios/TopNav";
+import { TopNav, TABS, type TabId } from "@/components/aios/TopNav";
 import { Dashboard } from "@/components/aios/sections/Dashboard";
 import { Discover } from "@/components/aios/sections/Discover";
 import { VideoAnalyzer } from "@/components/aios/sections/VideoAnalyzer";
@@ -19,7 +19,36 @@ import { Templates } from "@/components/aios/sections/Templates";
 import { Library } from "@/components/aios/sections/Library";
 import { Resources } from "@/components/aios/sections/Resources";
 
+const SECTIONS = [
+  "dashboard",
+  "discover",
+  "analyzer",
+  "script",
+  "storyboard",
+  "prompt",
+  "planner",
+  "analyst",
+  "score",
+  "dm",
+  "autopilot",
+  "settings",
+] as const;
+
+type AppSearch = { section: SectionId; tab: TabId };
+
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): AppSearch => {
+    const section = String(search.section ?? "");
+    const tab = String(search.tab ?? "");
+    return {
+      section: (SECTIONS as readonly string[]).includes(section)
+        ? (section as SectionId)
+        : "dashboard",
+      tab: (TABS as readonly string[]).includes(tab)
+        ? (tab as TabId)
+        : "Dashboard",
+    };
+  },
   head: () => ({
     meta: [
       { title: "AI Content OS — Plan, Script & Ship Content" },
@@ -43,7 +72,7 @@ const TITLES: Record<SectionId, string> = {
   dashboard: "Dashboard",
   discover: "Ideator",
   analyzer: "Video Analyzer",
-  script: "Script + Hook",
+  script: "Script & Hook",
   storyboard: "Storyboard",
   prompt: "Video Prompt",
   planner: "Planner",
@@ -55,13 +84,19 @@ const TITLES: Record<SectionId, string> = {
 };
 
 function App() {
-  const [section, setSection] = useState<SectionId>("dashboard");
-  const [tab, setTab] = useState<TabId>("Dashboard");
+  const { section, tab } = Route.useSearch() as AppSearch;
+  const navigateRoute = useNavigate({ from: "/" });
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const setSection = (id: SectionId) => {
+    navigateRoute({ search: (prev: AppSearch) => ({ ...prev, section: id }) });
+  };
+  const setTab = (t: TabId) => {
+    navigateRoute({ search: (prev: AppSearch) => ({ ...prev, tab: t }) });
+  };
+
   const navigate = (id: SectionId) => {
-    setSection(id);
-    setTab("Dashboard");
+    navigateRoute({ search: { section: id, tab: "Dashboard" } });
     setMenuOpen(false);
   };
 

@@ -26,6 +26,14 @@ const STATIC_SITES: Site[] = [
     description: "Clean, ad-free downloader for most social platforms.",
   },
   {
+    id: "savefrom",
+    name: "SaveFrom.net",
+    url: "https://savefrom.net",
+    category: "Video Download",
+    iframe: false,
+    description: "Multi-site downloader with format options.",
+  },
+  {
     id: "google-trends",
     name: "Google Trends",
     url: "https://trends.google.com/trends/",

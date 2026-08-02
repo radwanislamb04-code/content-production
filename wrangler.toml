@@ -2,14 +2,15 @@ name = "content-production"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+[[triggers.crons]]
+crons = ["0 6 * * *", "0 18 * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "content-os-db"
 database_id = "25b209b2-1213-44c5-8b5f-1726001a3443"
+migrations_dir = "migrations"
 
 [[kv_namespaces]]
 binding = "KV"
 id = "e9050d4f59524e32a0b783a4b1a95384"
-
-[[triggers.crons]]
-crons = ["0 6 * * *", "0 18 * * *"]

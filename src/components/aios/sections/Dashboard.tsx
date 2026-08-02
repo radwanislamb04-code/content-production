@@ -3,6 +3,7 @@ import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
 import type { TabId } from "../TopNav";
 import { useApi } from "@/hooks/useApi";
+import { ProductivityPanel } from "../widgets/ProductivityPanel";
 import {
   Lightbulb,
   PenLine,

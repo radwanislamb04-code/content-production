@@ -4,7 +4,8 @@ const BATCH_LIMIT = 10;
 
 export const Route = createFileRoute("/api/telegram-cron")({
   server: {
-    POST: async ({ request, context }) => {
+    handlers: {
+      POST: async ({ request, context }) => {
       const db = (context as any).cloudflare?.env?.DB;
       const kv = (context as any).cloudflare?.env?.KV;
       const now = new Date().toISOString();
@@ -136,6 +137,7 @@ export const Route = createFileRoute("/api/telegram-cron")({
         failed: failed.length,
         message: `Sent ${sent} of ${tasks.length} tasks`,
       });
+    },
     },
   },
 });

@@ -84,7 +84,7 @@ const TITLES: Record<SectionId, string> = {
 };
 
 function App() {
-  const { section, tab } = Route.useSearch();
+  const { section, tab } = Route.useSearch() as AppSearch;
   const navigateRoute = useNavigate({ from: "/" });
   const [menuOpen, setMenuOpen] = useState(false);
 

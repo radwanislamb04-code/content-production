@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Sidebar, type SectionId } from "@/components/aios/Sidebar";
-import { TopNav, type TabId } from "@/components/aios/TopNav";
+import { TopNav, TABS, type TabId } from "@/components/aios/TopNav";
 import { Dashboard } from "@/components/aios/sections/Dashboard";
 import { Discover } from "@/components/aios/sections/Discover";
 import { VideoAnalyzer } from "@/components/aios/sections/VideoAnalyzer";

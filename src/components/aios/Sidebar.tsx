@@ -69,7 +69,7 @@ export function Sidebar({
       <div className="flex flex-col gap-1 px-3">
         <div className="mb-2 flex items-center gap-2 pb-4 pl-4 pr-4 pt-5">
           <img
-            src={jepyLogo.url}
+            src="/jepy-logo.webp"
             alt="Jepy Labs logo"
             width={32}
             height={32}

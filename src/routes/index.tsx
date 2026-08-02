@@ -89,10 +89,10 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const setSection = (id: SectionId) => {
-    navigateRoute({ search: (prev) => ({ ...prev, section: id }) });
+    navigateRoute({ search: (prev: AppSearch) => ({ ...prev, section: id }) });
   };
   const setTab = (t: TabId) => {
-    navigateRoute({ search: (prev) => ({ ...prev, tab: t }) });
+    navigateRoute({ search: (prev: AppSearch) => ({ ...prev, tab: t }) });
   };
 
   const navigate = (id: SectionId) => {

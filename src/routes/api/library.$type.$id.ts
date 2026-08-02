@@ -36,6 +36,8 @@ export const Route = createFileRoute("/api/library/$type/$id")({
         const fields: Record<string, any> = {};
         if (typeof body.title === "string") fields.title = body.title;
         if (typeof body.content === "string") fields.content = body.content;
+        if (typeof body.quality_score === "number") fields.quality_score = body.quality_score;
+        if (typeof body.quality_analysis === "string") fields.quality_analysis = body.quality_analysis;
         if (Object.keys(fields).length === 0) {
           return new Response("Invalid body", { status: 400 });
         }

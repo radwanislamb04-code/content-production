@@ -139,7 +139,7 @@ export function WeatherCard() {
 
   return (
     <div className="aios-glass relative overflow-hidden rounded-xl border border-line bg-gradient-to-br from-[#101513] to-[#0A0E0C] p-4">
-      <div className="pointer-events-none absolute -left-8 bottom--8 h-24 w-24 rounded-full bg-[rgba(82,255,46,0.08)] blur-2xl" />
+      <div className="pointer-events-none absolute -left-8 -bottom-8 h-24 w-24 rounded-full bg-[rgba(82,255,46,0.08)] blur-2xl" />
 
       {loading ? (
         <div className="space-y-3">

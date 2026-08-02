@@ -1,4 +1,3 @@
-import jepyLogo from "@/assets/jepy-logo.webp.asset.json";
 import {
   LayoutDashboard,
   Lightbulb,
@@ -31,14 +30,14 @@ export type SectionId =
 const NAV: { id: SectionId; label: string; Icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { id: "discover", label: "Ideator", Icon: Lightbulb },
-  { id: "analyzer", label: "Video analyzer", Icon: Video },
-  { id: "script", label: "Script + hook", Icon: PenLine },
+  { id: "analyzer", label: "Video Analyzer", Icon: Video },
+  { id: "script", label: "Script & Hook", Icon: PenLine },
   { id: "storyboard", label: "Storyboard", Icon: LayoutPanelLeft },
-  { id: "prompt", label: "Video prompt", Icon: Film },
+  { id: "prompt", label: "Video Prompt", Icon: Film },
   { id: "planner", label: "Planner", Icon: Calendar },
   { id: "analyst", label: "Analyst", Icon: BarChart2 },
-  { id: "score", label: "Content score", Icon: Star },
-  { id: "dm", label: "DM manager", Icon: MessageCircle },
+  { id: "score", label: "Content Score", Icon: Star },
+  { id: "dm", label: "DM Manager", Icon: MessageCircle },
   { id: "autopilot", label: "AutoPilot", Icon: Bot },
 ];
 
@@ -70,7 +69,7 @@ export function Sidebar({
       <div className="flex flex-col gap-1 px-3">
         <div className="mb-2 flex items-center gap-2 pb-4 pl-4 pr-4 pt-5">
           <img
-            src={jepyLogo.url}
+            src="/jepy-logo.webp"
             alt="Jepy Labs logo"
             width={32}
             height={32}

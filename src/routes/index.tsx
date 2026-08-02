@@ -19,7 +19,36 @@ import { Templates } from "@/components/aios/sections/Templates";
 import { Library } from "@/components/aios/sections/Library";
 import { Resources } from "@/components/aios/sections/Resources";
 
+const SECTIONS = [
+  "dashboard",
+  "discover",
+  "analyzer",
+  "script",
+  "storyboard",
+  "prompt",
+  "planner",
+  "analyst",
+  "score",
+  "dm",
+  "autopilot",
+  "settings",
+] as const;
+
+type AppSearch = { section: SectionId; tab: TabId };
+
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): AppSearch => {
+    const section = String(search.section ?? "");
+    const tab = String(search.tab ?? "");
+    return {
+      section: (SECTIONS as readonly string[]).includes(section)
+        ? (section as SectionId)
+        : "dashboard",
+      tab: (TABS as readonly string[]).includes(tab)
+        ? (tab as TabId)
+        : "Dashboard",
+    };
+  },
   head: () => ({
     meta: [
       { title: "AI Content OS — Plan, Script & Ship Content" },
@@ -43,7 +72,7 @@ const TITLES: Record<SectionId, string> = {
   dashboard: "Dashboard",
   discover: "Ideator",
   analyzer: "Video Analyzer",
-  script: "Script + Hook",
+  script: "Script & Hook",
   storyboard: "Storyboard",
   prompt: "Video Prompt",
   planner: "Planner",
@@ -55,13 +84,19 @@ const TITLES: Record<SectionId, string> = {
 };
 
 function App() {
-  const [section, setSection] = useState<SectionId>("dashboard");
-  const [tab, setTab] = useState<TabId>("Dashboard");
+  const { section, tab } = Route.useSearch();
+  const navigateRoute = useNavigate({ from: "/" });
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const setSection = (id: SectionId) => {
+    navigateRoute({ search: (prev) => ({ ...prev, section: id }) });
+  };
+  const setTab = (t: TabId) => {
+    navigateRoute({ search: (prev) => ({ ...prev, tab: t }) });
+  };
+
   const navigate = (id: SectionId) => {
-    setSection(id);
-    setTab("Dashboard");
+    navigateRoute({ search: { section: id, tab: "Dashboard" } });
     setMenuOpen(false);
   };
 

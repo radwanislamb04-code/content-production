@@ -3,6 +3,7 @@ import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
 import type { TabId } from "../TopNav";
 import { useApi } from "@/hooks/useApi";
+import { ProductivityPanel } from "../widgets/ProductivityPanel";
 import {
   Lightbulb,
   PenLine,
@@ -96,13 +97,16 @@ export function Dashboard({
     <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       {/* ---------- Left column ---------- */}
       <div className="min-w-0 space-y-5">
-        <div>
-          <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">
-            {greeting}, Enzo
-          </h1>
-          <p className="mt-1 text-sm text-mute">
-            Personal AI Content Operating System
-          </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_320px] md:items-start">
+          <div>
+            <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">
+              {greeting}, Enzo
+            </h1>
+            <p className="mt-1 text-sm text-mute">
+              Personal AI Content Operating System
+            </p>
+          </div>
+          <ProductivityPanel />
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

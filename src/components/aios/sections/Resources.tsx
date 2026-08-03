@@ -306,7 +306,7 @@ function PreviewModal({ site, onClose }: { site: Site; onClose: () => void }) {
   useEffect(() => {
     setLoaded(false);
     setFailed(false);
-    timer.current = setTimeout(() => setFailed((f) => (loaded ? f : true)), 12000);
+    timer.current = setTimeout(() => setFailed(true), 12000);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };

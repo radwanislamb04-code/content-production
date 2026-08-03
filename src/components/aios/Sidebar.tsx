@@ -67,7 +67,16 @@ export function Sidebar({
         }`}
       >
       <div className="flex flex-col gap-1 px-3">
-        <div className="mb-2 flex items-center gap-2 pb-4 pl-4 pr-4 pt-5">
+        <button
+          type="button"
+          onClick={() => {
+            onSelect("dashboard");
+            onClose?.();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          aria-label="Go to Dashboard"
+          className="mb-2 flex items-center gap-2 rounded-md pb-4 pl-4 pr-4 pt-5 text-left transition-opacity hover:opacity-80"
+        >
           <img
             src="/jepy-logo.webp"
             alt="Jepy Labs logo"
@@ -78,7 +87,8 @@ export function Sidebar({
           <span className="truncate text-[15px] font-semibold text-fg">
             Jepy<span className="text-lime">Labs</span>
           </span>
-        </div>
+        </button>
+
 
         {NAV.map((n) => (
           <NavItem

@@ -14,6 +14,7 @@ import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
+import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
 import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
@@ -44,6 +45,11 @@ const ApiProjectsRoute = ApiProjectsRouteImport.update({
   path: '/api/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
+  id: '/api/embed-check',
+  path: '/api/embed-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiActivityRoute = ApiActivityRouteImport.update({
   id: '/api/activity',
   path: '/api/activity',
@@ -69,6 +75,7 @@ const ApiLibraryTypeIdRoute = ApiLibraryTypeIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/search': typeof ApiSearchRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/search': typeof ApiSearchRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/search': typeof ApiSearchRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api/activity'
+    | '/api/embed-check'
     | '/api/projects'
     | '/api/resources'
     | '/api/search'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api/activity'
+    | '/api/embed-check'
     | '/api/projects'
     | '/api/resources'
     | '/api/search'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/api/activity'
+    | '/api/embed-check'
     | '/api/projects'
     | '/api/resources'
     | '/api/search'
@@ -139,6 +151,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiActivityRoute: typeof ApiActivityRoute
+  ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiResourcesRoute: typeof ApiResourcesRoute
   ApiSearchRoute: typeof ApiSearchRoute
@@ -182,6 +195,13 @@ declare module '@tanstack/react-router' {
       path: '/api/projects'
       fullPath: '/api/projects'
       preLoaderRoute: typeof ApiProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/embed-check': {
+      id: '/api/embed-check'
+      path: '/api/embed-check'
+      fullPath: '/api/embed-check'
+      preLoaderRoute: typeof ApiEmbedCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/activity': {
@@ -230,6 +250,7 @@ const ApiLibraryTypeRouteWithChildren = ApiLibraryTypeRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiActivityRoute: ApiActivityRoute,
+  ApiEmbedCheckRoute: ApiEmbedCheckRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiResourcesRoute: ApiResourcesRoute,
   ApiSearchRoute: ApiSearchRoute,

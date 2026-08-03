@@ -401,7 +401,10 @@ function PreviewModal({ site, onClose }: { site: Site; onClose: () => void }) {
                 loading="lazy"
                 referrerPolicy="no-referrer"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                onLoad={() => setLoaded(true)}
+                onLoad={() => {
+                  if (timer.current) clearTimeout(timer.current);
+                  setLoaded(true);
+                }}
                 className="h-full w-full border-0 bg-surface"
               />
             </>

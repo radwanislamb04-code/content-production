@@ -3,7 +3,9 @@ import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
 import type { TabId } from "../TopNav";
 import { useApi } from "@/hooks/useApi";
-import { ProductivityPanel } from "../widgets/ProductivityPanel";
+import { HeroClock } from "../widgets/HeroClock";
+import { QuoteBar } from "../widgets/QuoteBar";
+
 import {
   Lightbulb,
   PenLine,
@@ -97,17 +99,20 @@ export function Dashboard({
     <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       {/* ---------- Left column ---------- */}
       <div className="min-w-0 space-y-5">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_320px] md:items-start">
-          <div>
-            <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-[clamp(1.4rem,5.5vw,1.6rem)] font-semibold leading-tight text-fg">
               {greeting}, Enzo
             </h1>
-            <p className="mt-1 text-sm text-mute">
+            <p className="mt-0.5 text-sm text-mute">
               Personal AI Content Operating System
             </p>
           </div>
-          <ProductivityPanel />
+          <HeroClock />
         </div>
+
+        <QuoteBar />
+
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {STATS.map((s) => (

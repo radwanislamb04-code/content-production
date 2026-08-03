@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
-const CATEGORIES = ["Video Download", "Trends", "Creator Research"] as const;
+const CATEGORIES = [
+  "Video Download",
+  "Trends",
+  "Creator Research",
+  "Writing",
+  "AI Tools",
+  "AI Video",
+] as const;
 
 const bodySchema = z.object({
   url: z.string().trim().url().max(500),

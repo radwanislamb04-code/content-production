@@ -10,14 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
-import { Route as ApiSearchRouteImport } from './routes/api/search'
-import { Route as ApiResourcesRouteImport } from './routes/api/resources'
-import { Route as ApiProjectsRouteImport } from './routes/api/projects'
-import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
-import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
+import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
+import { Route as ApiProjectsRouteImport } from './routes/api/projects'
+import { Route as ApiResourcesRouteImport } from './routes/api/resources'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
+import { Route as ApiTrendsRouteImport } from './routes/api/trends'
 import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
+import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
 import { Route as ApiLibraryTypeIdRouteImport } from './routes/api/library.$type.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -25,24 +26,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
-  id: '/api/telegram-cron',
-  path: '/api/telegram-cron',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSearchRoute = ApiSearchRouteImport.update({
-  id: '/api/search',
-  path: '/api/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiResourcesRoute = ApiResourcesRouteImport.update({
-  id: '/api/resources',
-  path: '/api/resources',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiProjectsRoute = ApiProjectsRouteImport.update({
-  id: '/api/projects',
-  path: '/api/projects',
+const ApiActivityRoute = ApiActivityRouteImport.update({
+  id: '/api/activity',
+  path: '/api/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
@@ -50,9 +36,34 @@ const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
   path: '/api/embed-check',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiActivityRoute = ApiActivityRouteImport.update({
-  id: '/api/activity',
-  path: '/api/activity',
+const ApiProjectsRoute = ApiProjectsRouteImport.update({
+  id: '/api/projects',
+  path: '/api/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResourcesRoute = ApiResourcesRouteImport.update({
+  id: '/api/resources',
+  path: '/api/resources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
+  id: '/api/telegram-cron',
+  path: '/api/telegram-cron',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrendsRoute = ApiTrendsRouteImport.update({
+  id: '/api/trends',
+  path: '/api/trends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
+  id: '/api/library/$type',
+  path: '/api/library/$type',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWorkspaceSelected_ideaRoute =
@@ -61,11 +72,6 @@ const ApiWorkspaceSelected_ideaRoute =
     path: '/api/workspace/selected_idea',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
-  id: '/api/library/$type',
-  path: '/api/library/$type',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiLibraryTypeIdRoute = ApiLibraryTypeIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/api/resources': typeof ApiResourcesRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/trends': typeof ApiTrendsRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/api/resources': typeof ApiResourcesRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/trends': typeof ApiTrendsRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/api/resources': typeof ApiResourcesRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/trends': typeof ApiTrendsRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/api/resources'
     | '/api/search'
     | '/api/telegram-cron'
+    | '/api/trends'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/api/resources'
     | '/api/search'
     | '/api/telegram-cron'
+    | '/api/trends'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/api/resources'
     | '/api/search'
     | '/api/telegram-cron'
+    | '/api/trends'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   ApiResourcesRoute: typeof ApiResourcesRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
+  ApiTrendsRoute: typeof ApiTrendsRoute
   ApiLibraryTypeRoute: typeof ApiLibraryTypeRouteWithChildren
   ApiWorkspaceSelected_ideaRoute: typeof ApiWorkspaceSelected_ideaRoute
 }
@@ -169,32 +182,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/telegram-cron': {
-      id: '/api/telegram-cron'
-      path: '/api/telegram-cron'
-      fullPath: '/api/telegram-cron'
-      preLoaderRoute: typeof ApiTelegramCronRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/search': {
-      id: '/api/search'
-      path: '/api/search'
-      fullPath: '/api/search'
-      preLoaderRoute: typeof ApiSearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/resources': {
-      id: '/api/resources'
-      path: '/api/resources'
-      fullPath: '/api/resources'
-      preLoaderRoute: typeof ApiResourcesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/projects': {
-      id: '/api/projects'
-      path: '/api/projects'
-      fullPath: '/api/projects'
-      preLoaderRoute: typeof ApiProjectsRouteImport
+    '/api/activity': {
+      id: '/api/activity'
+      path: '/api/activity'
+      fullPath: '/api/activity'
+      preLoaderRoute: typeof ApiActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/embed-check': {
@@ -204,18 +196,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEmbedCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/activity': {
-      id: '/api/activity'
-      path: '/api/activity'
-      fullPath: '/api/activity'
-      preLoaderRoute: typeof ApiActivityRouteImport
+    '/api/projects': {
+      id: '/api/projects'
+      path: '/api/projects'
+      fullPath: '/api/projects'
+      preLoaderRoute: typeof ApiProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/workspace/selected_idea': {
-      id: '/api/workspace/selected_idea'
-      path: '/api/workspace/selected_idea'
-      fullPath: '/api/workspace/selected_idea'
-      preLoaderRoute: typeof ApiWorkspaceSelected_ideaRouteImport
+    '/api/resources': {
+      id: '/api/resources'
+      path: '/api/resources'
+      fullPath: '/api/resources'
+      preLoaderRoute: typeof ApiResourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/telegram-cron': {
+      id: '/api/telegram-cron'
+      path: '/api/telegram-cron'
+      fullPath: '/api/telegram-cron'
+      preLoaderRoute: typeof ApiTelegramCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/trends': {
+      id: '/api/trends'
+      path: '/api/trends'
+      fullPath: '/api/trends'
+      preLoaderRoute: typeof ApiTrendsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/library/$type': {
@@ -223,6 +236,13 @@ declare module '@tanstack/react-router' {
       path: '/api/library/$type'
       fullPath: '/api/library/$type'
       preLoaderRoute: typeof ApiLibraryTypeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/workspace/selected_idea': {
+      id: '/api/workspace/selected_idea'
+      path: '/api/workspace/selected_idea'
+      fullPath: '/api/workspace/selected_idea'
+      preLoaderRoute: typeof ApiWorkspaceSelected_ideaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/library/$type/$id': {
@@ -255,9 +275,20 @@ const rootRouteChildren: RootRouteChildren = {
   ApiResourcesRoute: ApiResourcesRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
+  ApiTrendsRoute: ApiTrendsRoute,
   ApiLibraryTypeRoute: ApiLibraryTypeRouteWithChildren,
   ApiWorkspaceSelected_ideaRoute: ApiWorkspaceSelected_ideaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

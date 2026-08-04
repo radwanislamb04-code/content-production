@@ -8,9 +8,10 @@ export const Route = createFileRoute("/api/trends")({
   server: {
     handlers: {
       GET: async ({ request, context }) => {
-        const kv = (context as any).cloudflare?.env?.KV;
-        const serApiKey = (context as any).cloudflare?.env?.SERPAPI_KEY;
-        const youtubeApiKey = (context as any).cloudflare?.env?.YOUTUBE_API_KEY;
+        const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
+        const kv = env?.KV;
+        const serApiKey = env?.SERPAPI_KEY;
+        const youtubeApiKey = env?.YOUTUBE_API_KEY;
 
         const url = new URL(request.url);
         const platform = url.searchParams.get("platform") ?? "google";

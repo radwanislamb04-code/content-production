@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
+import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
@@ -36,6 +37,11 @@ const ApiActivityRoute = ApiActivityRouteImport.update({
 const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
   id: '/api/embed-check',
   path: '/api/embed-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHookScriptWriterRoute = ApiHookScriptWriterRouteImport.update({
+  id: '/api/hook-script-writer',
+  path: '/api/hook-script-writer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
+  '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
+  '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
+  '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/activity'
     | '/api/embed-check'
+    | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/activity'
     | '/api/embed-check'
+    | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/activity'
     | '/api/embed-check'
+    | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiActivityRoute: typeof ApiActivityRoute
   ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
+  ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiResourcesRoute: typeof ApiResourcesRoute
@@ -220,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/api/embed-check'
       fullPath: '/api/embed-check'
       preLoaderRoute: typeof ApiEmbedCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/hook-script-writer': {
+      id: '/api/hook-script-writer'
+      path: '/api/hook-script-writer'
+      fullPath: '/api/hook-script-writer'
+      preLoaderRoute: typeof ApiHookScriptWriterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ideator-generate': {
@@ -311,6 +331,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiActivityRoute: ApiActivityRoute,
   ApiEmbedCheckRoute: ApiEmbedCheckRoute,
+  ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiResourcesRoute: ApiResourcesRoute,

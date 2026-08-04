@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
+import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
@@ -35,6 +36,11 @@ const ApiActivityRoute = ApiActivityRouteImport.update({
 const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
   id: '/api/embed-check',
   path: '/api/embed-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
+  id: '/api/ideator-generate',
+  path: '/api/ideator-generate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiProjectsRoute = ApiProjectsRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
+  '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
+  '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
+  '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/activity'
     | '/api/embed-check'
+    | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
     | '/api/scrape-competitor'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/activity'
     | '/api/embed-check'
+    | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
     | '/api/scrape-competitor'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/activity'
     | '/api/embed-check'
+    | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
     | '/api/scrape-competitor'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiActivityRoute: typeof ApiActivityRoute
   ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
+  ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiResourcesRoute: typeof ApiResourcesRoute
   ApiScrapeCompetitorRoute: typeof ApiScrapeCompetitorRoute
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/api/embed-check'
       fullPath: '/api/embed-check'
       preLoaderRoute: typeof ApiEmbedCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ideator-generate': {
+      id: '/api/ideator-generate'
+      path: '/api/ideator-generate'
+      fullPath: '/api/ideator-generate'
+      preLoaderRoute: typeof ApiIdeatorGenerateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/projects': {
@@ -291,6 +311,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiActivityRoute: ApiActivityRoute,
   ApiEmbedCheckRoute: ApiEmbedCheckRoute,
+  ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiResourcesRoute: ApiResourcesRoute,
   ApiScrapeCompetitorRoute: ApiScrapeCompetitorRoute,

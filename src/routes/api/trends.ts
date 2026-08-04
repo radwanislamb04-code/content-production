@@ -9,7 +9,8 @@ export const Route = createFileRoute("/api/trends")({
     handlers: {
       GET: async ({ request, context }) => {
         const kv = (context as any).cloudflare?.env?.KV;
-        const env = (context as any).cloudflare?.env ?? {};
+        const serApiKey = (context as any).cloudflare?.env?.SERPAPI_KEY;
+        const youtubeApiKey = (context as any).cloudflare?.env?.YOUTUBE_API_KEY;
 
         const url = new URL(request.url);
         const platform = url.searchParams.get("platform") ?? "google";
@@ -28,9 +29,9 @@ export const Route = createFileRoute("/api/trends")({
         let items: TrendItem[];
 
         if (platform === "google") {
-          items = await fetchGoogleTrends(env.SERPAPI_KEY);
+          items = await fetchGoogleTrends(serApiKey);
         } else if (platform === "youtube") {
-          items = await fetchYouTubeTrends(env.YOUTUBE_API_KEY);
+          items = await fetchYouTubeTrends(youtubeApiKey);
         } else {
           return Response.json(
             { error: "Invalid platform. Use ?platform=google|youtube" },

@@ -14,6 +14,7 @@ import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
+import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
@@ -44,6 +45,11 @@ const ApiProjectsRoute = ApiProjectsRouteImport.update({
 const ApiResourcesRoute = ApiResourcesRouteImport.update({
   id: '/api/resources',
   path: '/api/resources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiScrapeCompetitorRoute = ApiScrapeCompetitorRouteImport.update({
+  id: '/api/scrape-competitor',
+  path: '/api/scrape-competitor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSearchRoute = ApiSearchRouteImport.update({
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
+  '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
+  '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
+  '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/api/embed-check'
     | '/api/projects'
     | '/api/resources'
+    | '/api/scrape-competitor'
     | '/api/search'
     | '/api/telegram-cron'
     | '/api/trends'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/api/embed-check'
     | '/api/projects'
     | '/api/resources'
+    | '/api/scrape-competitor'
     | '/api/search'
     | '/api/telegram-cron'
     | '/api/trends'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/api/embed-check'
     | '/api/projects'
     | '/api/resources'
+    | '/api/scrape-competitor'
     | '/api/search'
     | '/api/telegram-cron'
     | '/api/trends'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiResourcesRoute: typeof ApiResourcesRoute
+  ApiScrapeCompetitorRoute: typeof ApiScrapeCompetitorRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/api/resources'
       fullPath: '/api/resources'
       preLoaderRoute: typeof ApiResourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/scrape-competitor': {
+      id: '/api/scrape-competitor'
+      path: '/api/scrape-competitor'
+      fullPath: '/api/scrape-competitor'
+      preLoaderRoute: typeof ApiScrapeCompetitorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/search': {
@@ -273,6 +293,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiEmbedCheckRoute: ApiEmbedCheckRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiResourcesRoute: ApiResourcesRoute,
+  ApiScrapeCompetitorRoute: ApiScrapeCompetitorRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
   ApiTrendsRoute: ApiTrendsRoute,

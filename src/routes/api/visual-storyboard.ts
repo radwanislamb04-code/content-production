@@ -31,6 +31,7 @@ type Shot = {
 
 // Full contents of .claude/skills/production-ready-storyboard-prompts.md embedded verbatim
 // as a system-level instruction. Keep in sync with the skill file.
+// NOTE: The "## OUTPUT FORMAT" section is deliberately stripped — the JSON-only override below takes precedence.
 const PRODUCTION_READY_STORYBOARD_PROMPTS_SKILL = `---
 name: production-ready-storyboard-prompts
 description: Generate copy-paste-ready storyboard prompts for AI image/video models. Use when user needs storyboard shots, scene prompts, or visual production plans. Supports ChatGPT Image, Nano Banana Pro, Runway, Kling, Sora, Pika.
@@ -48,39 +49,6 @@ Generate international-standard, copy-paste-ready storyboard prompts for AI imag
 - User wants prompts for AI image or video generation (ChatGPT Image, Nano Banana Pro, Runway, Kling, Sora, Pika, etc.)
 - User is producing social content, ads, short films, reels, or explainer videos
 - User wants to convert a script or concept into visual shots
-
----
-
-## OUTPUT FORMAT
-
-For each storyboard shot, output a structured block:
-
-\`\`\`
-### Shot [number] — [brief label]
-
-**Scene description:** [1-2 sentence narrative context]
-
-**Image prompt:**
-[Full detailed prompt ready to paste into the target model]
-
-**Negative prompt:** [if applicable]
-
-**Video/animation prompt:** [if video generation is needed]
-
-**Motion direction:** [camera and subject movement for video models]
-
-**Duration:** [suggested seconds]
-
-**Aspect ratio:** [e.g., 16:9, 9:16, 1:1]
-
-**Text overlay:** [any on-screen text, positioned to avoid safe zone conflicts]
-
-**Audio/SFX cue:** [background music mood, sound effects]
-
-**Transition to next:** [cut / dissolve / zoom / match cut / etc.]
-\`\`\`
-
-Omit fields that are not relevant to the specific project (e.g., skip video fields for image-only storyboards).
 
 ---
 

@@ -388,7 +388,7 @@ export const Route = createFileRoute("/api/visual-storyboard")({
         const anthropicUrl = `${String(baseUrl).replace(/\/$/, "")}/messages`;
         const requestPayload = {
           model: "auto",
-          max_tokens: 4096,
+          max_tokens: 8000,
           system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
         };

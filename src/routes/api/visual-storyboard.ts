@@ -136,51 +136,28 @@ ${characterRefs}`;
           return Response.json({ error: `Anthropic API error: ${res.status}`, detail: errorText }, { status: 502 });
         }
 
-        // --- Streaming pattern via TransformStream ---
-        // In Cloudflare Workers, fetch responses expose a ReadableStream body.
-        // We pipe that through a TransformStream: it passes chunks through
-        // (back to the client) while collecting the full text for parsing.
-
-        if (!res.body) {
-          return Response.json({ error: "Manifest response has no body" }, { status: 502 });
-        }
-
-        // Streaming collection via TransformStream (Cloudflare Workers pattern).
-        // We read chunks from the Manifest ReadableStream, pass them through
-        // a TransformStream (which also accumulates text), and then consume
-        // the transformed stream so flush fires synchronously.
-        const decoder = new TextDecoder();
-        let collectedText = "";
-
-        const streamTransform = new TransformStream({
-          transform(chunk, controller) {
-            // Pass through to keep stream alive for flush
-            controller.enqueue(chunk);
-            // Collect text for post-stream JSON parsing
-            collectedText += decoder.decode(chunk, { stream: true });
-          },
-          flush() {
-            collectedText += decoder.decode();
-          },
-        });
-
-        // Pipe the Manifest body through TransformStream and consume it
-        // so flush completes synchronously before we parse.
-        await res.body.pipeThrough(streamTransform).pipeTo(new WritableStream());
-        const rawBody = collectedText;
+        const data: { content?: Array<{ type: string; text?: string }> } = await res.json();
+        const rawBody = JSON.stringify(data);
 
         let shots: Shot[] = [];
+        let extractedText = "";
         try {
+          extractedText = (data.content ?? [])
+            .filter((b) => b.type === "text")
+            .map((b) => b.text ?? "")
+            .join("\n")
+            .trim();
+
           const fenceRegex = /```(?:json)?\s*\n?([\s\S]*?)\n?```/g;
           const candidates: string[] = [];
           let m: RegExpExecArray | null;
-          while ((m = fenceRegex.exec(rawBody)) !== null) {
+          while ((m = fenceRegex.exec(extractedText)) !== null) {
             candidates.push(m[1]);
           }
-          const firstOpen = rawBody.indexOf("{");
-          const lastClose = rawBody.lastIndexOf("}");
+          const firstOpen = extractedText.indexOf("{");
+          const lastClose = extractedText.lastIndexOf("}");
           if (firstOpen !== -1 && lastClose > firstOpen) {
-            candidates.push(rawBody.slice(firstOpen, lastClose + 1));
+            candidates.push(extractedText.slice(firstOpen, lastClose + 1));
           }
 
           for (const candidate of candidates) {
@@ -220,8 +197,16 @@ ${characterRefs}`;
               }
             }
           }
-        } catch {
-          // Leave shots empty
+        } catch (parseErr: any) {
+          console.error("JSON parse error after streaming:", parseErr);
+          return Response.json(
+            {
+              error: "Failed to parse storyboard shots from model response",
+              message: parseErr?.message ?? String(parseErr),
+              raw: rawBody,
+            },
+            { status: 502 },
+          );
         }
 
         if (shots.length === 0) {
@@ -257,8 +242,13 @@ ${characterRefs}`;
             )
             .run();
         } catch (err: any) {
+          console.error("D1 insert error after streaming:", err);
           return Response.json(
-            { error: `Failed to persist storyboard: ${err?.message ?? String(err)}` },
+            {
+              error: `Failed to persist storyboard: ${err?.message ?? String(err)}`,
+              message: err?.message ?? String(err),
+              raw: rawBody,
+            },
             { status: 500 },
           );
         }

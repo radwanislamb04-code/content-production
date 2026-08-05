@@ -11,16 +11,19 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
+import { Route as ApiCharactersRouteImport } from './routes/api/characters'
 import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
 import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
+import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
 import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
+import { Route as ApiVisualStoryboardRouteImport } from './routes/api/visual-storyboard'
 import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
 import { Route as ApiLibraryTypeIdRouteImport } from './routes/api/library.$type.$id'
@@ -33,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiActivityRoute = ApiActivityRouteImport.update({
   id: '/api/activity',
   path: '/api/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCharactersRoute = ApiCharactersRouteImport.update({
+  id: '/api/characters',
+  path: '/api/characters',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
@@ -65,6 +73,11 @@ const ApiScrapeCompetitorRoute = ApiScrapeCompetitorRouteImport.update({
   path: '/api/scrape-competitor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiScriptsListRoute = ApiScriptsListRouteImport.update({
+  id: '/api/scripts-list',
+  path: '/api/scripts-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSearchRoute = ApiSearchRouteImport.update({
   id: '/api/search',
   path: '/api/search',
@@ -83,6 +96,11 @@ const ApiTrendsRoute = ApiTrendsRouteImport.update({
 const ApiVideoAnalyzerRoute = ApiVideoAnalyzerRouteImport.update({
   id: '/api/video-analyzer',
   path: '/api/video-analyzer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVisualStoryboardRoute = ApiVisualStoryboardRouteImport.update({
+  id: '/api/visual-storyboard',
+  path: '/api/visual-storyboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
@@ -105,16 +123,19 @@ const ApiLibraryTypeIdRoute = ApiLibraryTypeIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
+  '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
+  '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -122,16 +143,19 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
+  '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
+  '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -140,16 +164,19 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
+  '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
+  '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -159,16 +186,19 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api/activity'
+    | '/api/characters'
     | '/api/embed-check'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
     | '/api/scrape-competitor'
+    | '/api/scripts-list'
     | '/api/search'
     | '/api/telegram-cron'
     | '/api/trends'
     | '/api/video-analyzer'
+    | '/api/visual-storyboard'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -176,16 +206,19 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api/activity'
+    | '/api/characters'
     | '/api/embed-check'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
     | '/api/scrape-competitor'
+    | '/api/scripts-list'
     | '/api/search'
     | '/api/telegram-cron'
     | '/api/trends'
     | '/api/video-analyzer'
+    | '/api/visual-storyboard'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -193,16 +226,19 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/api/activity'
+    | '/api/characters'
     | '/api/embed-check'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
     | '/api/scrape-competitor'
+    | '/api/scripts-list'
     | '/api/search'
     | '/api/telegram-cron'
     | '/api/trends'
     | '/api/video-analyzer'
+    | '/api/visual-storyboard'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -211,16 +247,19 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiActivityRoute: typeof ApiActivityRoute
+  ApiCharactersRoute: typeof ApiCharactersRoute
   ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
   ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiResourcesRoute: typeof ApiResourcesRoute
   ApiScrapeCompetitorRoute: typeof ApiScrapeCompetitorRoute
+  ApiScriptsListRoute: typeof ApiScriptsListRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
   ApiVideoAnalyzerRoute: typeof ApiVideoAnalyzerRoute
+  ApiVisualStoryboardRoute: typeof ApiVisualStoryboardRoute
   ApiLibraryTypeRoute: typeof ApiLibraryTypeRouteWithChildren
   ApiWorkspaceSelected_ideaRoute: typeof ApiWorkspaceSelected_ideaRoute
 }
@@ -239,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/api/activity'
       fullPath: '/api/activity'
       preLoaderRoute: typeof ApiActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/characters': {
+      id: '/api/characters'
+      path: '/api/characters'
+      fullPath: '/api/characters'
+      preLoaderRoute: typeof ApiCharactersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/embed-check': {
@@ -283,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiScrapeCompetitorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/scripts-list': {
+      id: '/api/scripts-list'
+      path: '/api/scripts-list'
+      fullPath: '/api/scripts-list'
+      preLoaderRoute: typeof ApiScriptsListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/search': {
       id: '/api/search'
       path: '/api/search'
@@ -309,6 +362,13 @@ declare module '@tanstack/react-router' {
       path: '/api/video-analyzer'
       fullPath: '/api/video-analyzer'
       preLoaderRoute: typeof ApiVideoAnalyzerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/visual-storyboard': {
+      id: '/api/visual-storyboard'
+      path: '/api/visual-storyboard'
+      fullPath: '/api/visual-storyboard'
+      preLoaderRoute: typeof ApiVisualStoryboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/library/$type': {
@@ -350,16 +410,19 @@ const ApiLibraryTypeRouteWithChildren = ApiLibraryTypeRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiActivityRoute: ApiActivityRoute,
+  ApiCharactersRoute: ApiCharactersRoute,
   ApiEmbedCheckRoute: ApiEmbedCheckRoute,
   ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiResourcesRoute: ApiResourcesRoute,
   ApiScrapeCompetitorRoute: ApiScrapeCompetitorRoute,
+  ApiScriptsListRoute: ApiScriptsListRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
   ApiTrendsRoute: ApiTrendsRoute,
   ApiVideoAnalyzerRoute: ApiVideoAnalyzerRoute,
+  ApiVisualStoryboardRoute: ApiVisualStoryboardRoute,
   ApiLibraryTypeRoute: ApiLibraryTypeRouteWithChildren,
   ApiWorkspaceSelected_ideaRoute: ApiWorkspaceSelected_ideaRoute,
 }

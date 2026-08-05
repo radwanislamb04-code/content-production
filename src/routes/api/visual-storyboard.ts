@@ -381,7 +381,9 @@ export const Route = createFileRoute("/api/visual-storyboard")({
 
         const scriptContentText = scriptRow.content ? (typeof scriptRow.content === "string" ? scriptRow.content : JSON.stringify(scriptRow.content)) : "";
 
-        const systemPrompt = PRODUCTION_READY_STORYBOARD_PROMPTS_SKILL + `\n\n${characterRefs}`;
+        const jsonOverride = `IMPORTANT: Regardless of the OUTPUT FORMAT section above, you MUST respond with ONLY valid JSON in this exact structure: {\"shots\": [{\"shot_number\": int, \"duration\": string, \"script_portion\": string, \"visual_description\": string, \"camera_angle\": string, \"transition\": string, \"image_prompt\": string, \"text_overlay\": string, \"text_overlay_position\": \"top\"|\"center\"|\"bottom\", \"voiceover\": string}]}. Use the skill's quality standards (character consistency, cinematography vocabulary, pacing, safe zones, negative-prompt thinking folded into image_prompt) to inform the CONTENT of each field, but the output must be this JSON shape only — no markdown headers, no prose summary, no extra sections.`;
+
+        const systemPrompt = PRODUCTION_READY_STORYBOARD_PROMPTS_SKILL + `\n\n${characterRefs}\n\n${jsonOverride}`;
 
         const userPrompt = `Script title: ${scriptRow.title}\nScript content:\n${scriptContentText}\n\nGenerate the storyboard shot list.`;
 

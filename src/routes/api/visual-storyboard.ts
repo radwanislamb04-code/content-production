@@ -131,10 +131,43 @@ ${characterRefs}`;
           );
         }
 
-        const rawBody = await res.text().catch(() => "");
         if (!res.ok) {
-          return Response.json({ error: `Anthropic API error: ${res.status}`, detail: rawBody }, { status: 502 });
+          const errorText = await res.text().catch(() => "");
+          return Response.json({ error: `Anthropic API error: ${res.status}`, detail: errorText }, { status: 502 });
         }
+
+        // --- Streaming pattern via TransformStream ---
+        // In Cloudflare Workers, fetch responses expose a ReadableStream body.
+        // We pipe that through a TransformStream: it passes chunks through
+        // (back to the client) while collecting the full text for parsing.
+
+        if (!res.body) {
+          return Response.json({ error: "Manifest response has no body" }, { status: 502 });
+        }
+
+        // Streaming collection via TransformStream (Cloudflare Workers pattern).
+        // We read chunks from the Manifest ReadableStream, pass them through
+        // a TransformStream (which also accumulates text), and then consume
+        // the transformed stream so flush fires synchronously.
+        const decoder = new TextDecoder();
+        let collectedText = "";
+
+        const streamTransform = new TransformStream({
+          transform(chunk, controller) {
+            // Pass through to keep stream alive for flush
+            controller.enqueue(chunk);
+            // Collect text for post-stream JSON parsing
+            collectedText += decoder.decode(chunk, { stream: true });
+          },
+          flush() {
+            collectedText += decoder.decode();
+          },
+        });
+
+        // Pipe the Manifest body through TransformStream and consume it
+        // so flush completes synchronously before we parse.
+        await res.body.pipeThrough(streamTransform).pipeTo(new WritableStream());
+        const rawBody = collectedText;
 
         let shots: Shot[] = [];
         try {

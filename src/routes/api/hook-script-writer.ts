@@ -125,6 +125,13 @@ export const Route = createFileRoute("/api/hook-script-writer")({
 
         // --- Call Anthropic-compatible /messages endpoint ---
         const anthropicUrl = `${String(baseUrl).replace(/\/$/, "")}/messages`;
+        const requestPayload = {
+          model: "auto",
+          max_tokens: 1024,
+          messages: [{ role: "user", content: prompt }],
+        };
+        console.log("[hook-script-writer] POST", anthropicUrl, "payload:", JSON.stringify(requestPayload));
+
         let res: Response;
         try {
           res = await fetch(anthropicUrl, {
@@ -134,28 +141,59 @@ export const Route = createFileRoute("/api/hook-script-writer")({
               "Authorization": `Bearer ${apiKey}`,
               "anthropic-version": "2023-06-01",
             },
-            body: JSON.stringify({
-              model: "auto",
-              max_tokens: 1024,
-              messages: [{ role: "user", content: prompt }],
-            }),
+            body: JSON.stringify(requestPayload),
           });
         } catch (err: any) {
+          console.log("[hook-script-writer] fetch threw:", err?.message ?? String(err));
           return Response.json(
             { error: `Failed to reach Anthropic: ${err?.message ?? String(err)}` },
             { status: 502 },
           );
         }
 
+        // Read body as text first so we always have the raw payload for debugging,
+        // regardless of status or JSON validity.
+        const rawBody = await res.text().catch(() => "");
+        const responseHeaders: Record<string, string> = {};
+        res.headers.forEach((v, k) => {
+          responseHeaders[k] = v;
+        });
+        console.log(
+          "[hook-script-writer] response status:",
+          res.status,
+          "headers:",
+          JSON.stringify(responseHeaders),
+          "body:",
+          rawBody,
+        );
+
         if (!res.ok) {
-          const detail = await res.text().catch(() => "");
           return Response.json(
-            { error: `Anthropic API error: ${res.status}`, detail },
+            {
+              error: `Anthropic API error: ${res.status}`,
+              detail: rawBody,
+              headers: responseHeaders,
+            },
             { status: 502 },
           );
         }
 
-        const data = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
+        let data: { content?: Array<{ type: string; text?: string }> } = {};
+        try {
+          data = JSON.parse(rawBody) as { content?: Array<{ type: string; text?: string }> };
+        } catch (err: any) {
+          return Response.json(
+            {
+              error: "Anthropic response was not valid JSON",
+              detail: err?.message ?? String(err),
+              rawBody,
+              status: res.status,
+              headers: responseHeaders,
+            },
+            { status: 502 },
+          );
+        }
+
         const text = (data.content ?? [])
           .filter((b) => b.type === "text")
           .map((b) => b.text ?? "")
@@ -165,7 +203,14 @@ export const Route = createFileRoute("/api/hook-script-writer")({
         const script = extractScript(text);
         if (!script) {
           return Response.json(
-            { error: "Model returned no parseable script", raw: text },
+            {
+              error: "Model returned no parseable script",
+              raw: text,
+              rawBody,
+              parsed: data,
+              status: res.status,
+              headers: responseHeaders,
+            },
             { status: 502 },
           );
         }

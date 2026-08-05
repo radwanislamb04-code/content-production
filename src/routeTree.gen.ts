@@ -20,6 +20,7 @@ import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-com
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
+import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
 import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
 import { Route as ApiLibraryTypeIdRouteImport } from './routes/api/library.$type.$id'
@@ -79,6 +80,11 @@ const ApiTrendsRoute = ApiTrendsRouteImport.update({
   path: '/api/trends',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVideoAnalyzerRoute = ApiVideoAnalyzerRouteImport.update({
+  id: '/api/video-analyzer',
+  path: '/api/video-analyzer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
   id: '/api/library/$type',
   path: '/api/library/$type',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
+  '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
+  '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
+  '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/telegram-cron'
     | '/api/trends'
+    | '/api/video-analyzer'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/telegram-cron'
     | '/api/trends'
+    | '/api/video-analyzer'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/telegram-cron'
     | '/api/trends'
+    | '/api/video-analyzer'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -208,6 +220,7 @@ export interface RootRouteChildren {
   ApiSearchRoute: typeof ApiSearchRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
+  ApiVideoAnalyzerRoute: typeof ApiVideoAnalyzerRoute
   ApiLibraryTypeRoute: typeof ApiLibraryTypeRouteWithChildren
   ApiWorkspaceSelected_ideaRoute: typeof ApiWorkspaceSelected_ideaRoute
 }
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrendsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/video-analyzer': {
+      id: '/api/video-analyzer'
+      path: '/api/video-analyzer'
+      fullPath: '/api/video-analyzer'
+      preLoaderRoute: typeof ApiVideoAnalyzerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/library/$type': {
       id: '/api/library/$type'
       path: '/api/library/$type'
@@ -339,6 +359,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSearchRoute: ApiSearchRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
   ApiTrendsRoute: ApiTrendsRoute,
+  ApiVideoAnalyzerRoute: ApiVideoAnalyzerRoute,
   ApiLibraryTypeRoute: ApiLibraryTypeRouteWithChildren,
   ApiWorkspaceSelected_ideaRoute: ApiWorkspaceSelected_ideaRoute,
 }

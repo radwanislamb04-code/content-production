@@ -23,6 +23,7 @@ import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
 import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
+import { Route as ApiVideoGenPromptRouteImport } from './routes/api/video-gen-prompt'
 import { Route as ApiVisualStoryboardRouteImport } from './routes/api/visual-storyboard'
 import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
@@ -98,6 +99,11 @@ const ApiVideoAnalyzerRoute = ApiVideoAnalyzerRouteImport.update({
   path: '/api/video-analyzer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVideoGenPromptRoute = ApiVideoGenPromptRouteImport.update({
+  id: '/api/video-gen-prompt',
+  path: '/api/video-gen-prompt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVisualStoryboardRoute = ApiVisualStoryboardRouteImport.update({
   id: '/api/visual-storyboard',
   path: '/api/visual-storyboard',
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
+  '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
+  '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
+  '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/api/telegram-cron'
     | '/api/trends'
     | '/api/video-analyzer'
+    | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/api/telegram-cron'
     | '/api/trends'
     | '/api/video-analyzer'
+    | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/api/telegram-cron'
     | '/api/trends'
     | '/api/video-analyzer'
+    | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
   ApiVideoAnalyzerRoute: typeof ApiVideoAnalyzerRoute
+  ApiVideoGenPromptRoute: typeof ApiVideoGenPromptRoute
   ApiVisualStoryboardRoute: typeof ApiVisualStoryboardRoute
   ApiLibraryTypeRoute: typeof ApiLibraryTypeRouteWithChildren
   ApiWorkspaceSelected_ideaRoute: typeof ApiWorkspaceSelected_ideaRoute
@@ -364,6 +377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVideoAnalyzerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/video-gen-prompt': {
+      id: '/api/video-gen-prompt'
+      path: '/api/video-gen-prompt'
+      fullPath: '/api/video-gen-prompt'
+      preLoaderRoute: typeof ApiVideoGenPromptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/visual-storyboard': {
       id: '/api/visual-storyboard'
       path: '/api/visual-storyboard'
@@ -422,6 +442,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTelegramCronRoute: ApiTelegramCronRoute,
   ApiTrendsRoute: ApiTrendsRoute,
   ApiVideoAnalyzerRoute: ApiVideoAnalyzerRoute,
+  ApiVideoGenPromptRoute: ApiVideoGenPromptRoute,
   ApiVisualStoryboardRoute: ApiVisualStoryboardRoute,
   ApiLibraryTypeRoute: ApiLibraryTypeRouteWithChildren,
   ApiWorkspaceSelected_ideaRoute: ApiWorkspaceSelected_ideaRoute,

@@ -363,106 +363,119 @@ export const Route = createFileRoute("/api/visual-storyboard")({
           messages: [{ role: "user", content: userPrompt }],
         };
 
-        let res: Response;
-        try {
-          res = await fetch(anthropicUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify(requestPayload),
-          });
-        } catch (err: any) {
-          return Response.json(
-            { error: `Failed to reach Anthropic: ${err?.message ?? String(err)}` },
-            { status: 502 },
-          );
-        }
-
-        if (!res.ok) {
-          const errorText = await res.text().catch(() => "");
-          return Response.json({ error: `Anthropic API error: ${res.status}`, detail: errorText }, { status: 502 });
-        }
-
-        const data: { content?: Array<{ type: string; text?: string }> } = await res.json();
-        const rawBody = JSON.stringify(data);
-
+        const maxAttempts = 3;
+        const triedModels: string[] = [];
         let shots: Shot[] = [];
-        let extractedText = "";
-        try {
-          extractedText = (data.content ?? [])
-            .filter((b) => b.type === "text")
-            .map((b) => b.text ?? "")
-            .join("\n")
-            .trim();
+        let lastError: string | null = null;
+        let lastRawBody: string = "";
 
-          const fenceRegex = /```(?:json)?\s*\n?([\s\S]*?)\n?```/g;
-          const candidates: string[] = [];
-          let m: RegExpExecArray | null;
-          while ((m = fenceRegex.exec(extractedText)) !== null) {
-            candidates.push(m[1]);
-          }
-          const firstOpen = extractedText.indexOf("{");
-          const lastClose = extractedText.lastIndexOf("}");
-          if (firstOpen !== -1 && lastClose > firstOpen) {
-            candidates.push(extractedText.slice(firstOpen, lastClose + 1));
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          let res: Response;
+          try {
+            res = await fetch(anthropicUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify(requestPayload),
+            });
+          } catch (err: any) {
+            lastError = `Failed to reach Anthropic: ${err?.message ?? String(err)}`;
+            continue;
           }
 
-          for (const candidate of candidates) {
-            const cleaned = candidate.trim();
-            if (!cleaned) continue;
-            let parsed: unknown;
-            try {
-              parsed = JSON.parse(cleaned);
-            } catch {
-              continue;
+          if (!res.ok) {
+            const errorText = await res.text().catch(() => "");
+            lastError = `Anthropic API error: ${res.status} - ${errorText}`;
+            continue;
+          }
+
+          const data: { content?: Array<{ type: string; text?: string }>; model?: string } = await res.json();
+          const rawBody = JSON.stringify(data);
+          lastRawBody = rawBody;
+
+          // Track which model was used (from response header or body)
+          const modelUsed = res.headers.get("anthropic-model") ?? data.model ?? "unknown";
+          triedModels.push(modelUsed);
+
+          let extractedText = "";
+          try {
+            extractedText = (data.content ?? [])
+              .filter((b) => b.type === "text")
+              .map((b) => b.text ?? "")
+              .join("\n")
+              .trim();
+
+            const fenceRegex = /```(?:json)?\s*\n?([\s\S]*?)\n?```/g;
+            const candidates: string[] = [];
+            let m: RegExpExecArray | null;
+            while ((m = fenceRegex.exec(extractedText)) !== null) {
+              candidates.push(m[1]);
             }
-            if (!parsed || typeof parsed !== "object") continue;
-            const r = parsed as Record<string, unknown>;
-            if (Array.isArray(r.shots)) {
-              const parsedShots = (r.shots as unknown[]).map((s): Shot | null => {
-                if (!s || typeof s !== "object") return null;
-                const sh = s as Record<string, unknown>;
-                return {
-                  shot_number: typeof sh.shot_number === "number" ? sh.shot_number : 0,
-                  duration: typeof sh.duration === "string" ? sh.duration : "",
-                  script_portion: typeof sh.script_portion === "string" ? sh.script_portion : "",
-                  visual_description: typeof sh.visual_description === "string" ? sh.visual_description : "",
-                  camera_angle: typeof sh.camera_angle === "string" ? sh.camera_angle : "",
-                  transition: typeof sh.transition === "string" ? sh.transition : "",
-                  image_prompt: typeof sh.image_prompt === "string" ? sh.image_prompt : "",
-                  text_overlay: typeof sh.text_overlay === "string" ? sh.text_overlay : "",
-                  text_overlay_position:
-                    sh.text_overlay_position === "top" || sh.text_overlay_position === "center" || sh.text_overlay_position === "bottom"
-                      ? sh.text_overlay_position
-                      : "center",
-                  voiceover: typeof sh.voiceover === "string" ? sh.voiceover : "",
-                };
-              }).filter((s): s is Shot => s !== null && s.shot_number !== 0);
-              if (parsedShots.length > 0) {
-                shots = parsedShots;
-                break;
+            const firstOpen = extractedText.indexOf("{");
+            const lastClose = extractedText.lastIndexOf("}");
+            if (firstOpen !== -1 && lastClose > firstOpen) {
+              candidates.push(extractedText.slice(firstOpen, lastClose + 1));
+            }
+
+            for (const candidate of candidates) {
+              const cleaned = candidate.trim();
+              if (!cleaned) continue;
+              let parsed: unknown;
+              try {
+                parsed = JSON.parse(cleaned);
+              } catch {
+                continue;
+              }
+              if (!parsed || typeof parsed !== "object") continue;
+              const r = parsed as Record<string, unknown>;
+              if (Array.isArray(r.shots)) {
+                const parsedShots = (r.shots as unknown[]).map((s): Shot | null => {
+                  if (!s || typeof s !== "object") return null;
+                  const sh = s as Record<string, unknown>;
+                  return {
+                    shot_number: typeof sh.shot_number === "number" ? sh.shot_number : 0,
+                    duration: typeof sh.duration === "string" ? sh.duration : "",
+                    script_portion: typeof sh.script_portion === "string" ? sh.script_portion : "",
+                    visual_description: typeof sh.visual_description === "string" ? sh.visual_description : "",
+                    camera_angle: typeof sh.camera_angle === "string" ? sh.camera_angle : "",
+                    transition: typeof sh.transition === "string" ? sh.transition : "",
+                    image_prompt: typeof sh.image_prompt === "string" ? sh.image_prompt : "",
+                    text_overlay: typeof sh.text_overlay === "string" ? sh.text_overlay : "",
+                    text_overlay_position:
+                      sh.text_overlay_position === "top" || sh.text_overlay_position === "center" || sh.text_overlay_position === "bottom"
+                        ? sh.text_overlay_position
+                        : "center",
+                    voiceover: typeof sh.voiceover === "string" ? sh.voiceover : "",
+                  };
+                }).filter((s): s is Shot => s !== null && s.shot_number !== 0);
+                if (parsedShots.length > 0) {
+                  shots = parsedShots;
+                  break;
+                }
               }
             }
+          } catch (parseErr: any) {
+            console.error(`JSON parse error on attempt ${attempt}:`, parseErr);
+            lastError = parseErr?.message ?? String(parseErr);
+            continue;
           }
-        } catch (parseErr: any) {
-          console.error("JSON parse error after streaming:", parseErr);
-          return Response.json(
-            {
-              error: "Failed to parse storyboard shots from model response",
-              message: parseErr?.message ?? String(parseErr),
-              raw: rawBody,
-            },
-            { status: 502 },
-          );
+
+          if (shots.length > 0) {
+            break; // Success
+          } else {
+            lastError = "Failed to parse storyboard shots from model response (no valid shots array)";
+          }
         }
 
         if (shots.length === 0) {
           return Response.json(
             {
-              error: "Failed to parse storyboard shots from model response",
-              raw: rawBody,
+              error: "Failed to parse storyboard shots from model response after 3 attempts",
+              message: lastError,
+              triedModels,
+              raw: lastRawBody,
             },
             { status: 502 },
           );
@@ -496,7 +509,7 @@ export const Route = createFileRoute("/api/visual-storyboard")({
             {
               error: `Failed to persist storyboard: ${err?.message ?? String(err)}`,
               message: err?.message ?? String(err),
-              raw: rawBody,
+              raw: lastRawBody,
             },
             { status: 500 },
           );

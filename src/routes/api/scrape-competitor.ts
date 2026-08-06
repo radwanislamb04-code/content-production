@@ -95,10 +95,16 @@ async function fetchInstagramPosts(
     return [{ caption: `Apify error: ${res.status}`, likes: 0, comments: 0, url: "", timestamp: "" }];
   }
 
-  const data = (await res.json()) as any[];
+  const rawText = await res.text();
+  const data = rawText ? (JSON.parse(rawText) as any) : null;
 
   if (debug) {
-    return Response.json((Array.isArray(data) ? data : [])[0] ?? {});
+    return Response.json({
+      status: res.status,
+      rawLength: rawText.length,
+      rawBodyPreview: rawText.slice(0, 2000),
+      firstItem: Array.isArray(data) ? data[0] ?? null : data,
+    });
   }
 
   const posts: CompetitorPost[] = (Array.isArray(data) ? data : [])

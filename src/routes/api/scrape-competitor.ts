@@ -17,13 +17,14 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
         const kv = env?.KV;
         const apifyApiToken = env?.APIFY_API_TOKEN;
+        console.error(`[scrape-competitor] apifyApiToken present: ${!!apifyApiToken}, length: ${apifyApiToken?.length ?? 0}`);
 
         let body: { handle?: string; platform?: string; debug?: boolean };
         try {
           body = await request.json();
         } catch {
           return Response.json(
-            { error: "Invalid JSON body" },
+            { error: "Invalid JSON body", stage: "invalid_json" },
             { status: 400 },
           );
         }
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
 
         if (!handle || !platform) {
           return Response.json(
-            { error: "Missing required fields: handle, platform" },
+            { error: "Missing required fields: handle, platform", stage: "missing_fields" },
             { status: 400 },
           );
         }
@@ -69,10 +70,10 @@ export const Route = createFileRoute("/api/scrape-competitor")({
           );
         }
 
-        // If debug mode returned a raw response object, pass it straight through
-        if (debug && result && typeof result === "object" && result.stage === "apify_called") {
-          console.error(`[scrape-competitor] stage=${result.stage} returning debug response`);
-          return Response.json(result);
+        // If debug mode, return immediately as soon as fetchInstagramPosts returns
+        if (debug) {
+          console.error(`[scrape-competitor] stage=debug_immediate returning result directly`);
+          return Response.json({ ...result, stage: result?.stage ?? "debug" });
         }
 
         // If Apify returned an error marker in posts array, surface the stage
@@ -98,7 +99,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
           // KV write failed â€” continue without caching
         }
 
-        return Response.json(posts);
+        return Response.json({ posts, stage: "success" });
       },
     },
   },
@@ -118,7 +119,7 @@ async function fetchInstagramPosts(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: handle }),
+      body: JSON.stringify({ username: handle, maxPosts: 10 }),
     },
   );
 

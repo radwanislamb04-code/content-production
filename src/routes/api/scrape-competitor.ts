@@ -77,7 +77,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
 async function fetchInstagramPosts(
   apifyApiToken: string | undefined,
   handle: string,
-): PromiseCompetitorPost[]> {
+): Promise<CompetitorPost[]> {
   if (!apifyApiToken) {
     return [{ caption: "Apify API token not configured", likes: 0, comments: 0, url: "", timestamp: "" }];
   }

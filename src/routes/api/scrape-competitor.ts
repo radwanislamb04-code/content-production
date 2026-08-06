@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         const kv = env?.KV;
         const apifyApiToken = env?.APIFY_API_TOKEN;
 
-        let body: { handle?: string; platform?: string };
+        let body: { handle?: string; platform?: string; clearCache?: boolean };
         try {
           body = await request.json();
         } catch {
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
           );
         }
 
-        const { handle, platform } = body;
+        const { handle, platform, clearCache } = body;
 
         if (!handle || !platform) {
           return Response.json(
@@ -39,10 +39,19 @@ export const Route = createFileRoute("/api/scrape-competitor")({
 
         const cacheKey = `competitor:${platform}:${handle}`;
 
+        if (clearCache) {
+          try {
+            await kv?.delete(cacheKey);
+          } catch {
+            // ignore
+          }
+          return Response.json({ cleared: true });
+        }
+
         try {
           const cached = await kv?.get(cacheKey);
           if (cached) {
-            return Response.json({ ...JSON.parse(cached) });
+            return Response.json({ posts: JSON.parse(cached) });
           }
         } catch {
           // KV unavailable, continue

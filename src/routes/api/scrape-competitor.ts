@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 
 type CompetitorPost = {
   caption: string;
@@ -39,32 +39,63 @@ export const Route = createFileRoute("/api/scrape-competitor")({
 
         const cacheKey = `competitor:${platform}:${handle}`;
 
-        // --- Try cache first ---
-        try {
-          const cached = await kv?.get(cacheKey);
-          if (cached) {
-            return Response.json(JSON.parse(cached));
+        // --- Try cache first (skip if debug mode) ---
+        let stage = "start";
+        if (debug) {
+          stage = "debug_skip_cache";
+          console.error(`[scrape-competitor] stage=${stage} debug=true, skipping KV cache`);
+        } else {
+          try {
+            const cached = await kv?.get(cacheKey);
+            if (cached) {
+              stage = "cache_hit";
+              console.error(`[scrape-competitor] stage=${stage} returning cached result for ${cacheKey}`);
+              return Response.json({ ...JSON.parse(cached), stage });
+            }
+          } catch {
+            stage = "kv_read_error";
+            console.error(`[scrape-competitor] stage=${stage} KV unavailable, falling through`);
           }
-        } catch {
-          // KV unavailable — fall through to live fetch
         }
 
-        let posts: CompetitorPost[];
+        let result: any;
 
         if (platform === "instagram") {
-          posts = await fetchInstagramPosts(apifyApiToken, handle, debug);
+          result = await fetchInstagramPosts(apifyApiToken, handle, debug);
         } else {
           return Response.json(
-            { error: `Unsupported platform: ${platform}. Use "instagram"` },
+            { error: `Unsupported platform: ${platform}. Use "instagram"`, stage: "apify_error" },
             { status: 400 },
           );
         }
+
+        // If debug mode returned a raw response object, pass it straight through
+        if (debug && result && typeof result === "object" && result.stage === "apify_called") {
+          console.error(`[scrape-competitor] stage=${result.stage} returning debug response`);
+          return Response.json(result);
+        }
+
+        // If Apify returned an error marker in posts array, surface the stage
+        if (Array.isArray(result) && result.length > 0 && result[0].caption?.startsWith("Apify error:")) {
+          result = { ...result[0], stage: "apify_error" };
+          console.error(`[scrape-competitor] stage=apify_error Apify returned non-ok status`);
+          return Response.json(result);
+        }
+
+        // If token missing
+        if (Array.isArray(result) && result.length > 0 && result[0].caption === "Apify API token not configured") {
+          result = { ...result[0], stage: "apify_error" };
+          console.error(`[scrape-competitor] stage=apify_error Apify token not configured`);
+          return Response.json(result);
+        }
+
+        const posts = result as CompetitorPost[];
 
         // --- Cache the result ---
         try {
           await kv?.put(cacheKey, JSON.stringify(posts), { expirationTtl: CACHE_TTL });
         } catch {
-          // KV write failed — continue without caching
+          // KV write failed â€” continue without caching
         }
 
         return Response.json(posts);
@@ -77,7 +108,7 @@ async function fetchInstagramPosts(
   apifyApiToken: string | undefined,
   handle: string,
   debug?: boolean,
-): Promise<CompetitorPost[]> {
+): Promise<CompetitorPost[] | { status: number; rawLength: number; rawBodyPreview: string; firstItem: any; stage: string }> {
   if (!apifyApiToken) {
     return [{ caption: "Apify API token not configured", likes: 0, comments: 0, url: "", timestamp: "" }];
   }
@@ -99,12 +130,14 @@ async function fetchInstagramPosts(
   const data = rawText ? (JSON.parse(rawText) as any) : null;
 
   if (debug) {
-    return Response.json({
+    console.error(`[scrape-competitor] stage=apify_called debug=true, returning raw Apify response`);
+    return {
       status: res.status,
       rawLength: rawText.length,
       rawBodyPreview: rawText.slice(0, 2000),
       firstItem: Array.isArray(data) ? data[0] ?? null : data,
-    });
+      stage: "apify_called",
+    } as any;
   }
 
   const posts: CompetitorPost[] = (Array.isArray(data) ? data : [])
@@ -121,3 +154,5 @@ async function fetchInstagramPosts(
 
   return posts.slice(0, 10);
 }
+
+

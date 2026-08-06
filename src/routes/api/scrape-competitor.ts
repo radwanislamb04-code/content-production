@@ -17,9 +17,8 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
         const kv = env?.KV;
         const apifyApiToken = env?.APIFY_API_TOKEN;
-        console.error(`[scrape-competitor] apifyApiToken present: ${!!apifyApiToken}, length: ${apifyApiToken?.length ?? 0}`);
 
-        let body: { handle?: string; platform?: string; debug?: boolean };
+        let body: { handle?: string; platform?: string };
         try {
           body = await request.json();
         } catch {
@@ -29,7 +28,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
           );
         }
 
-        const { handle, platform, debug } = body;
+        const { handle, platform } = body;
 
         if (!handle || !platform) {
           return Response.json(
@@ -40,54 +39,24 @@ export const Route = createFileRoute("/api/scrape-competitor")({
 
         const cacheKey = `competitor:${platform}:${handle}`;
 
-        // --- Try cache first (skip if debug mode) ---
-        let stage = "start";
-        if (debug) {
-          stage = "debug_skip_cache";
-          console.error(`[scrape-competitor] stage=${stage} debug=true, skipping KV cache`);
-        } else {
-          try {
-            const cached = await kv?.get(cacheKey);
-            if (cached) {
-              stage = "cache_hit";
-              console.error(`[scrape-competitor] stage=${stage} returning cached result for ${cacheKey}`);
-              return Response.json({ ...JSON.parse(cached), stage });
-            }
-          } catch {
-            stage = "kv_read_error";
-            console.error(`[scrape-competitor] stage=${stage} KV unavailable, falling through`);
+        try {
+          const cached = await kv?.get(cacheKey);
+          if (cached) {
+            return Response.json({ ...JSON.parse(cached) });
           }
+        } catch {
+          // KV unavailable, continue
         }
 
         let result: any;
 
         if (platform === "instagram") {
-          result = await fetchInstagramPosts(apifyApiToken, handle, debug);
+          result = await fetchInstagramPosts(apifyApiToken, handle);
         } else {
           return Response.json(
             { error: `Unsupported platform: ${platform}. Use "instagram"`, stage: "apify_error" },
             { status: 400 },
           );
-        }
-
-        // If debug mode, return immediately as soon as fetchInstagramPosts returns
-        if (debug) {
-          console.error(`[scrape-competitor] stage=debug_immediate returning result directly`);
-          return Response.json({ ...result, stage: result?.stage ?? "debug" });
-        }
-
-        // If Apify returned an error marker in posts array, surface the stage
-        if (Array.isArray(result) && result.length > 0 && result[0].caption?.startsWith("Apify error:")) {
-          result = { ...result[0], stage: "apify_error" };
-          console.error(`[scrape-competitor] stage=apify_error Apify returned non-ok status`);
-          return Response.json(result);
-        }
-
-        // If token missing
-        if (Array.isArray(result) && result.length > 0 && result[0].caption === "Apify API token not configured") {
-          result = { ...result[0], stage: "apify_error" };
-          console.error(`[scrape-competitor] stage=apify_error Apify token not configured`);
-          return Response.json(result);
         }
 
         const posts = result as CompetitorPost[];
@@ -96,10 +65,10 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         try {
           await kv?.put(cacheKey, JSON.stringify(posts), { expirationTtl: CACHE_TTL });
         } catch {
-          // KV write failed â€” continue without caching
+          // KV write failed — continue without caching
         }
 
-        return Response.json({ posts, stage: "success" });
+        return Response.json({ posts });
       },
     },
   },
@@ -108,8 +77,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
 async function fetchInstagramPosts(
   apifyApiToken: string | undefined,
   handle: string,
-  debug?: boolean,
-): Promise<CompetitorPost[] | { status: number; rawLength: number; rawBodyPreview: string; firstItem: any; stage: string }> {
+): PromiseCompetitorPost[]> {
   if (!apifyApiToken) {
     return [{ caption: "Apify API token not configured", likes: 0, comments: 0, url: "", timestamp: "" }];
   }
@@ -130,24 +98,13 @@ async function fetchInstagramPosts(
   const rawText = await res.text();
   const data = rawText ? (JSON.parse(rawText) as any) : null;
 
-  if (debug) {
-    console.error(`[scrape-competitor] stage=apify_called debug=true, returning raw Apify response`);
-    return {
-      status: res.status,
-      rawLength: rawText.length,
-      rawBodyPreview: rawText.slice(0, 2000),
-      firstItem: Array.isArray(data) ? data[0] ?? null : data,
-      stage: "apify_called",
-    } as any;
-  }
-
   const posts: CompetitorPost[] = (Array.isArray(data) ? data : [])
     .map((item: any) => ({
-      caption: item.caption ?? item.text ?? "",
-      likes: item.likesCount ?? item.likes ?? 0,
-      comments: item.commentsCount ?? item.comments ?? 0,
-      url: item.url ?? item.postUrl ?? "",
-      timestamp: item.timestamp ?? item.takenAt ?? item.createdAt ?? "",
+      caption: item.caption ?? "",
+      likes: item.like_count ?? 0,
+      comments: item.comment_count ?? 0,
+      url: item.post_url ?? "",
+      timestamp: item.pub_date ?? "",
     }));
 
   // Sort by timestamp, most recent first

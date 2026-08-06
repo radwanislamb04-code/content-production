@@ -66,13 +66,13 @@ export const Route = createFileRoute("/api/trend-spy")({
           const youtubeResults = await fetchYouTubeTrends(youtubeApiKey, category);
           rawTrends.push(...youtubeResults);
         } catch {
-          // YouTube fetch failed — continue
+          // YouTube fetch failed - continue
         }
         try {
           const googleResults = await fetchGoogleTrends(serApiKey);
           rawTrends.push(...googleResults);
         } catch {
-          // Google fetch failed — continue
+          // Google fetch failed - continue
         }
 
         if (rawTrends.length === 0) {

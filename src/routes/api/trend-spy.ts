@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchYouTubeTrends, fetchGoogleTrends } from "./trends";
 
 type TrendItem = { title: string; metric: string; source: string };
 
@@ -55,30 +56,23 @@ export const Route = createFileRoute("/api/trend-spy")({
           // KV read failed â€” fall through to compute
         }
 
-        // --- Fetch raw trend data from trends.ts's KV cache ---
-        // trends.ts caches at `trends:google` and `trends:youtube`
+        // --- Fetch raw trend data by calling trends.ts logic directly ---
+        // Pass category through so YouTube uses search.list (q=category) instead of chart=mostPopular
         let rawTrends: TrendItem[] = [];
+        const youtubeApiKey = env?.YOUTUBE_API_KEY;
+        const serApiKey = env?.SERPAPI_KEY;
 
         try {
-          // Try category-specific key first (in case trends.ts was called with that platform)
-          const categoryCached = await kv.get(`trends:${category}`);
-          if (categoryCached) {
-            rawTrends = JSON.parse(categoryCached);
-          } else {
-            // Fall back to both default platforms and merge
-            const [googleCached, youtubeCached] = await Promise.all([
-              kv.get("trends:google"),
-              kv.get("trends:youtube"),
-            ]);
-            if (googleCached) {
-              rawTrends.push(...JSON.parse(googleCached));
-            }
-            if (youtubeCached) {
-              rawTrends.push(...JSON.parse(youtubeCached));
-            }
-          }
+          const youtubeResults = await fetchYouTubeTrends(youtubeApiKey, category);
+          rawTrends.push(...youtubeResults);
         } catch {
-          // KV read failed â€” continue with empty trends (will produce generic insights)
+          // YouTube fetch failed — continue
+        }
+        try {
+          const googleResults = await fetchGoogleTrends(serApiKey);
+          rawTrends.push(...googleResults);
+        } catch {
+          // Google fetch failed — continue
         }
 
         if (rawTrends.length === 0) {

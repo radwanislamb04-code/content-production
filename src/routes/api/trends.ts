@@ -15,7 +15,8 @@ export const Route = createFileRoute("/api/trends")({
 
         const url = new URL(request.url);
         const platform = url.searchParams.get("platform") ?? "google";
-        const cacheKey = `trends:${platform}`;
+        const category = platform === "youtube" ? (url.searchParams.get("category") ?? url.searchParams.get("q") ?? "") : "";
+        const cacheKey = `trends:${platform}${category ? ":" + category : ""}`;
 
         // --- Try cache first ---
         try {
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/api/trends")({
         if (platform === "google") {
           items = await fetchGoogleTrends(serApiKey);
         } else if (platform === "youtube") {
-          items = await fetchYouTubeTrends(youtubeApiKey);
+          items = await fetchYouTubeTrends(youtubeApiKey, category);
         } else {
           return Response.json(
             { error: "Invalid platform. Use ?platform=google|youtube" },
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/api/trends")({
   },
 });
 
-async function fetchGoogleTrends(apiKey?: string): Promise<TrendItem[]> {
+export async function fetchGoogleTrends(apiKey?: string): Promise<TrendItem[]> {
   if (!apiKey) {
     return [{ title: "SerpApi key not configured", metric: "", source: "google" }];
   }
@@ -80,16 +81,27 @@ async function fetchGoogleTrends(apiKey?: string): Promise<TrendItem[]> {
     }));
 }
 
-async function fetchYouTubeTrends(apiKey?: string): Promise<TrendItem[]> {
+export async function fetchYouTubeTrends(apiKey?: string, category?: string): Promise<TrendItem[]> {
   if (!apiKey) {
     return [{ title: "YouTube API key not configured", metric: "", source: "youtube" }];
   }
 
-  const url = new URL("https://www.googleapis.com/youtube/v3/videos");
-  url.searchParams.set("part", "snippet,statistics");
-  url.searchParams.set("chart", "mostPopular");
-  url.searchParams.set("regionCode", "US");
-  url.searchParams.set("maxResults", "10");
+  let url: URL;
+  if (category && category.trim().length > 0) {
+    url = new URL("https://www.googleapis.com/youtube/v3/search");
+    url.searchParams.set("part", "snippet");
+    url.searchParams.set("q", category.trim());
+    url.searchParams.set("type", "video");
+    url.searchParams.set("order", "viewCount");
+    url.searchParams.set("regionCode", "US");
+    url.searchParams.set("maxResults", "10");
+  } else {
+    url = new URL("https://www.googleapis.com/youtube/v3/videos");
+    url.searchParams.set("part", "snippet,statistics");
+    url.searchParams.set("chart", "mostPopular");
+    url.searchParams.set("regionCode", "US");
+    url.searchParams.set("maxResults", "10");
+  }
   url.searchParams.set("key", apiKey);
 
   const res = await fetch(url.toString());

@@ -21,6 +21,7 @@ import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-com
 import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
+import { Route as ApiTrendSpyRouteImport } from './routes/api/trend-spy'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
 import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
 import { Route as ApiVideoGenPromptRouteImport } from './routes/api/video-gen-prompt'
@@ -89,6 +90,11 @@ const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
   path: '/api/telegram-cron',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTrendSpyRoute = ApiTrendSpyRouteImport.update({
+  id: '/api/trend-spy',
+  path: '/api/trend-spy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTrendsRoute = ApiTrendsRouteImport.update({
   id: '/api/trends',
   path: '/api/trends',
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/api/scripts-list'
     | '/api/search'
     | '/api/telegram-cron'
+    | '/api/trend-spy'
     | '/api/trends'
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/api/scripts-list'
     | '/api/search'
     | '/api/telegram-cron'
+    | '/api/trend-spy'
     | '/api/trends'
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/api/scripts-list'
     | '/api/search'
     | '/api/telegram-cron'
+    | '/api/trend-spy'
     | '/api/trends'
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
@@ -269,6 +281,7 @@ export interface RootRouteChildren {
   ApiScriptsListRoute: typeof ApiScriptsListRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
+  ApiTrendSpyRoute: typeof ApiTrendSpyRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
   ApiVideoAnalyzerRoute: typeof ApiVideoAnalyzerRoute
   ApiVideoGenPromptRoute: typeof ApiVideoGenPromptRoute
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTelegramCronRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/trend-spy': {
+      id: '/api/trend-spy'
+      path: '/api/trend-spy'
+      fullPath: '/api/trend-spy'
+      preLoaderRoute: typeof ApiTrendSpyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/trends': {
       id: '/api/trends'
       path: '/api/trends'
@@ -440,6 +460,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiScriptsListRoute: ApiScriptsListRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
+  ApiTrendSpyRoute: ApiTrendSpyRoute,
   ApiTrendsRoute: ApiTrendsRoute,
   ApiVideoAnalyzerRoute: ApiVideoAnalyzerRoute,
   ApiVideoGenPromptRoute: ApiVideoGenPromptRoute,

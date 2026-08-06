@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         const kv = env?.KV;
         const apifyApiToken = env?.APIFY_API_TOKEN;
 
-        let body: { handle?: string; platform?: string };
+        let body: { handle?: string; platform?: string; debug?: boolean };
         try {
           body = await request.json();
         } catch {
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
           );
         }
 
-        const { handle, platform } = body;
+        const { handle, platform, debug } = body;
 
         if (!handle || !platform) {
           return Response.json(
@@ -52,7 +52,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         let posts: CompetitorPost[];
 
         if (platform === "instagram") {
-          posts = await fetchInstagramPosts(apifyApiToken, handle);
+          posts = await fetchInstagramPosts(apifyApiToken, handle, debug);
         } else {
           return Response.json(
             { error: `Unsupported platform: ${platform}. Use "instagram"` },
@@ -76,6 +76,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
 async function fetchInstagramPosts(
   apifyApiToken: string | undefined,
   handle: string,
+  debug?: boolean,
 ): Promise<CompetitorPost[]> {
   if (!apifyApiToken) {
     return [{ caption: "Apify API token not configured", likes: 0, comments: 0, url: "", timestamp: "" }];
@@ -95,6 +96,10 @@ async function fetchInstagramPosts(
   }
 
   const data = (await res.json()) as any[];
+
+  if (debug) {
+    return Response.json((Array.isArray(data) ? data : [])[0] ?? {});
+  }
 
   const posts: CompetitorPost[] = (Array.isArray(data) ? data : [])
     .map((item: any) => ({

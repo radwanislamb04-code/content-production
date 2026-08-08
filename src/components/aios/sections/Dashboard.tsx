@@ -23,12 +23,13 @@ import {
 } from "lucide-react";
 
 
-const STATS = [
-  { icon: Lightbulb, label: "Ideas", value: 42 },
-  { icon: PenLine, label: "Scripts", value: 18 },
-  { icon: LayoutPanelLeft, label: "Storyboards", value: 9 },
-  { icon: Calendar, label: "Scheduled", value: 7 },
+const LIB_TYPES = [
+  { slug: "idea", label: "Ideas", icon: Lightbulb },
+  { slug: "script", label: "Scripts", icon: PenLine },
+  { slug: "storyboard", label: "Storyboards", icon: LayoutPanelLeft },
+  { slug: "video_prompt", label: "Video Prompts", icon: Film },
 ];
+
 
 const PIPELINE: {
   label: string;

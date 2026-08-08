@@ -20,15 +20,8 @@ export default defineConfig({
       external: ["cloudflare:workers"],
     },
   },
-  nitro: {
-    rollupConfig: {
-      external: ["cloudflare:workers"],
-    },
-    rolldownConfig: {
-      external: ["cloudflare:workers"],
-    },
-  },
   ssr: {
+
     external: ["cloudflare:workers"],
   },
 });

@@ -1,4 +1,9 @@
 import type { ReactNode } from "react";
+import { Loader2 } from "lucide-react";
+
+export function Spinner({ size = 15 }: { size?: number }) {
+  return <Loader2 size={size} className="animate-spin" />;
+}
 
 export function Card({
   className = "",
@@ -49,20 +54,31 @@ export function Pill({
   );
 }
 
+type BtnProps = {
+  children: ReactNode;
+  className?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  title?: string;
+};
+
 export function PrimaryBtn({
   children,
   className = "",
   onClick,
-}: {
-  children: ReactNode;
-  className?: string;
-  onClick?: () => void;
-}) {
+  disabled = false,
+  loading = false,
+  title,
+}: BtnProps) {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-lime px-5 text-sm font-bold text-app transition-colors hover:bg-lime2 ${className}`}
+      disabled={disabled || loading}
+      title={title}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-lime px-5 text-sm font-bold text-app transition-colors hover:bg-lime2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
+      {loading && <Spinner />}
       {children}
     </button>
   );
@@ -72,16 +88,18 @@ export function OutlineBtn({
   children,
   className = "",
   onClick,
-}: {
-  children: ReactNode;
-  className?: string;
-  onClick?: () => void;
-}) {
+  disabled = false,
+  loading = false,
+  title,
+}: BtnProps) {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-transparent px-4 text-sm font-semibold text-fg2 transition-colors hover:border-lime hover:text-lime ${className}`}
+      disabled={disabled || loading}
+      title={title}
+      className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-transparent px-4 text-sm font-semibold text-fg2 transition-colors hover:border-lime hover:text-lime disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
+      {loading && <Spinner size={14} />}
       {children}
     </button>
   );
@@ -91,20 +109,23 @@ export function GhostBtn({
   children,
   className = "",
   onClick,
-}: {
-  children: ReactNode;
-  className?: string;
-  onClick?: () => void;
-}) {
+  disabled = false,
+  loading = false,
+  title,
+}: BtnProps) {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold text-lime transition-colors hover:bg-[rgba(82,255,46,0.08)] ${className}`}
+      disabled={disabled || loading}
+      title={title}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold text-lime transition-colors hover:bg-[rgba(82,255,46,0.08)] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
+      {loading && <Spinner size={13} />}
       {children}
     </button>
   );
 }
+
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (

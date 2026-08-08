@@ -52,14 +52,6 @@ const INITIAL_TASKS: Task[] = [
   { id: "t4", text: "Reply to DMs bucket", time: "20:00", completed: false },
 ];
 
-const RECENT = [
-  { icon: PenLine, title: "Script — Morning routine hack", time: "2h ago" },
-  { icon: LayoutPanelLeft, title: "Storyboard — Product launch", time: "5h ago" },
-  { icon: Lightbulb, title: "Idea — Behind-the-scenes vlog", time: "8h ago" },
-  { icon: Film, title: "Prompt — Runway shot 04", time: "1d ago" },
-  { icon: Calendar, title: "Planner — Week of Aug 5", time: "1d ago" },
-  { icon: Video, title: "Analyzed — Podcast transcript", time: "2d ago" },
-];
 
 function useGreeting() {
   const [text, setText] = useState("Hello");

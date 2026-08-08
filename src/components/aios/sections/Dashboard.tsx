@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
 import type { TabId } from "../TopNav";
-import { useApi } from "@/hooks/useApi";
+import { apiGet } from "@/lib/api";
 import { HeroClock } from "../widgets/HeroClock";
 import { QuoteBar } from "../widgets/QuoteBar";
 

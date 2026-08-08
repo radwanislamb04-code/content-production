@@ -18,6 +18,8 @@ import { Projects } from "@/components/aios/sections/Projects";
 import { Templates } from "@/components/aios/sections/Templates";
 import { Library } from "@/components/aios/sections/Library";
 import { Resources } from "@/components/aios/sections/Resources";
+import { PipelineProvider } from "@/components/aios/pipeline";
+
 
 const SECTIONS = [
   "dashboard",

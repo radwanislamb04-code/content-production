@@ -12,16 +12,5 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  build: {
-    rollupOptions: {
-      external: ["cloudflare:workers"],
-    },
-    rolldownOptions: {
-      external: ["cloudflare:workers"],
-    },
-  },
-  ssr: {
-
-    external: ["cloudflare:workers"],
-  },
 });
+

@@ -101,48 +101,51 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-app text-fg">
-      <Sidebar
-        active={section}
-        onSelect={navigate}
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-      />
-      <TopNav
-        title={tab === "Dashboard" ? TITLES[section] : tab}
-        activeTab={tab}
-        onTabChange={setTab}
-        onMenu={() => setMenuOpen(true)}
-      />
-      <main className="min-h-screen pt-[105px] sm:pt-[97px] lg:ml-[200px]">
-        <div className="p-4 sm:p-6">
-          {tab === "Projects" && <Projects onNav={setSection} onTab={setTab} />}
-          {tab === "Templates" && (
-            <Templates onNav={setSection} onTab={setTab} />
-          )}
-          {tab === "Library" && <Library />}
-          {tab === "Resources" && <Resources />}
+    <PipelineProvider>
+      <div className="min-h-screen overflow-x-hidden bg-app text-fg">
+        <Sidebar
+          active={section}
+          onSelect={navigate}
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+        />
+        <TopNav
+          title={tab === "Dashboard" ? TITLES[section] : tab}
+          activeTab={tab}
+          onTabChange={setTab}
+          onMenu={() => setMenuOpen(true)}
+        />
+        <main className="min-h-screen pt-[105px] sm:pt-[97px] lg:ml-[200px]">
+          <div className="p-4 sm:p-6">
+            {tab === "Projects" && <Projects onNav={setSection} onTab={setTab} />}
+            {tab === "Templates" && (
+              <Templates onNav={setSection} onTab={setTab} />
+            )}
+            {tab === "Library" && <Library />}
+            {tab === "Resources" && <Resources />}
 
-          {tab === "Dashboard" && (
-            <>
-              {section === "dashboard" && (
-                <Dashboard onNav={setSection} onTab={setTab} />
-              )}
-              {section === "discover" && <Discover />}
-              {section === "analyzer" && <VideoAnalyzer onNav={navigate} />}
-              {section === "script" && <ScriptHook />}
-              {section === "storyboard" && <Storyboard />}
-              {section === "prompt" && <VideoPrompt />}
-              {section === "planner" && <Planner />}
-              {section === "analyst" && <Analyst />}
-              {section === "score" && <ContentScore />}
-              {section === "dm" && <DMManager />}
-              {section === "autopilot" && <AutoPilot />}
-              {section === "settings" && <Settings />}
-            </>
-          )}
-        </div>
-      </main>
-    </div>
+            {tab === "Dashboard" && (
+              <>
+                {section === "dashboard" && (
+                  <Dashboard onNav={setSection} onTab={setTab} />
+                )}
+                {section === "discover" && <Discover onNav={setSection} />}
+                {section === "analyzer" && <VideoAnalyzer onNav={navigate} />}
+                {section === "script" && <ScriptHook onNav={setSection} />}
+                {section === "storyboard" && <Storyboard onNav={setSection} />}
+                {section === "prompt" && <VideoPrompt />}
+                {section === "planner" && <Planner />}
+                {section === "analyst" && <Analyst />}
+                {section === "score" && <ContentScore />}
+                {section === "dm" && <DMManager />}
+                {section === "autopilot" && <AutoPilot />}
+                {section === "settings" && <Settings />}
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    </PipelineProvider>
   );
 }
+

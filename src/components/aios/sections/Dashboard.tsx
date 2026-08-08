@@ -115,19 +115,8 @@ export function Dashboard({
         <QuoteBar />
 
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {STATS.map((s) => (
-            <Card key={s.label} className="p-5">
-              <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface text-lime">
-                <s.icon size={18} />
-              </div>
-              <div className="mt-4 text-xs text-fg2">{s.label}</div>
-              <div className="text-[clamp(1.5rem,7vw,2rem)] font-bold leading-tight text-lime">
-                {s.value}
-              </div>
-            </Card>
-          ))}
-        </div>
+        <StatsRow />
+
 
         <Card className="p-5">
           <div className="mb-4 text-sm font-semibold text-fg2">Pipeline</div>

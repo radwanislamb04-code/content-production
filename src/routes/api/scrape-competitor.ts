@@ -68,7 +68,34 @@ export const Route = createFileRoute("/api/scrape-competitor")({
           );
         }
 
+        const db = env?.DB;
+
         const posts = result as CompetitorPost[];
+
+        if (db) {
+          try {
+            for (const post of posts) {
+              await db
+                .prepare(
+                  "INSERT INTO post_performance (handle, is_own_account, caption, likes, comments, url, posted_at, project_id, scraped_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                )
+                .bind(
+                  handle,
+                  0,
+                  post.caption ?? "",
+                  post.likes ?? 0,
+                  post.comments ?? 0,
+                  post.url ?? "",
+                  post.timestamp ?? "",
+                  (body as any)?.project_id ?? null,
+                  Date.now(),
+                )
+                .run();
+            }
+          } catch {
+            // DB write failed — continue without insert
+          }
+        }
 
         // --- Cache the result ---
         try {

@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS post_performance (id TEXT PRIMARY KEY, handle TEXT NOT NULL, is_own_account INTEGER NOT NULL DEFAULT 0, caption TEXT, likes INTEGER DEFAULT 0, comments INTEGER DEFAULT 0, url TEXT, posted_at TEXT, project_id TEXT, scraped_at INTEGER NOT NULL);

@@ -156,51 +156,10 @@ export function Dashboard({
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-[#101513] to-[#0C100E] p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-mute">
-            Continue Working
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-lg bg-surface text-lime">
-              <PenLine size={20} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-base font-semibold text-fg">
-                Script — Morning routine hack
-              </div>
-              <div className="text-xs text-mute">Last modified 2 hours ago</div>
-            </div>
-            <OutlineBtn onClick={() => onNav("script")}>Open</OutlineBtn>
-          </div>
-        </Card>
+        <ContinueWorking onNav={onNav} />
 
-        <div>
-          <div className="mb-3 text-sm font-semibold text-fg2">
-            Recent Generations
-          </div>
-          <div className="flex gap-3 overflow-x-auto aios-scroll pb-3">
-            {RECENT.map((r, i) => (
-              <div
-                key={i}
-                className="flex min-w-[160px] max-w-[160px] shrink-0 flex-col rounded-xl border border-line bg-cardx p-3"
-                style={{ height: 200 }}
-              >
-                <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface text-lime">
-                  <r.icon size={16} />
-                </div>
-                <div className="mt-3 line-clamp-3 text-sm text-fg">
-                  {r.title}
-                </div>
-                <div className="mt-auto flex items-center justify-between pt-4">
-                  <button className="rounded-md border border-line bg-surface px-2 py-1 text-[11px] text-lime hover:border-lime">
-                    Open
-                  </button>
-                  <span className="text-[10px] text-mute">{r.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <RecentGenerations />
+
       </div>
 
       {/* ---------- Right column ---------- */}

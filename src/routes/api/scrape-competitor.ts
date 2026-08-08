@@ -14,9 +14,11 @@ export const Route = createFileRoute("/api/scrape-competitor")({
   server: {
     handlers: {
       POST: async ({ request, context }) => {
-        const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
-        const kv = env?.KV;
-        const apifyApiToken = env?.APIFY_API_TOKEN;
+        const db = (context as any).cloudflare?.env?.DB;
+        const kv = (context as any).cloudflare?.env?.KV;
+        const apifyApiToken = (context as any).cloudflare?.env?.APIFY_API_TOKEN;
+
+        console.log("DEBUG: db:", !!db, "kv:", !!kv, "apify:", !!apifyApiToken);
 
         let body: { handle?: string; platform?: string; clearCache?: boolean };
         try {
@@ -51,7 +53,13 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         try {
           const cached = await kv?.get(cacheKey);
           if (cached) {
-            return Response.json({ posts: JSON.parse(cached) });
+            const cachedData = JSON.parse(cached);
+            // Return cached data with db_found/db_type if available, or add defaults
+            return Response.json({
+              posts: cachedData.posts ?? cachedData, // handle both old and new cache formats
+              db_found: cachedData.db_found ?? false,
+              db_type: cachedData.db_type ?? "undefined",
+            });
           }
         } catch {
           // KV unavailable, continue
@@ -68,43 +76,51 @@ export const Route = createFileRoute("/api/scrape-competitor")({
           );
         }
 
-        const db = env?.DB;
-
         const posts = result as CompetitorPost[];
 
         if (db) {
-          try {
-            for (const post of posts) {
-              await db
-                .prepare(
-                  "INSERT INTO post_performance (handle, is_own_account, caption, likes, comments, url, posted_at, project_id, scraped_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                )
-                .bind(
-                  handle,
-                  0,
-                  post.caption ?? "",
-                  post.likes ?? 0,
-                  post.comments ?? 0,
-                  post.url ?? "",
-                  post.timestamp ?? "",
-                  (body as any)?.project_id ?? null,
-                  Date.now(),
-                )
-                .run();
-            }
-          } catch {
-            // DB write failed — continue without insert
+          console.log("DEBUG: About to insert", posts.length, "posts to DB");
+          for (const post of posts) {
+            await db
+              .prepare(
+                "INSERT INTO post_performance (id, handle, is_own_account, caption, likes, comments, url, posted_at, project_id, scraped_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              )
+              .bind(
+                crypto.randomUUID(),
+                handle,
+                0,
+                post.caption ?? "",
+                post.likes ?? 0,
+                post.comments ?? 0,
+                post.url ?? "",
+                post.timestamp ?? "",
+                (body as any)?.project_id ?? null,
+                Date.now(),
+              )
+              .run();
           }
+          console.log("DEBUG: DB insert complete");
+        } else {
+          console.log("DEBUG: DB is undefined, skipping insert");
         }
+
+        const dbType = typeof db;
+        const dbFound = !!db;
 
         // --- Cache the result ---
         try {
-          await kv?.put(cacheKey, JSON.stringify(posts), { expirationTtl: CACHE_TTL });
+          await kv?.put(cacheKey, JSON.stringify({ posts, db_found: dbFound, db_type: dbType }), { expirationTtl: CACHE_TTL });
         } catch {
-          // KV write failed — continue without caching
+          // KV write failed
         }
 
-        return Response.json({ posts });
+        console.log("DEBUG: Returning response with db_found:", dbFound, "db_type:", dbType);
+
+        return new Response(JSON.stringify({ posts, db_found: dbFound, db_type: dbType }), {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
       },
     },
   },

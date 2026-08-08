@@ -397,16 +397,17 @@ export const Route = createFileRoute("/api/hook-script-writer")({
         try {
           await db
             .prepare(
-              `INSERT INTO library (id, type, status, content_pillar, title, content, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(id) DO UPDATE SET
                  title = excluded.title,
                  content = excluded.content,
                  status = excluded.status,
                  content_pillar = excluded.content_pillar,
+                 source_id = excluded.source_id,
                  updated_at = excluded.updated_at`,
             )
-            .bind(scriptId, "script", "draft", contentPillar, scriptTitle, scriptContent, now, now)
+            .bind(scriptId, "script", "draft", contentPillar, scriptTitle, scriptContent, ideaId, now, now)
             .run();
         } catch (err: any) {
           return Response.json(

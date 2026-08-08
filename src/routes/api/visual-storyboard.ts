@@ -489,8 +489,8 @@ export const Route = createFileRoute("/api/visual-storyboard")({
         try {
           await db
             .prepare(
-              `INSERT INTO library (id, type, status, content_pillar, title, content, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             )
             .bind(
               storyboardId,
@@ -499,6 +499,7 @@ export const Route = createFileRoute("/api/visual-storyboard")({
               scriptRow.content_pillar ?? null,
               storyboardTitle,
               storyboardContent,
+              scriptId,
               now,
               now,
             )

@@ -454,8 +454,8 @@ Generate shot-by-shot video generation prompts. Incorporate model=${model}, aspe
         try {
           await db
             .prepare(
-              `INSERT INTO library (id, type, status, content_pillar, title, content, project_id, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, project_id, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             )
             .bind(
               videoPromptId,
@@ -464,6 +464,7 @@ Generate shot-by-shot video generation prompts. Incorporate model=${model}, aspe
               storyboardRow.content_pillar ?? null,
               videoPromptTitle,
               videoPromptContent,
+              storyboardId,
               storyboardRow.project_id ?? null,
               now,
               now,

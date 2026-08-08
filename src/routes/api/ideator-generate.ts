@@ -211,16 +211,17 @@ export const Route = createFileRoute("/api/ideator-generate")({
             try {
               await db
                 .prepare(
-                  `INSERT INTO library (id, type, status, content_pillar, title, content, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                  `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(id) DO UPDATE SET
                      title = excluded.title,
                      content = excluded.content,
                      status = excluded.status,
                      content_pillar = excluded.content_pillar,
+                     source_id = excluded.source_id,
                      updated_at = excluded.updated_at`,
                 )
-                .bind(idea.id, "idea", "draft", idea.content_pillar, idea.title, content, now, now)
+                .bind(idea.id, "idea", "draft", idea.content_pillar, idea.title, content, null, now, now)
                 .run();
             } catch {
               // Skip persistence errors per-row; still return the generated ideas

@@ -10,24 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiActivityRouteImport } from './routes/api/activity'
-import { Route as ApiCharactersRouteImport } from './routes/api/characters'
-import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
-import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
-import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
-import { Route as ApiProjectsRouteImport } from './routes/api/projects'
-import { Route as ApiResourcesRouteImport } from './routes/api/resources'
-import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
-import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
-import { Route as ApiSearchRouteImport } from './routes/api/search'
-import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
-import { Route as ApiTrendSpyRouteImport } from './routes/api/trend-spy'
-import { Route as ApiTrendsRouteImport } from './routes/api/trends'
-import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
-import { Route as ApiVideoGenPromptRouteImport } from './routes/api/video-gen-prompt'
 import { Route as ApiVisualStoryboardRouteImport } from './routes/api/visual-storyboard'
-import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
+import { Route as ApiVideoGenPromptRouteImport } from './routes/api/video-gen-prompt'
+import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
+import { Route as ApiTrendsRouteImport } from './routes/api/trends'
+import { Route as ApiTrendSpyRouteImport } from './routes/api/trend-spy'
+import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
+import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
+import { Route as ApiResourcesRouteImport } from './routes/api/resources'
+import { Route as ApiProjectsRouteImport } from './routes/api/projects'
+import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
+import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
+import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
+import { Route as ApiCharactersRouteImport } from './routes/api/characters'
+import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
+import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
 import { Route as ApiLibraryTypeIdRouteImport } from './routes/api/library.$type.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,74 +35,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiActivityRoute = ApiActivityRouteImport.update({
-  id: '/api/activity',
-  path: '/api/activity',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCharactersRoute = ApiCharactersRouteImport.update({
-  id: '/api/characters',
-  path: '/api/characters',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
-  id: '/api/embed-check',
-  path: '/api/embed-check',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiHookScriptWriterRoute = ApiHookScriptWriterRouteImport.update({
-  id: '/api/hook-script-writer',
-  path: '/api/hook-script-writer',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
-  id: '/api/ideator-generate',
-  path: '/api/ideator-generate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiProjectsRoute = ApiProjectsRouteImport.update({
-  id: '/api/projects',
-  path: '/api/projects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiResourcesRoute = ApiResourcesRouteImport.update({
-  id: '/api/resources',
-  path: '/api/resources',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiScrapeCompetitorRoute = ApiScrapeCompetitorRouteImport.update({
-  id: '/api/scrape-competitor',
-  path: '/api/scrape-competitor',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiScriptsListRoute = ApiScriptsListRouteImport.update({
-  id: '/api/scripts-list',
-  path: '/api/scripts-list',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSearchRoute = ApiSearchRouteImport.update({
-  id: '/api/search',
-  path: '/api/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
-  id: '/api/telegram-cron',
-  path: '/api/telegram-cron',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTrendSpyRoute = ApiTrendSpyRouteImport.update({
-  id: '/api/trend-spy',
-  path: '/api/trend-spy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTrendsRoute = ApiTrendsRouteImport.update({
-  id: '/api/trends',
-  path: '/api/trends',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiVideoAnalyzerRoute = ApiVideoAnalyzerRouteImport.update({
-  id: '/api/video-analyzer',
-  path: '/api/video-analyzer',
+const ApiVisualStoryboardRoute = ApiVisualStoryboardRouteImport.update({
+  id: '/api/visual-storyboard',
+  path: '/api/visual-storyboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiVideoGenPromptRoute = ApiVideoGenPromptRouteImport.update({
@@ -110,14 +45,74 @@ const ApiVideoGenPromptRoute = ApiVideoGenPromptRouteImport.update({
   path: '/api/video-gen-prompt',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiVisualStoryboardRoute = ApiVisualStoryboardRouteImport.update({
-  id: '/api/visual-storyboard',
-  path: '/api/visual-storyboard',
+const ApiVideoAnalyzerRoute = ApiVideoAnalyzerRouteImport.update({
+  id: '/api/video-analyzer',
+  path: '/api/video-analyzer',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
-  id: '/api/library/$type',
-  path: '/api/library/$type',
+const ApiTrendsRoute = ApiTrendsRouteImport.update({
+  id: '/api/trends',
+  path: '/api/trends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrendSpyRoute = ApiTrendSpyRouteImport.update({
+  id: '/api/trend-spy',
+  path: '/api/trend-spy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
+  id: '/api/telegram-cron',
+  path: '/api/telegram-cron',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiScriptsListRoute = ApiScriptsListRouteImport.update({
+  id: '/api/scripts-list',
+  path: '/api/scripts-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiScrapeCompetitorRoute = ApiScrapeCompetitorRouteImport.update({
+  id: '/api/scrape-competitor',
+  path: '/api/scrape-competitor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResourcesRoute = ApiResourcesRouteImport.update({
+  id: '/api/resources',
+  path: '/api/resources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProjectsRoute = ApiProjectsRouteImport.update({
+  id: '/api/projects',
+  path: '/api/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
+  id: '/api/ideator-generate',
+  path: '/api/ideator-generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHookScriptWriterRoute = ApiHookScriptWriterRouteImport.update({
+  id: '/api/hook-script-writer',
+  path: '/api/hook-script-writer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
+  id: '/api/embed-check',
+  path: '/api/embed-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCharactersRoute = ApiCharactersRouteImport.update({
+  id: '/api/characters',
+  path: '/api/characters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiActivityRoute = ApiActivityRouteImport.update({
+  id: '/api/activity',
+  path: '/api/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWorkspaceSelected_ideaRoute =
@@ -126,6 +121,11 @@ const ApiWorkspaceSelected_ideaRoute =
     path: '/api/workspace/selected_idea',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
+  id: '/api/library/$type',
+  path: '/api/library/$type',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLibraryTypeIdRoute = ApiLibraryTypeIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -299,102 +299,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/activity': {
-      id: '/api/activity'
-      path: '/api/activity'
-      fullPath: '/api/activity'
-      preLoaderRoute: typeof ApiActivityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/characters': {
-      id: '/api/characters'
-      path: '/api/characters'
-      fullPath: '/api/characters'
-      preLoaderRoute: typeof ApiCharactersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/embed-check': {
-      id: '/api/embed-check'
-      path: '/api/embed-check'
-      fullPath: '/api/embed-check'
-      preLoaderRoute: typeof ApiEmbedCheckRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/hook-script-writer': {
-      id: '/api/hook-script-writer'
-      path: '/api/hook-script-writer'
-      fullPath: '/api/hook-script-writer'
-      preLoaderRoute: typeof ApiHookScriptWriterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/ideator-generate': {
-      id: '/api/ideator-generate'
-      path: '/api/ideator-generate'
-      fullPath: '/api/ideator-generate'
-      preLoaderRoute: typeof ApiIdeatorGenerateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/projects': {
-      id: '/api/projects'
-      path: '/api/projects'
-      fullPath: '/api/projects'
-      preLoaderRoute: typeof ApiProjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/resources': {
-      id: '/api/resources'
-      path: '/api/resources'
-      fullPath: '/api/resources'
-      preLoaderRoute: typeof ApiResourcesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/scrape-competitor': {
-      id: '/api/scrape-competitor'
-      path: '/api/scrape-competitor'
-      fullPath: '/api/scrape-competitor'
-      preLoaderRoute: typeof ApiScrapeCompetitorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/scripts-list': {
-      id: '/api/scripts-list'
-      path: '/api/scripts-list'
-      fullPath: '/api/scripts-list'
-      preLoaderRoute: typeof ApiScriptsListRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/search': {
-      id: '/api/search'
-      path: '/api/search'
-      fullPath: '/api/search'
-      preLoaderRoute: typeof ApiSearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/telegram-cron': {
-      id: '/api/telegram-cron'
-      path: '/api/telegram-cron'
-      fullPath: '/api/telegram-cron'
-      preLoaderRoute: typeof ApiTelegramCronRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/trend-spy': {
-      id: '/api/trend-spy'
-      path: '/api/trend-spy'
-      fullPath: '/api/trend-spy'
-      preLoaderRoute: typeof ApiTrendSpyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/trends': {
-      id: '/api/trends'
-      path: '/api/trends'
-      fullPath: '/api/trends'
-      preLoaderRoute: typeof ApiTrendsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/video-analyzer': {
-      id: '/api/video-analyzer'
-      path: '/api/video-analyzer'
-      fullPath: '/api/video-analyzer'
-      preLoaderRoute: typeof ApiVideoAnalyzerRouteImport
+    '/api/visual-storyboard': {
+      id: '/api/visual-storyboard'
+      path: '/api/visual-storyboard'
+      fullPath: '/api/visual-storyboard'
+      preLoaderRoute: typeof ApiVisualStoryboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/video-gen-prompt': {
@@ -404,18 +313,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVideoGenPromptRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/visual-storyboard': {
-      id: '/api/visual-storyboard'
-      path: '/api/visual-storyboard'
-      fullPath: '/api/visual-storyboard'
-      preLoaderRoute: typeof ApiVisualStoryboardRouteImport
+    '/api/video-analyzer': {
+      id: '/api/video-analyzer'
+      path: '/api/video-analyzer'
+      fullPath: '/api/video-analyzer'
+      preLoaderRoute: typeof ApiVideoAnalyzerRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/library/$type': {
-      id: '/api/library/$type'
-      path: '/api/library/$type'
-      fullPath: '/api/library/$type'
-      preLoaderRoute: typeof ApiLibraryTypeRouteImport
+    '/api/trends': {
+      id: '/api/trends'
+      path: '/api/trends'
+      fullPath: '/api/trends'
+      preLoaderRoute: typeof ApiTrendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/trend-spy': {
+      id: '/api/trend-spy'
+      path: '/api/trend-spy'
+      fullPath: '/api/trend-spy'
+      preLoaderRoute: typeof ApiTrendSpyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/telegram-cron': {
+      id: '/api/telegram-cron'
+      path: '/api/telegram-cron'
+      fullPath: '/api/telegram-cron'
+      preLoaderRoute: typeof ApiTelegramCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/scripts-list': {
+      id: '/api/scripts-list'
+      path: '/api/scripts-list'
+      fullPath: '/api/scripts-list'
+      preLoaderRoute: typeof ApiScriptsListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/scrape-competitor': {
+      id: '/api/scrape-competitor'
+      path: '/api/scrape-competitor'
+      fullPath: '/api/scrape-competitor'
+      preLoaderRoute: typeof ApiScrapeCompetitorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/resources': {
+      id: '/api/resources'
+      path: '/api/resources'
+      fullPath: '/api/resources'
+      preLoaderRoute: typeof ApiResourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/projects': {
+      id: '/api/projects'
+      path: '/api/projects'
+      fullPath: '/api/projects'
+      preLoaderRoute: typeof ApiProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ideator-generate': {
+      id: '/api/ideator-generate'
+      path: '/api/ideator-generate'
+      fullPath: '/api/ideator-generate'
+      preLoaderRoute: typeof ApiIdeatorGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/hook-script-writer': {
+      id: '/api/hook-script-writer'
+      path: '/api/hook-script-writer'
+      fullPath: '/api/hook-script-writer'
+      preLoaderRoute: typeof ApiHookScriptWriterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/embed-check': {
+      id: '/api/embed-check'
+      path: '/api/embed-check'
+      fullPath: '/api/embed-check'
+      preLoaderRoute: typeof ApiEmbedCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/characters': {
+      id: '/api/characters'
+      path: '/api/characters'
+      fullPath: '/api/characters'
+      preLoaderRoute: typeof ApiCharactersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/activity': {
+      id: '/api/activity'
+      path: '/api/activity'
+      fullPath: '/api/activity'
+      preLoaderRoute: typeof ApiActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/workspace/selected_idea': {
@@ -423,6 +416,13 @@ declare module '@tanstack/react-router' {
       path: '/api/workspace/selected_idea'
       fullPath: '/api/workspace/selected_idea'
       preLoaderRoute: typeof ApiWorkspaceSelected_ideaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/library/$type': {
+      id: '/api/library/$type'
+      path: '/api/library/$type'
+      fullPath: '/api/library/$type'
+      preLoaderRoute: typeof ApiLibraryTypeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/library/$type/$id': {
@@ -471,13 +471,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

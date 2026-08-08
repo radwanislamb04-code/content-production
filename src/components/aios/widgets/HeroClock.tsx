@@ -4,17 +4,16 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 export function HeroClock() {
   const [now, setNow] = useState<Date | null>(null);
+  const [tz, setTz] = useState("");
 
   useEffect(() => {
     setNow(new Date());
+    setTz(Intl.DateTimeFormat().resolvedOptions().timeZone ?? "");
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const tz =
-    typeof Intl !== "undefined"
-      ? Intl.DateTimeFormat().resolvedOptions().timeZone
-      : "";
+
 
   const hours = now ? now.getHours() : 0;
   const displayHour = hours % 12 || 12;

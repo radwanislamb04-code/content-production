@@ -23,6 +23,7 @@ type ScriptPayload = {
   body: string;
   cta: string;
   formatted?: string;
+  voiceover_script?: string;
 };
 
 // Full contents of .claude/skills/viral-hook-script-writer.md embedded verbatim
@@ -177,6 +178,30 @@ PART 2 — After PART 1, on a new line, output a single JSON code block (fenced 
 The JSON must contain exactly 3 hook objects, be valid and parseable, and match the shape above exactly.`;
 }
 
+function buildVoiceoverScript(script: ScriptPayload): string {
+  const spokenLines: string[] = [];
+  for (const h of script.hooks || []) {
+    if (h.spoken) spokenLines.push(h.spoken.trim());
+  }
+  if (script.body) {
+    for (const line of script.body.split("\n")) {
+      const spokenPart = line.split(" | ")[0].trim();
+      const noTimestamp = spokenPart.replace(/^\[[^\]]+\]\s+/, "").trim();
+      const noEmoji = noTimestamp.replace(/^([⚡⚠🎮📇🔥]+\s*)*/, "").trim();
+      const noLabel = noEmoji.replace(/^[^:]*:\s*/, "").trim();
+      const noBrackets = noLabel.replace(/\[[^\]]*\]/g, "").trim();
+      const unquoted = noBrackets.replace(/^["'](.*)["']$/, "$1").trim();
+      if (unquoted) spokenLines.push(unquoted);
+    }
+  }
+  if (script.cta) {
+    const ctaClean = script.cta.replace(/^["'](.*)["']$/, "$1").trim();
+    if (ctaClean) spokenLines.push(ctaClean);
+  }
+  const unique = spokenLines.filter((v, i, a) => a.indexOf(v) === i);
+  return unique.join(" ");
+}
+
 function extractScript(rawText: string): ScriptPayload | null {
   if (!rawText) return null;
 
@@ -225,7 +250,8 @@ function extractScript(rawText: string): ScriptPayload | null {
     const cta = typeof r.cta === "string" ? r.cta : "";
     if (!body) continue;
 
-    return { hooks, body, cta, formatted: rawText };
+    const scriptPayload: ScriptPayload = { hooks, body, cta, formatted: rawText, voiceover_script: buildVoiceoverScript({ hooks, body, cta, formatted: rawText }) };
+    return scriptPayload;
   }
 
   return null;

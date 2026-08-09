@@ -14,6 +14,7 @@ type AnalyzerPayload = {
   description: string;
   hashtags: string[];
   formatted?: string;
+  voiceover_script?: string;
 };
 
 // Full contents of .claude/skills/viral-hook-script-writer.md embedded verbatim
@@ -180,6 +181,33 @@ ${content}
 ${JSON_SHAPE_INSTRUCTION}`;
 }
 
+function buildVoiceoverScript(payload: AnalyzerPayload): string {
+  const spokenLines: string[] = [];
+  for (const h of payload.hooks || []) {
+    if (h.spoken) spokenLines.push(h.spoken.trim());
+  }
+  if (payload.full_script) {
+    for (const line of payload.full_script.split("\n")) {
+      // Take everything before first " | " (annotation separator)
+      const spokenPart = line.split(" | ")[0].trim();
+      // Remove timestamp markers like [0-3s] or [last 3-5s]
+      const noTimestamp = spokenPart.replace(/^\[[^\]]+\]\s+/, "").trim();
+      // Remove leading emoji markers (⚡, 🎞, etc.) - can be multiple
+      const noEmoji = noTimestamp.replace(/^([⚡⚠🎮📇🔥]+\s*)*/, "").trim();
+      // Remove any label ending with colon (match everything up to first colon)
+      // Handles: HOOK:, SETUP/PROOF:, DELIVERY:, RE-HOOK ⚡:, ESCALATION ⚡:, PAYOFF:, CTA:, etc.
+      const noLabel = noEmoji.replace(/^[^:]*:\s*/, "").trim();
+      // Remove any remaining bracket annotations like [something]
+      const noBrackets = noLabel.replace(/\[[^\]]*\]/g, "").trim();
+      // Strip surrounding quotes if present (both "..." and '...')
+      const unquoted = noBrackets.replace(/^["'](.*)["']$/, "$1").trim();
+      if (unquoted) spokenLines.push(unquoted);
+    }
+  }
+  const unique = spokenLines.filter((v, i, a) => a.indexOf(v) === i);
+  return unique.join(" ");
+}
+
 function extractAnalyzerPayload(rawText: string): AnalyzerPayload | null {
   if (!rawText) return null;
 
@@ -232,7 +260,8 @@ function extractAnalyzerPayload(rawText: string): AnalyzerPayload | null {
       ? r.hashtags.filter((h): h is string => typeof h === "string")
       : [];
 
-    return { hooks, full_script, title, description, hashtags, formatted: rawText };
+    const payload: AnalyzerPayload = { hooks, full_script, title, description, hashtags, formatted: rawText, voiceover_script: buildVoiceoverScript({ hooks, full_script, title, description, hashtags, formatted: rawText }) };
+    return payload;
   }
 
   return null;

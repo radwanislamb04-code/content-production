@@ -147,21 +147,25 @@ export function ScriptHook({ onNav }: { onNav: (id: SectionId) => void }) {
             </Card>
           )}
 
-          {script.script?.formatted && (
-            <Card className="p-5">
-              <div className="mb-2 text-[11px] uppercase tracking-wide text-mute">
-                Full Script
-              </div>
-              <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words font-sans text-sm text-fg2">
-                {script.script.formatted}
-              </pre>
-              <div className="mt-3 flex justify-end">
-                <GhostBtn onClick={() => copy(script.script.formatted ?? "")}>
-                  <Copy size={13} /> Copy Script
-                </GhostBtn>
-              </div>
-            </Card>
-          )}
+          <div className="flex justify-end">
+            <GhostBtn
+              onClick={() =>
+                copy(
+                  [
+                    script.script?.hooks?.[0]?.spoken,
+                    script.script?.body,
+                    script.script?.cta,
+                  ]
+                    .filter(Boolean)
+                    .join("\n\n"),
+                )
+              }
+            >
+              <Copy size={13} /> Copy Script
+            </GhostBtn>
+          </div>
+
+
 
           <PrimaryBtn className="w-full" onClick={() => onNav("storyboard")}>
             Continue to Storyboard →

@@ -1,6 +1,10 @@
-import { useState } from "react";
-import { Card, Input, OutlineBtn } from "../ui";
+import { useEffect, useState } from "react";
+import { Card, Input, OutlineBtn, PrimaryBtn } from "../ui";
 import { Eye, EyeOff, Save, Plus, X } from "lucide-react";
+import { toast } from "sonner";
+import { apiGet, apiPost, errorMessage } from "@/lib/api";
+import type { CharacterRow } from "@/lib/content-types";
+
 
 const NAV = ["API Keys", "Instagram", "Telegram", "Schedule", "Characters", "Appearance"];
 

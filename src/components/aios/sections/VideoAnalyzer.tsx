@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Card, PrimaryBtn, GhostBtn, Textarea, SectionHeader, Input } from "../ui";
 import type { SectionId } from "../Sidebar";
+import { toast } from "sonner";
+import { apiPost, errorMessage } from "@/lib/api";
 import {
   RefreshCw,
   Copy,
@@ -19,10 +21,60 @@ type OTab = (typeof OUT_TABS)[number];
 
 type Idea = { id: number; text: string; finalized: boolean };
 
+type AnalyzerHook = {
+  spoken: string;
+  formula: string;
+  visual: string;
+  text_overlay: string;
+};
+
+type AnalyzerResult = {
+  hooks: AnalyzerHook[];
+  full_script: string;
+  title: string;
+  description: string;
+  hashtags: string[];
+};
+
 export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
   const [text, setText] = useState("");
-  const [gen, setGen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AnalyzerResult | null>(null);
   const [otab, setOtab] = useState<OTab>("Hooks");
+
+  const copy = (value: string) => {
+    navigator.clipboard.writeText(value).then(
+      () => toast.success("Copied to clipboard"),
+      () => toast.error("Could not copy"),
+    );
+  };
+
+  const analyze = async () => {
+    if (!text.trim()) {
+      toast.error("Paste a transcript or script first");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await apiPost<AnalyzerResult>("/api/video-analyzer", {
+        input_type: "transcript",
+        content: text.trim(),
+      });
+      setResult({
+        hooks: Array.isArray(res?.hooks) ? res.hooks : [],
+        full_script: res?.full_script ?? "",
+        title: res?.title ?? "",
+        description: res?.description ?? "",
+        hashtags: Array.isArray(res?.hashtags) ? res.hashtags : [],
+      });
+      setOtab("Hooks");
+      toast.success("Content generated");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -33,7 +85,6 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
 
       <div className="mx-auto w-full max-w-[800px]">
         <Card className="p-6">
-
           <div className="mb-2 text-xs text-fg2">Reference Transcript or Script</div>
           <Textarea
             value={text}
@@ -44,12 +95,14 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
           <div className="mt-1 text-right text-[11px] text-mute">
             {text.length} / 5000
           </div>
-          <button
-            onClick={() => setGen(true)}
-            className="mt-3 h-12 w-full rounded-lg bg-lime text-sm font-bold text-app hover:bg-lime2"
+          <PrimaryBtn
+            onClick={analyze}
+            loading={loading}
+            disabled={!text.trim()}
+            className="mt-3 h-12 w-full"
           >
-            Analyze &amp; Generate Content
-          </button>
+            {loading ? "Analyzing…" : "Analyze & Generate Content"}
+          </PrimaryBtn>
           <div className="my-4 flex items-center gap-3 text-xs text-mute">
             <div className="h-px flex-1 bg-line" />
             or
@@ -58,7 +111,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
           <button
             onClick={() => {
               setText("");
-              setGen(false);
+              setResult(null);
             }}
             className="mx-auto block text-xs text-mute hover:text-fg2"
           >
@@ -69,9 +122,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
         <CustomIdeas onNav={onNav} />
       </div>
 
-
-
-      {gen && (
+      {result && (
         <div className="mx-auto w-full max-w-[800px] space-y-4">
           <div className="flex flex-wrap gap-2">
             {OUT_TABS.map((t) => (
@@ -90,28 +141,39 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
           </div>
 
           {otab === "Hooks" && (
-            <OutCard title="Hooks" Icon={FileText}>
+            <OutCard title="Hooks" Icon={FileText} onCopy={() => copy(result.hooks.map((h) => h.spoken).join("\n"))}>
               <div className="space-y-2">
-                {[
-                  { style: "Curiosity", text: "You've been planning your week wrong (here's the fix)" },
-                  { style: "Contrarian", text: "Stop batch-editing. Do this 20-minute ritual instead." },
-                  { style: "Story", text: "I lost 3 months of momentum until this one change." },
-                ].map((h, i) => (
+                {result.hooks.length === 0 && (
+                  <div className="text-sm text-mute">No hooks returned.</div>
+                )}
+                {result.hooks.map((h, i) => (
                   <div key={i} className="rounded-lg border border-line bg-surface p-3">
                     <div className="flex items-center gap-2">
                       <span className="grid h-6 w-6 place-items-center rounded-full bg-lime text-xs font-bold text-app">
                         {i + 1}
                       </span>
-                      <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
-                        {h.style}
-                      </span>
+                      {h.formula && (
+                        <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
+                          {h.formula}
+                        </span>
+                      )}
                     </div>
-                    <div className="mt-2 text-sm text-fg">{h.text}</div>
+                    <div className="mt-2 text-sm text-fg">{h.spoken}</div>
+                    {h.visual && (
+                      <div className="mt-1 text-xs text-mute">Visual: {h.visual}</div>
+                    )}
+                    {h.text_overlay && (
+                      <div className="mt-1 text-xs text-mute">
+                        Overlay: {h.text_overlay}
+                      </div>
+                    )}
                     <div className="mt-2 flex justify-end gap-2">
-                      <GhostBtn className="text-fg2 hover:text-fg">
+                      <GhostBtn
+                        className="text-fg2 hover:text-fg"
+                        onClick={() => copy(h.spoken)}
+                      >
                         <Copy size={13} /> Copy
                       </GhostBtn>
-                      <GhostBtn>Use This Hook</GhostBtn>
                     </div>
                   </div>
                 ))}
@@ -120,56 +182,66 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
           )}
 
           {otab === "Full Script" && (
-            <OutCard title="Full Script" Icon={FileText}>
-              <Textarea
-                defaultValue="Hook: You've been planning your week wrong.\n\n[PAUSE]\n\nHere's the 20-minute ritual I use every Sunday…"
-                style={{ minHeight: 200 }}
-              />
+            <OutCard
+              title="Full Script"
+              Icon={FileText}
+              onCopy={() => copy(result.full_script)}
+            >
+              <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words font-sans text-sm text-fg2">
+                {result.full_script || "No script returned."}
+              </pre>
               <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="rounded-full border border-lime px-2 py-0.5 text-lime">
-                  ~42s
+                <span className="text-mute">
+                  {result.full_script.trim()
+                    ? result.full_script.trim().split(/\s+/).length
+                    : 0}{" "}
+                  words
                 </span>
-                <span className="text-mute">128 words</span>
               </div>
             </OutCard>
           )}
 
           {otab === "Title" && (
-            <OutCard title="Title" Icon={Type}>
-              <Textarea
-                defaultValue="The 20-Minute Weekly Ritual That Fixed My Content Plan"
-                style={{ minHeight: 60 }}
-              />
+            <OutCard title="Title" Icon={Type} onCopy={() => copy(result.title)}>
+              <div className="text-sm text-fg">{result.title || "No title returned."}</div>
             </OutCard>
           )}
 
           {otab === "Description" && (
-            <OutCard title="Description" Icon={MessageSquare}>
-              <Textarea
-                defaultValue="A short weekly ritual to plan content in 20 minutes and stay consistent…"
-                style={{ minHeight: 150 }}
-              />
+            <OutCard
+              title="Description"
+              Icon={MessageSquare}
+              onCopy={() => copy(result.description)}
+            >
+              <pre className="whitespace-pre-wrap break-words font-sans text-sm text-fg2">
+                {result.description || "No description returned."}
+              </pre>
             </OutCard>
           )}
 
           {otab === "Hashtags" && (
-            <OutCard title="Hashtags" Icon={Hash}>
+            <OutCard
+              title="Hashtags"
+              Icon={Hash}
+              onCopy={() => copy(result.hashtags.join(" "))}
+            >
               <div className="flex flex-wrap gap-2">
-                {["#creator", "#weeklyplan", "#contentstrategy", "#reelstips", "#workflow"].map(
-                  (h) => (
-                    <span
-                      key={h}
-                      className="rounded-full border border-line bg-surface px-3 py-1 text-xs text-lime"
-                    >
-                      {h}
-                    </span>
-                  ),
+                {result.hashtags.length === 0 && (
+                  <span className="text-sm text-mute">No hashtags returned.</span>
                 )}
+                {result.hashtags.map((h) => (
+                  <span
+                    key={h}
+                    className="rounded-full border border-line bg-surface px-3 py-1 text-xs text-lime"
+                  >
+                    {h}
+                  </span>
+                ))}
               </div>
             </OutCard>
           )}
 
-          <PrimaryBtn className="w-full">
+          <PrimaryBtn className="w-full" onClick={() => onNav?.("script")}>
             <Video size={16} /> Send to Script Section →
           </PrimaryBtn>
         </div>
@@ -282,16 +354,16 @@ function CustomIdeas({ onNav }: { onNav?: (id: SectionId) => void }) {
   );
 }
 
-
-
 function OutCard({
   title,
   Icon,
   children,
+  onCopy,
 }: {
   title: string;
   Icon: typeof FileText;
   children: React.ReactNode;
+  onCopy?: () => void;
 }) {
   return (
     <Card className="p-5">
@@ -301,10 +373,11 @@ function OutCard({
           {title}
         </div>
         <div className="flex gap-1">
-          <button className="grid h-8 w-8 place-items-center rounded-md text-lime hover:bg-[rgba(82,255,46,0.08)]">
-            <RefreshCw size={14} />
-          </button>
-          <button className="grid h-8 w-8 place-items-center rounded-md text-mute hover:text-lime">
+          <button
+            onClick={onCopy}
+            aria-label="Copy"
+            className="grid h-8 w-8 place-items-center rounded-md text-mute hover:text-lime"
+          >
             <Copy size={14} />
           </button>
         </div>

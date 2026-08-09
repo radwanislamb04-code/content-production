@@ -126,6 +126,12 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
       <Card className="p-5">
         <div className="text-sm text-fg2">{active.hint}</div>
 
+        {source === "my_posts" && (
+          <div className="mt-3 inline-flex items-center rounded-full border border-line bg-surface px-3 py-1 text-[11px] text-warn">
+            Coming soon — full analytics integration
+          </div>
+        )}
+
         {source !== "my_posts" && (
           <div className="mt-4 space-y-3">
             <div className="flex gap-2">
@@ -176,8 +182,15 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
           loading={loading}
           disabled={source !== "my_posts" && entries.length === 0}
         >
-          {loading ? "Generating…" : "Generate Ideas"}
+          {step === "sourcing"
+            ? source === "competitor"
+              ? "Fetching competitor data…"
+              : "Fetching trend data…"
+            : step === "generating"
+              ? "Generating ideas…"
+              : "Generate Ideas"}
         </PrimaryBtn>
+
       </Card>
 
       {ideas.length === 0 ? (

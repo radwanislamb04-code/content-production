@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, Input, EmptyState } from "../ui";
 import { Lightbulb, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { apiPost, errorMessage } from "@/lib/api";
+import { apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { Idea } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";

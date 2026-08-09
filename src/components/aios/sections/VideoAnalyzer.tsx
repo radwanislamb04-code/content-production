@@ -4,7 +4,6 @@ import type { SectionId } from "../Sidebar";
 import { toast } from "sonner";
 import { apiPost, errorMessage } from "@/lib/api";
 import {
-  RefreshCw,
   Copy,
   FileText,
   Hash,

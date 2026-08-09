@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, Input, EmptyState } from "../ui";
 import { Lightbulb, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { apiPost, errorMessage } from "@/lib/api";
+import { apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { Idea } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";
@@ -21,6 +21,7 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
   const [entries, setEntries] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<"idle" | "sourcing" | "generating">("idle");
 
   const active = SOURCES.find((s) => s.id === source)!;
 
@@ -31,21 +32,69 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
     setDraft("");
   };
 
+  const collectCompetitorData = async () => {
+    const all: unknown[] = [];
+    for (const handle of entries) {
+      try {
+        const res = await apiPost<{ posts?: unknown[] }>("/api/scrape-competitor", {
+          handle: handle.replace(/^@/, ""),
+          platform: "instagram",
+        });
+        if (Array.isArray(res?.posts)) {
+          all.push({ handle, posts: res.posts });
+        }
+      } catch (err) {
+        toast.error(`${handle}: ${errorMessage(err)}`);
+      }
+    }
+    return all;
+  };
+
+  const collectTrendData = async () => {
+    const all: unknown[] = [];
+    for (const keyword of entries) {
+      try {
+        const res = await apiGet<unknown[]>(
+          `/api/trends?platform=youtube&category=${encodeURIComponent(keyword)}`,
+        );
+        if (Array.isArray(res)) all.push({ keyword, trends: res });
+      } catch (err) {
+        toast.error(`${keyword}: ${errorMessage(err)}`);
+      }
+    }
+    return all;
+  };
+
   const generate = async () => {
     setLoading(true);
     try {
+      let sourceData: unknown[] = [];
+      if (source !== "my_posts") {
+        setStep("sourcing");
+        sourceData =
+          source === "competitor"
+            ? await collectCompetitorData()
+            : await collectTrendData();
+        if (sourceData.length === 0) {
+          toast.error("No source data found — try different entries.");
+          return;
+        }
+      }
+      setStep("generating");
       const res = await apiPost<{ ideas: Idea[] }>("/api/ideator-generate", {
         source,
-        source_data: source === "my_posts" ? [] : entries,
+        source_data: sourceData,
       });
       setIdeas(res.ideas ?? []);
       toast.success(`Generated ${res.ideas?.length ?? 0} ideas`);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
+      setStep("idle");
       setLoading(false);
     }
   };
+
 
   return (
     <div className="space-y-6 pb-24">
@@ -76,6 +125,12 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
 
       <Card className="p-5">
         <div className="text-sm text-fg2">{active.hint}</div>
+
+        {source === "my_posts" && (
+          <div className="mt-3 inline-flex items-center rounded-full border border-line bg-surface px-3 py-1 text-[11px] text-warn">
+            Coming soon — full analytics integration
+          </div>
+        )}
 
         {source !== "my_posts" && (
           <div className="mt-4 space-y-3">
@@ -127,8 +182,15 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
           loading={loading}
           disabled={source !== "my_posts" && entries.length === 0}
         >
-          {loading ? "Generating…" : "Generate Ideas"}
+          {step === "sourcing"
+            ? source === "competitor"
+              ? "Fetching competitor data…"
+              : "Fetching trend data…"
+            : step === "generating"
+              ? "Generating ideas…"
+              : "Generate Ideas"}
         </PrimaryBtn>
+
       </Card>
 
       {ideas.length === 0 ? (

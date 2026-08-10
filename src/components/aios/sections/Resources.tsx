@@ -104,12 +104,12 @@ const STATIC_SITES: Site[] = [
     description: "Find viral creator content by niche.",
   },
   {
-    id: "transcript365",
-    name: "Transcript365",
-    url: "https://www.transcript365.com/",
-    category: "Writing",
+    id: "instagram-transcript-generator",
+    name: "Instagram Transcript Generator",
+    url: "https://saveto.ai/instagram-transcript-generator/",
+    category: "Video Download",
     description:
-      "AI-powered transcription platform for converting audio and video into accurate text with subtitle and export support.",
+      "Generate accurate text transcripts from Instagram Reels and videos.",
   },
   {
     id: "gemini-watermark-remover",

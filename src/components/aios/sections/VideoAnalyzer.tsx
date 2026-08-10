@@ -15,7 +15,14 @@ import {
   X,
 } from "lucide-react";
 
-const OUT_TABS = ["Hooks", "Full Script", "Title", "Description", "Hashtags"] as const;
+const OUT_TABS = [
+  "Hooks",
+  "Full Script",
+  "Voiceover",
+  "Title",
+  "Description",
+  "Hashtags",
+] as const;
 type OTab = (typeof OUT_TABS)[number];
 
 type Idea = { id: number; text: string; finalized: boolean };
@@ -30,6 +37,7 @@ type AnalyzerHook = {
 type AnalyzerResult = {
   hooks: AnalyzerHook[];
   full_script: string;
+  voiceover_script: string;
   title: string;
   description: string;
   hashtags: string[];

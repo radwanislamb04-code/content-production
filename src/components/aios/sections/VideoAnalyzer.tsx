@@ -56,7 +56,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
     );
   };
 
-  const analyze = async () => {
+  const analyze = async (opts?: { keepTab?: boolean }) => {
     if (!text.trim()) {
       toast.error("Paste a transcript or script first");
       return;
@@ -70,11 +70,12 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
       setResult({
         hooks: Array.isArray(res?.hooks) ? res.hooks : [],
         full_script: res?.full_script ?? "",
+        voiceover_script: res?.voiceover_script ?? "",
         title: res?.title ?? "",
         description: res?.description ?? "",
         hashtags: Array.isArray(res?.hashtags) ? res.hashtags : [],
       });
-      setOtab("Hooks");
+      if (!opts?.keepTab) setOtab("Hooks");
       toast.success("Content generated");
     } catch (err) {
       toast.error(errorMessage(err));

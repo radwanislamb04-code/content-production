@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, EmptyState } from "../ui";
-import { PenLine, Copy } from "lucide-react";
+import { PenLine, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { apiPost, errorMessage } from "@/lib/api";
 import type { ScriptResult } from "@/lib/content-types";
@@ -10,6 +10,7 @@ import type { SectionId } from "../Sidebar";
 export function ScriptHook({ onNav }: { onNav: (id: SectionId) => void }) {
   const { selectedIdea, script, setScript } = usePipeline();
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<"Script" | "Voiceover">("Script");
 
   const generate = async () => {
     if (!selectedIdea) return;
@@ -100,72 +101,120 @@ export function ScriptHook({ onNav }: { onNav: (id: SectionId) => void }) {
             )}
           </Card>
 
-          <div className="space-y-3">
-            {script.script?.hooks?.map((h, i) => (
-              <Card key={i} className="p-5">
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="rounded-md bg-lime px-2 py-0.5 text-xs font-bold text-app">
-                    Hook {i + 1}
-                  </span>
-                  {h.formula && <Pill>{h.formula}</Pill>}
-                </div>
-                <div className="text-sm text-fg">{h.spoken}</div>
-                {h.visual && (
-                  <div className="mt-2 text-xs text-mute">Visual: {h.visual}</div>
-                )}
-                {h.text_overlay && (
-                  <div className="mt-1 text-xs text-mute">
-                    Overlay: {h.text_overlay}
-                  </div>
-                )}
-                <div className="mt-3 flex justify-end">
-                  <GhostBtn onClick={() => copy(h.spoken)}>
-                    <Copy size={13} /> Copy
-                  </GhostBtn>
-                </div>
-              </Card>
+          <div className="flex flex-wrap gap-2">
+            {(["Script", "Voiceover"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`h-9 rounded-full px-4 text-sm ${
+                  tab === t
+                    ? "bg-lime font-bold text-app"
+                    : "border border-line text-fg2 hover:border-lime hover:text-lime"
+                }`}
+              >
+                {t}
+              </button>
             ))}
           </div>
 
-          {script.script?.body && (
-            <Card className="p-5">
-              <div className="mb-2 text-[11px] uppercase tracking-wide text-mute">
-                Body
+          {tab === "Voiceover" ? (
+            <>
+              <Card className="p-5">
+                <div className="mb-2 text-[11px] uppercase tracking-wide text-mute">
+                  Voiceover Script
+                </div>
+                <pre className="whitespace-pre-wrap break-words font-sans text-sm text-fg2">
+                  {script.script?.voiceover_script ||
+                    "No voiceover script returned."}
+                </pre>
+                <div className="mt-2 text-xs text-mute">
+                  Clean spoken-only text — no visual or overlay directions.
+                </div>
+              </Card>
+              <div className="flex flex-wrap justify-end gap-2">
+                <GhostBtn
+                  onClick={() => copy(script.script?.voiceover_script ?? "")}
+                >
+                  <Copy size={13} /> Copy Voiceover
+                </GhostBtn>
+                <GhostBtn onClick={generate} disabled={loading}>
+                  <RefreshCw size={13} className={loading ? "animate-spin" : undefined} />
+                  {loading ? "Regenerating…" : "Regenerate"}
+                </GhostBtn>
               </div>
-              <pre className="whitespace-pre-wrap break-words font-sans text-sm text-fg2">
-                {script.script.body}
-              </pre>
-            </Card>
-          )}
-
-          {script.script?.cta && (
-            <Card className="p-5">
-              <div className="mb-2 text-[11px] uppercase tracking-wide text-mute">
-                CTA
+            </>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {script.script?.hooks?.map((h, i) => (
+                  <Card key={i} className="p-5">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="rounded-md bg-lime px-2 py-0.5 text-xs font-bold text-app">
+                        Hook {i + 1}
+                      </span>
+                      {h.formula && <Pill>{h.formula}</Pill>}
+                    </div>
+                    <div className="text-sm text-fg">{h.spoken}</div>
+                    {h.visual && (
+                      <div className="mt-2 text-xs text-mute">Visual: {h.visual}</div>
+                    )}
+                    {h.text_overlay && (
+                      <div className="mt-1 text-xs text-mute">
+                        Overlay: {h.text_overlay}
+                      </div>
+                    )}
+                    <div className="mt-3 flex justify-end">
+                      <GhostBtn onClick={() => copy(h.spoken)}>
+                        <Copy size={13} /> Copy
+                      </GhostBtn>
+                    </div>
+                  </Card>
+                ))}
               </div>
-              <div className="text-sm text-fg2">{script.script.cta}</div>
-            </Card>
+
+              {script.script?.body && (
+                <Card className="p-5">
+                  <div className="mb-2 text-[11px] uppercase tracking-wide text-mute">
+                    Body
+                  </div>
+                  <pre className="whitespace-pre-wrap break-words font-sans text-sm text-fg2">
+                    {script.script.body}
+                  </pre>
+                </Card>
+              )}
+
+              {script.script?.cta && (
+                <Card className="p-5">
+                  <div className="mb-2 text-[11px] uppercase tracking-wide text-mute">
+                    CTA
+                  </div>
+                  <div className="text-sm text-fg2">{script.script.cta}</div>
+                </Card>
+              )}
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <GhostBtn
+                  onClick={() =>
+                    copy(
+                      [
+                        script.script?.hooks?.[0]?.spoken,
+                        script.script?.body,
+                        script.script?.cta,
+                      ]
+                        .filter(Boolean)
+                        .join("\n\n"),
+                    )
+                  }
+                >
+                  <Copy size={13} /> Copy Script
+                </GhostBtn>
+                <GhostBtn onClick={generate} disabled={loading}>
+                  <RefreshCw size={13} className={loading ? "animate-spin" : undefined} />
+                  {loading ? "Regenerating…" : "Regenerate"}
+                </GhostBtn>
+              </div>
+            </>
           )}
-
-          <div className="flex justify-end">
-            <GhostBtn
-              onClick={() =>
-                copy(
-                  [
-                    script.script?.hooks?.[0]?.spoken,
-                    script.script?.body,
-                    script.script?.cta,
-                  ]
-                    .filter(Boolean)
-                    .join("\n\n"),
-                )
-              }
-            >
-              <Copy size={13} /> Copy Script
-            </GhostBtn>
-          </div>
-
-
 
           <PrimaryBtn className="w-full" onClick={() => onNav("storyboard")}>
             Continue to Storyboard →

@@ -20,6 +20,7 @@ export type ScriptPayload = {
   body: string;
   cta: string;
   formatted?: string;
+  voiceover_script?: string;
 };
 
 export type ScriptResult = {

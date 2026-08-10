@@ -53,14 +53,34 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
   const collectTrendData = async () => {
     const all: unknown[] = [];
     for (const keyword of entries) {
+      let trends: unknown[] | null = null;
+
+      // 1) YouTube trends for the keyword
       try {
-        const res = await apiGet<unknown[]>(
-          `/api/trends?platform=youtube&category=${encodeURIComponent(keyword)}`,
+        const res = await apiGet<unknown>(
+          `/api/trends?platform=youtube&category=${encodeURIComponent(keyword)}&q=${encodeURIComponent(keyword)}`,
         );
-        if (Array.isArray(res)) all.push({ keyword, trends: res });
-      } catch (err) {
-        toast.error(`${keyword}: ${errorMessage(err)}`);
+        if (Array.isArray(res) && res.length > 0) trends = res;
+      } catch {
+        /* fall through to next source */
       }
+
+      // 2) Trend-spy insights as a fallback
+      if (!trends) {
+        try {
+          const res = await apiPost<{ insights?: unknown[] }>("/api/trend-spy", {
+            category: keyword,
+          });
+          if (Array.isArray(res?.insights) && res.insights.length > 0) {
+            trends = res.insights;
+          }
+        } catch {
+          /* fall through */
+        }
+      }
+
+      // 3) Worst case, still pass the keyword itself so generation can proceed
+      all.push({ keyword, trends: trends ?? [{ title: keyword, source: "keyword" }] });
     }
     return all;
   };

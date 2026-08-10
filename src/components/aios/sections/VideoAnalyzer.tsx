@@ -10,12 +10,21 @@ import {
   Video,
   Type,
   MessageSquare,
+  Mic,
+  RefreshCw,
   Plus,
   Check,
   X,
 } from "lucide-react";
 
-const OUT_TABS = ["Hooks", "Full Script", "Title", "Description", "Hashtags"] as const;
+const OUT_TABS = [
+  "Hooks",
+  "Full Script",
+  "Voiceover",
+  "Title",
+  "Description",
+  "Hashtags",
+] as const;
 type OTab = (typeof OUT_TABS)[number];
 
 type Idea = { id: number; text: string; finalized: boolean };
@@ -30,6 +39,7 @@ type AnalyzerHook = {
 type AnalyzerResult = {
   hooks: AnalyzerHook[];
   full_script: string;
+  voiceover_script: string;
   title: string;
   description: string;
   hashtags: string[];
@@ -48,7 +58,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
     );
   };
 
-  const analyze = async () => {
+  const analyze = async (opts?: { keepTab?: boolean }) => {
     if (!text.trim()) {
       toast.error("Paste a transcript or script first");
       return;
@@ -62,11 +72,12 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
       setResult({
         hooks: Array.isArray(res?.hooks) ? res.hooks : [],
         full_script: res?.full_script ?? "",
+        voiceover_script: res?.voiceover_script ?? "",
         title: res?.title ?? "",
         description: res?.description ?? "",
         hashtags: Array.isArray(res?.hashtags) ? res.hashtags : [],
       });
-      setOtab("Hooks");
+      if (!opts?.keepTab) setOtab("Hooks");
       toast.success("Content generated");
     } catch (err) {
       toast.error(errorMessage(err));
@@ -95,7 +106,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
             {text.length} / 5000
           </div>
           <PrimaryBtn
-            onClick={analyze}
+            onClick={() => analyze()}
             loading={loading}
             disabled={!text.trim()}
             className="mt-3 h-12 w-full"
@@ -140,7 +151,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
           </div>
 
           {otab === "Hooks" && (
-            <OutCard title="Hooks" Icon={FileText} onCopy={() => copy(result.hooks.map((h) => h.spoken).join("\n"))}>
+            <OutCard title="Hooks" Icon={FileText} onRegenerate={() => analyze({ keepTab: true })} regenerating={loading} onCopy={() => copy(result.hooks.map((h) => h.spoken).join("\n"))}>
               <div className="space-y-2">
                 {result.hooks.length === 0 && (
                   <div className="text-sm text-mute">No hooks returned.</div>
@@ -184,6 +195,8 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
             <OutCard
               title="Full Script"
               Icon={FileText}
+              onRegenerate={() => analyze({ keepTab: true })}
+              regenerating={loading}
               onCopy={() => copy(result.full_script)}
             >
               <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words font-sans text-sm text-fg2">
@@ -196,6 +209,23 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
                     : 0}{" "}
                   words
                 </span>
+              </div>
+            </OutCard>
+          )}
+
+          {otab === "Voiceover" && (
+            <OutCard
+              title="Voiceover"
+              Icon={Mic}
+              onRegenerate={() => analyze({ keepTab: true })}
+              regenerating={loading}
+              onCopy={() => copy(result.voiceover_script)}
+            >
+              <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words font-sans text-sm text-fg2">
+                {result.voiceover_script || "No voiceover script returned."}
+              </pre>
+              <div className="mt-2 text-xs text-mute">
+                Clean spoken-only text — no visual or overlay directions.
               </div>
             </OutCard>
           )}
@@ -358,11 +388,15 @@ function OutCard({
   Icon,
   children,
   onCopy,
+  onRegenerate,
+  regenerating,
 }: {
   title: string;
   Icon: typeof FileText;
   children: React.ReactNode;
   onCopy?: () => void;
+  onRegenerate?: () => void;
+  regenerating?: boolean;
 }) {
   return (
     <Card className="p-5">
@@ -371,7 +405,7 @@ function OutCard({
           <Icon size={16} className="text-lime" />
           {title}
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
           <button
             onClick={onCopy}
             aria-label="Copy"
@@ -379,6 +413,19 @@ function OutCard({
           >
             <Copy size={14} />
           </button>
+          {onRegenerate && (
+            <button
+              onClick={onRegenerate}
+              disabled={regenerating}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line px-2.5 text-xs text-fg2 transition-colors hover:border-lime hover:text-lime disabled:opacity-60"
+            >
+              <RefreshCw
+                size={13}
+                className={regenerating ? "animate-spin" : undefined}
+              />
+              {regenerating ? "Regenerating…" : "Regenerate"}
+            </button>
+          )}
         </div>
       </div>
       {children}

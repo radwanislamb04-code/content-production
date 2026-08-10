@@ -10,6 +10,8 @@ import {
   Video,
   Type,
   MessageSquare,
+  Mic,
+  RefreshCw,
   Plus,
   Check,
   X,
@@ -386,11 +388,15 @@ function OutCard({
   Icon,
   children,
   onCopy,
+  onRegenerate,
+  regenerating,
 }: {
   title: string;
   Icon: typeof FileText;
   children: React.ReactNode;
   onCopy?: () => void;
+  onRegenerate?: () => void;
+  regenerating?: boolean;
 }) {
   return (
     <Card className="p-5">
@@ -399,7 +405,7 @@ function OutCard({
           <Icon size={16} className="text-lime" />
           {title}
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
           <button
             onClick={onCopy}
             aria-label="Copy"
@@ -407,8 +413,24 @@ function OutCard({
           >
             <Copy size={14} />
           </button>
+          {onRegenerate && (
+            <button
+              onClick={onRegenerate}
+              disabled={regenerating}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line px-2.5 text-xs text-fg2 transition-colors hover:border-lime hover:text-lime disabled:opacity-60"
+            >
+              <RefreshCw
+                size={13}
+                className={regenerating ? "animate-spin" : undefined}
+              />
+              {regenerating ? "Regenerating…" : "Regenerate"}
+            </button>
+          )}
         </div>
       </div>
+      {children}
+    </Card>
+  );
       {children}
     </Card>
   );

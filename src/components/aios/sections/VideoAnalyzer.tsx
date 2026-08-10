@@ -431,7 +431,4 @@ function OutCard({
       {children}
     </Card>
   );
-      {children}
-    </Card>
-  );
 }

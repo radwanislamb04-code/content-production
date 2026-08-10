@@ -104,7 +104,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
             {text.length} / 5000
           </div>
           <PrimaryBtn
-            onClick={analyze}
+            onClick={() => analyze()}
             loading={loading}
             disabled={!text.trim()}
             className="mt-3 h-12 w-full"
@@ -149,7 +149,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
           </div>
 
           {otab === "Hooks" && (
-            <OutCard title="Hooks" Icon={FileText} onCopy={() => copy(result.hooks.map((h) => h.spoken).join("\n"))}>
+            <OutCard title="Hooks" Icon={FileText} onRegenerate={() => analyze({ keepTab: true })} regenerating={loading} onCopy={() => copy(result.hooks.map((h) => h.spoken).join("\n"))}>
               <div className="space-y-2">
                 {result.hooks.length === 0 && (
                   <div className="text-sm text-mute">No hooks returned.</div>
@@ -193,6 +193,8 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
             <OutCard
               title="Full Script"
               Icon={FileText}
+              onRegenerate={() => analyze({ keepTab: true })}
+              regenerating={loading}
               onCopy={() => copy(result.full_script)}
             >
               <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words font-sans text-sm text-fg2">
@@ -205,6 +207,23 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
                     : 0}{" "}
                   words
                 </span>
+              </div>
+            </OutCard>
+          )}
+
+          {otab === "Voiceover" && (
+            <OutCard
+              title="Voiceover"
+              Icon={Mic}
+              onRegenerate={() => analyze({ keepTab: true })}
+              regenerating={loading}
+              onCopy={() => copy(result.voiceover_script)}
+            >
+              <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words font-sans text-sm text-fg2">
+                {result.voiceover_script || "No voiceover script returned."}
+              </pre>
+              <div className="mt-2 text-xs text-mute">
+                Clean spoken-only text — no visual or overlay directions.
               </div>
             </OutCard>
           )}

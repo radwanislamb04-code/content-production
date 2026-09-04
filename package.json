@@ -9,7 +9,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "cf:dev": "wrangler dev",
+    "db:migrate:local": "wrangler d1 migrations apply content-os-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply content-os-db --remote"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

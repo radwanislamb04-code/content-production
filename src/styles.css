@@ -184,6 +184,11 @@
 
 
 html, body { overflow-x: hidden; max-width: 100%; }
+/* Always reserve the vertical scrollbar so the layout never shifts. */
+html { scrollbar-gutter: stable; }
+@supports not (scrollbar-gutter: stable) {
+  html { overflow-y: scroll; }
+}
 img, video, canvas, svg { max-width: 100%; }
 
 /* --- Productivity widgets --- */

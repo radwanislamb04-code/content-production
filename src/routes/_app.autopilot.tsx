@@ -4,9 +4,9 @@ import { AutoPilot } from "@/components/aios/sections/AutoPilot";
 export const Route = createFileRoute("/_app/autopilot")({
   head: () => ({
     meta: [
-      { title: "AutoPilot — Jepy Labs" },
+      { title: "AutoPilot — JepyLabs" },
       { name: "description", content: "Automate recurring content jobs end to end." },
-      { property: "og:title", content: "AutoPilot — Jepy Labs" },
+      { property: "og:title", content: "AutoPilot — JepyLabs" },
       { property: "og:description", content: "Automate recurring content jobs end to end." },
     ],
   }),

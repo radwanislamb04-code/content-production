@@ -5,9 +5,9 @@ import { ScriptHook } from "@/components/aios/sections/ScriptHook";
 export const Route = createFileRoute("/_app/script")({
   head: () => ({
     meta: [
-      { title: "Script & Hook — Jepy Labs" },
+      { title: "Script & Hook — JepyLabs" },
       { name: "description", content: "Write scroll-stopping hooks and full shooting scripts." },
-      { property: "og:title", content: "Script & Hook — Jepy Labs" },
+      { property: "og:title", content: "Script & Hook — JepyLabs" },
       { property: "og:description", content: "Write scroll-stopping hooks and full shooting scripts." },
     ],
   }),

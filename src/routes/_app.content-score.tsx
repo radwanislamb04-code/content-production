@@ -4,9 +4,9 @@ import { ContentScore } from "@/components/aios/sections/ContentScore";
 export const Route = createFileRoute("/_app/content-score")({
   head: () => ({
     meta: [
-      { title: "Content Score — Jepy Labs" },
+      { title: "Content Score — JepyLabs" },
       { name: "description", content: "Score your hook, retention and script quality before you post." },
-      { property: "og:title", content: "Content Score — Jepy Labs" },
+      { property: "og:title", content: "Content Score — JepyLabs" },
       { property: "og:description", content: "Score your hook, retention and script quality before you post." },
     ],
   }),

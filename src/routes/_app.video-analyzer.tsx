@@ -5,9 +5,9 @@ import { VideoAnalyzer } from "@/components/aios/sections/VideoAnalyzer";
 export const Route = createFileRoute("/_app/video-analyzer")({
   head: () => ({
     meta: [
-      { title: "Video Analyzer — Jepy Labs" },
+      { title: "Video Analyzer — JepyLabs" },
       { name: "description", content: "Turn any reference video or idea into hooks, scripts and captions." },
-      { property: "og:title", content: "Video Analyzer — Jepy Labs" },
+      { property: "og:title", content: "Video Analyzer — JepyLabs" },
       { property: "og:description", content: "Turn any reference video or idea into hooks, scripts and captions." },
     ],
   }),

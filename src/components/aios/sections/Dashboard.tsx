@@ -91,7 +91,7 @@ export function Dashboard({
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <h1 className="text-[clamp(1.4rem,5.5vw,1.6rem)] font-semibold leading-tight text-fg">
-              {greeting}, Enzo
+              {greeting}, Enzorico
             </h1>
             <p className="mt-0.5 text-sm text-mute">
               Personal AI Content Operating System

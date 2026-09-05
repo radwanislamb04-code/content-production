@@ -32,7 +32,7 @@ export function Sidebar({
           >
             <img
               src="/jepy-logo.webp"
-              alt="Jepy Labs logo"
+              alt="JepyLabs logo"
               width={32}
               height={32}
               className="h-8 w-8 shrink-0 rounded-lg"

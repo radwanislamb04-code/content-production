@@ -61,6 +61,7 @@ export function ThumbnailStudioScreen() {
   const [color, setColor] = useState(SWATCHES[0]!.id);
   const [outline, setOutline] = useState(true);
 
+  const hasCharacter = false;
   const colorValue = SWATCHES.find((s) => s.id === color)?.value ?? SWATCHES[0]!.value;
   const row = Math.floor(pos / 3);
   const col = pos % 3;
@@ -103,7 +104,7 @@ export function ThumbnailStudioScreen() {
                 maxHeight: "min(60dvh, 520px)",
                 maxWidth: format === "yt" ? "100%" : "min(100%, 300px)",
                 containerType: "inline-size",
-              }}
+              } as React.CSSProperties}
             >
               {showBg && (
                 <div className="absolute inset-0 grid place-items-center bg-[linear-gradient(135deg,var(--color-cardhi),var(--color-surface)_45%,var(--color-app))]">
@@ -111,7 +112,7 @@ export function ThumbnailStudioScreen() {
                 </div>
               )}
 
-              {showChar && false && (
+              {showChar && hasCharacter && (
                 <div
                   className="absolute bottom-0"
                   style={{

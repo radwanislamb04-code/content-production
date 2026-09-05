@@ -60,12 +60,4 @@ export function Series() {
   );
 }
 
-export function Sources() {
-  return (
-    <Placeholder
-      title="Sources"
-      description="Connected data sources will be managed here."
-      icon={<Database size={20} />}
-    />
-  );
-}
+export { SourcesScreen as Sources } from "./SourcesScreen";

@@ -229,17 +229,24 @@ export function SkeletonCards({ count = 3 }: { count?: number }) {
 
 export function EmptyState({
   icon,
+  title,
+  description,
   message,
   action,
 }: {
   icon?: ReactNode;
-  message: string;
+  title?: string;
+  description?: string;
+  message?: string;
   action?: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line bg-surface px-6 py-10 text-center">
       {icon && <div className="text-mute">{icon}</div>}
-      <p className="max-w-sm text-sm text-mute">{message}</p>
+      {title && <div className="text-sm font-semibold text-fg">{title}</div>}
+      {(description ?? message) && (
+        <p className="max-w-sm text-sm text-mute">{description ?? message}</p>
+      )}
       {action}
     </div>
   );

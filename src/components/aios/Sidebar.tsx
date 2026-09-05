@@ -41,8 +41,10 @@ export function Sidebar({
   }, []);
 
   // Auto-expand the group containing the current route; never collapse others.
+  // Routes that have a top shortcut are their own entry point — no expansion.
   useEffect(() => {
     const path = pathname.replace(/(.)\/$/, "$1");
+    if (TOP_LINKS.some((l) => l.path === path)) return;
     const match = NAV_GROUPS.find((g) => g.items.some((i) => i.path === path));
     if (!match) return;
     setGroups((prev) => (prev[match.id] ? prev : { ...prev, [match.id]: true }));

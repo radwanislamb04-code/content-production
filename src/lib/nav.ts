@@ -41,9 +41,6 @@ export const TOP_LINKS: NavEntry[] = [
   { path: "/", label: "Dashboard", Icon: LayoutDashboard },
   { path: "/daily-brief", label: "Daily Brief", Icon: Sun },
   { path: "/ideator", label: "Ideator", Icon: Lightbulb },
-  { path: "/templates", label: "Templates", Icon: LayoutGrid },
-  { path: "/resources", label: "Resources", Icon: Globe },
-  { path: "/performance", label: "Performance", Icon: BarChart2 },
 ];
 
 export const NAV_GROUPS: NavGroup[] = [

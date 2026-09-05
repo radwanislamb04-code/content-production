@@ -18,15 +18,7 @@ function Placeholder({
   );
 }
 
-export function DailyBrief() {
-  return (
-    <Placeholder
-      title="Daily Brief"
-      description="Your morning content briefing will land here."
-      icon={<Sun size={20} />}
-    />
-  );
-}
+export { DailyBriefScreen as DailyBrief } from "./DailyBriefScreen";
 
 export function BriefHistory() {
   return (

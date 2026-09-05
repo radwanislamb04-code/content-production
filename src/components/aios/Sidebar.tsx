@@ -68,11 +68,11 @@ export function Sidebar({
         />
       )}
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-[80vw] max-w-[240px] flex-col overflow-y-auto border-r border-line bg-app2 pb-4 transition-transform duration-200 lg:w-[200px] lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-[80vw] max-w-[240px] flex-col border-r border-line bg-app2 pb-4 transition-transform duration-200 lg:w-[200px] lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex flex-col gap-0.5 px-3">
+        <div className="aios-scroll flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3">
           <Link
             to="/"
             onClick={() => onClose?.()}

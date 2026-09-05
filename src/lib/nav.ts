@@ -88,17 +88,20 @@ export const NAV_GROUPS: NavGroup[] = [
       { path: "/series", label: "Series", Icon: Layers },
     ],
   },
-  {
-    id: "system",
-    title: "System",
-    defaultOpen: false,
-    items: [
-      { path: "/sources", label: "Sources", Icon: Database },
-      { path: "/autopilot", label: "AutoPilot", Icon: Bot },
-      { path: "/settings", label: "Settings", Icon: SettingsIcon },
-    ],
-  },
 ];
+
+/** Always-visible links pinned to the bottom of the sidebar. */
+export const BOTTOM_LINKS: NavEntry[] = [
+  { path: "/sources", label: "Sources", Icon: Database },
+  { path: "/autopilot", label: "AutoPilot", Icon: Bot },
+  { path: "/settings", label: "Settings", Icon: SettingsIcon },
+];
+
+/** The group that owns a path, if any (used for the sibling tab row). */
+export function groupForPath(path: string): NavGroup | undefined {
+  const clean = path.replace(/(.)\/$/, "$1");
+  return NAV_GROUPS.find((g) => g.items.some((i) => i.path === clean));
+}
 
 /** Legacy in-app navigation ids mapped to their new URL paths. */
 export const SECTION_PATH = {
@@ -122,7 +125,7 @@ export const SECTION_PATH = {
 export type SectionId = keyof typeof SECTION_PATH;
 
 export const TITLE_BY_PATH: Record<string, string> = Object.fromEntries(
-  [...TOP_LINKS, ...NAV_GROUPS.flatMap((g) => g.items)].map((i) => [
+  [...TOP_LINKS, ...NAV_GROUPS.flatMap((g) => g.items), ...BOTTOM_LINKS].map((i) => [
     i.path,
     i.label,
   ]),

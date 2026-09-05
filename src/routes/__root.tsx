@@ -8,7 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 
@@ -123,7 +123,21 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        className="toaster group"
+        toastOptions={{
+          classNames: {
+            toast:
+              "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
+            description: "group-[.toast]:text-muted-foreground",
+            actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+            cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }

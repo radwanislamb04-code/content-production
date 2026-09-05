@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { NAV_GROUPS, TOP_LINKS, BOTTOM_LINKS, type NavEntry } from "@/lib/nav";
+
 export type { SectionId } from "@/lib/nav";
 
 const STORAGE_KEY = "aios.sidebar.groups";
@@ -40,8 +41,10 @@ export function Sidebar({
   }, []);
 
   // Auto-expand the group containing the current route; never collapse others.
+  // Routes that have a top shortcut are their own entry point — no expansion.
   useEffect(() => {
     const path = pathname.replace(/(.)\/$/, "$1");
+    if (TOP_LINKS.some((l) => l.path === path)) return;
     const match = NAV_GROUPS.find((g) => g.items.some((i) => i.path === path));
     if (!match) return;
     setGroups((prev) => (prev[match.id] ? prev : { ...prev, [match.id]: true }));
@@ -133,6 +136,9 @@ export function Sidebar({
                           onNavigate={onClose}
                           child
                           tabbable={isOpen}
+                          suppressActive={TOP_LINKS.some(
+                            (l) => l.path === item.path,
+                          )}
                         />
                       ))}
                     </div>
@@ -156,18 +162,24 @@ export function Sidebar({
   );
 }
 
+/** One shared row for every clickable sidebar entry. */
 function NavItem({
   item,
   onNavigate,
   child = false,
   tabbable = true,
+  suppressActive = false,
 }: {
   item: NavEntry;
   onNavigate?: () => void;
   child?: boolean;
   tabbable?: boolean;
+  suppressActive?: boolean;
 }) {
   const { Icon, label, path } = item;
+  const activeClasses = suppressActive
+    ? ""
+    : "data-[status=active]:bg-[rgba(82,255,46,0.08)] data-[status=active]:text-lime";
   return (
     <Link
       to={path}
@@ -175,14 +187,12 @@ function NavItem({
       tabIndex={tabbable ? undefined : -1}
       aria-hidden={tabbable ? undefined : true}
       activeOptions={{ exact: path === "/" }}
-      className={`flex w-full items-center gap-2.5 rounded-md border-l-2 border-transparent pl-2.5 pr-2 text-left transition-colors hover:bg-[rgba(255,255,255,0.03)] hover:text-fg2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-1 focus-visible:ring-offset-app2 data-[status=active]:border-lime data-[status=active]:bg-[rgba(82,255,46,0.08)] data-[status=active]:text-lime ${
-        child ? "h-8 text-mute" : "h-9 text-fg2"
+      className={`flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-[13px] transition-colors hover:bg-[rgba(255,255,255,0.03)] hover:text-fg2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-1 focus-visible:ring-offset-app2 ${activeClasses} ${
+        child ? "text-mute" : "text-fg2"
       }`}
     >
-      <Icon size={child ? 16 : 18} strokeWidth={1.8} className="shrink-0" />
-      <span className={`truncate ${child ? "text-[12.5px]" : "text-[13px]"}`}>
-        {label}
-      </span>
+      <Icon size={18} strokeWidth={1.8} className="shrink-0" />
+      <span className="truncate">{label}</span>
     </Link>
   );
 }

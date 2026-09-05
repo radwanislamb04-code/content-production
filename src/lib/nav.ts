@@ -29,21 +29,24 @@ export type NavEntry = {
   Icon: typeof LayoutDashboard;
 };
 
-export type NavGroup = { title: string; items: NavEntry[] };
+export type NavGroup = {
+  id: string;
+  title: string;
+  defaultOpen: boolean;
+  items: NavEntry[];
+};
+
+/** Always-visible links shown above the collapsible groups. */
+export const TOP_LINKS: NavEntry[] = [
+  { path: "/", label: "Dashboard", Icon: LayoutDashboard },
+  { path: "/daily-brief", label: "Daily Brief", Icon: Sun },
+];
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    title: "Daily",
-    items: [
-      { path: "/", label: "Dashboard", Icon: LayoutDashboard },
-      { path: "/daily-brief", label: "Daily Brief", Icon: Sun },
-      { path: "/brief-history", label: "Brief History", Icon: History },
-      { path: "/calendar", label: "Calendar", Icon: Calendar },
-      { path: "/projects", label: "Projects", Icon: FolderKanban },
-    ],
-  },
-  {
+    id: "create",
     title: "Create",
+    defaultOpen: true,
     items: [
       { path: "/ideator", label: "Ideator", Icon: Lightbulb },
       { path: "/video-analyzer", label: "Video Analyzer", Icon: Video },
@@ -54,7 +57,19 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "plan",
+    title: "Plan",
+    defaultOpen: false,
+    items: [
+      { path: "/calendar", label: "Calendar", Icon: Calendar },
+      { path: "/projects", label: "Projects", Icon: FolderKanban },
+      { path: "/brief-history", label: "Brief History", Icon: History },
+    ],
+  },
+  {
+    id: "library",
     title: "Library",
+    defaultOpen: false,
     items: [
       { path: "/library", label: "Library", Icon: LibraryIcon },
       { path: "/templates", label: "Templates", Icon: LayoutGrid },
@@ -63,7 +78,9 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "insights",
     title: "Insights",
+    defaultOpen: false,
     items: [
       { path: "/performance", label: "Performance", Icon: BarChart2 },
       { path: "/content-score", label: "Content Score", Icon: Star },
@@ -72,7 +89,9 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "system",
     title: "System",
+    defaultOpen: false,
     items: [
       { path: "/sources", label: "Sources", Icon: Database },
       { path: "/autopilot", label: "AutoPilot", Icon: Bot },

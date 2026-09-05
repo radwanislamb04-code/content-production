@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Badge, Card, Input, OutlineBtn, Progress, Select, Tooltip } from "../ui";
 import { Eye, EyeOff, Save, Plus, X } from "lucide-react";
-import { toast } from "sonner";
-import { apiGet, apiPost, errorMessage } from "@/lib/api";
 import { Characters } from "./Characters";
 
 

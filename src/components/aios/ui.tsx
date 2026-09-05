@@ -87,7 +87,7 @@ export function PrimaryBtn({
       onClick={onClick}
       disabled={disabled || loading}
       title={title}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-lime px-5 text-sm font-bold text-app transition-colors hover:bg-lime2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-lime px-5 text-sm font-bold text-app transition-colors hover:bg-lime2 ${FOCUS_RING} disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {loading && <Spinner />}
       {children}
@@ -108,7 +108,7 @@ export function OutlineBtn({
       onClick={onClick}
       disabled={disabled || loading}
       title={title}
-      className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-transparent px-4 text-sm font-semibold text-fg2 transition-colors hover:border-lime hover:text-lime disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-transparent px-4 text-sm font-semibold text-fg2 transition-colors hover:border-lime hover:text-lime ${FOCUS_RING} disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {loading && <Spinner size={14} />}
       {children}
@@ -129,7 +129,7 @@ export function GhostBtn({
       onClick={onClick}
       disabled={disabled || loading}
       title={title}
-      className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold text-lime transition-colors hover:bg-[rgba(82,255,46,0.08)] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold text-lime transition-colors hover:bg-[rgba(82,255,46,0.08)] ${FOCUS_RING} disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {loading && <Spinner size={13} />}
       {children}
@@ -142,7 +142,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`h-10 w-full rounded-lg border border-line bg-surface px-3.5 text-sm text-fg placeholder:text-mute outline-none transition-all focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] ${props.className ?? ""}`}
+      className={`h-10 w-full rounded-lg border border-line bg-surface px-3.5 text-sm text-fg placeholder:text-mute outline-none transition-all focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${props.className ?? ""}`}
     />
   );
 }
@@ -151,7 +151,7 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
   return (
     <textarea
       {...props}
-      className={`w-full rounded-lg border border-line bg-surface p-4 text-sm leading-relaxed text-fg placeholder:text-mute outline-none transition-all focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] ${props.className ?? ""}`}
+      className={`w-full rounded-lg border border-line bg-surface p-4 text-sm leading-relaxed text-fg placeholder:text-mute outline-none transition-all focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${props.className ?? ""}`}
     />
   );
 }
@@ -160,7 +160,7 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
-      className={`h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-fg outline-none focus:border-lime ${props.className ?? ""}`}
+      className={`h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-fg outline-none focus:border-lime focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${props.className ?? ""}`}
     />
   );
 }

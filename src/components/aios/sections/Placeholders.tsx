@@ -30,15 +30,7 @@ export function BriefHistory() {
   );
 }
 
-export function ThumbnailStudio() {
-  return (
-    <Placeholder
-      title="Thumbnail Studio"
-      description="Thumbnail generation and testing will live here."
-      icon={<Image size={20} />}
-    />
-  );
-}
+export { ThumbnailStudioScreen as ThumbnailStudio } from "./ThumbnailStudioScreen";
 
 export function HookScoreboard() {
   return (

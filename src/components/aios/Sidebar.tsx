@@ -136,6 +136,9 @@ export function Sidebar({
                           onNavigate={onClose}
                           child
                           tabbable={isOpen}
+                          suppressActive={TOP_LINKS.some(
+                            (l) => l.path === item.path,
+                          )}
                         />
                       ))}
                     </div>

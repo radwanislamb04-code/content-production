@@ -122,5 +122,8 @@ export const SECTION_PATH = {
 export type SectionId = keyof typeof SECTION_PATH;
 
 export const TITLE_BY_PATH: Record<string, string> = Object.fromEntries(
-  NAV_GROUPS.flatMap((g) => g.items).map((i) => [i.path, i.label]),
+  [...TOP_LINKS, ...NAV_GROUPS.flatMap((g) => g.items)].map((i) => [
+    i.path,
+    i.label,
+  ]),
 );

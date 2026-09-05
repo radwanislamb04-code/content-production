@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
-import { NAV_GROUPS, TOP_LINKS, type NavEntry } from "@/lib/nav";
+import { NAV_GROUPS, TOP_LINKS, BOTTOM_LINKS, type NavEntry } from "@/lib/nav";
 export type { SectionId } from "@/lib/nav";
 
 const STORAGE_KEY = "aios.sidebar.groups";
@@ -68,11 +68,11 @@ export function Sidebar({
         />
       )}
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-[80vw] max-w-[240px] flex-col overflow-y-auto border-r border-line bg-app2 pb-4 transition-transform duration-200 lg:w-[200px] lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-[80vw] max-w-[240px] flex-col border-r border-line bg-app2 pb-4 transition-transform duration-200 lg:w-[200px] lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex flex-col gap-0.5 px-3">
+        <div className="aios-scroll flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3">
           <Link
             to="/"
             onClick={() => onClose?.()}
@@ -141,6 +141,15 @@ export function Sidebar({
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-auto shrink-0 px-3 pt-2">
+          <div className="mb-2 h-px bg-line" aria-hidden="true" />
+          <div className="flex flex-col gap-0.5">
+            {BOTTOM_LINKS.map((item) => (
+              <NavItem key={item.path} item={item} onNavigate={onClose} />
+            ))}
+          </div>
         </div>
       </aside>
     </>

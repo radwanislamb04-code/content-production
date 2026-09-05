@@ -28,20 +28,22 @@ export function TopNav({
   return (
     <>
       <header className="fixed left-0 right-0 top-0 z-20 border-b border-line bg-[rgba(3,5,4,0.85)] backdrop-blur-md lg:left-[200px]">
-        <div className="flex h-14 items-center gap-2 px-3 sm:gap-4 sm:px-6">
-          <button
-            onClick={onMenu}
-            aria-label="Open navigation"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-fg2 transition-colors hover:bg-cardx hover:text-fg lg:hidden"
-          >
-            <Menu size={20} />
-          </button>
+        <div className="grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:grid-cols-[180px_minmax(0,1fr)_180px] sm:gap-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              onClick={onMenu}
+              aria-label="Open navigation"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-fg2 transition-colors hover:bg-cardx hover:text-fg lg:hidden"
+            >
+              <Menu size={20} />
+            </button>
 
-          <div className="min-w-0 flex-1 truncate text-base font-semibold text-fg sm:flex-none sm:shrink-0">
-            {title}
+            <div className="min-w-0 truncate text-base font-semibold text-fg">
+              {title}
+            </div>
           </div>
 
-          <div className="hidden flex-1 justify-center sm:flex">
+          <div className="hidden min-w-0 justify-center sm:flex">
             <button
               onClick={() => setOpen(true)}
               className="group flex h-9 w-full max-w-[400px] items-center gap-2 rounded-lg border border-line bg-surface px-3.5 text-left transition-all hover:border-line2 focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] focus:outline-none"
@@ -56,7 +58,7 @@ export function TopNav({
             </button>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+          <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-3">
             <button
               onClick={() => setOpen(true)}
               aria-label="Search"

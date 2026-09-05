@@ -1,19 +1,31 @@
-import { useEffect, useState } from "react";
-import { Card, Input, OutlineBtn, PrimaryBtn } from "../ui";
+import { useState } from "react";
+import { Badge, Card, Input, OutlineBtn, Progress, Select, Tooltip } from "../ui";
 import { Eye, EyeOff, Save, Plus, X } from "lucide-react";
-import { toast } from "sonner";
-import { apiGet, apiPost, errorMessage } from "@/lib/api";
 import { Characters } from "./Characters";
 
 
 const NAV = ["API Keys", "Instagram", "Telegram", "Schedule", "Characters", "Appearance"];
 
-const KEYS = [
-  "Apify Token",
-  "YouTube API Key",
-  "Telegram Bot Token",
-  "Telegram Chat ID",
-  "Manifest Auth Token",
+type Slot = {
+  id: number;
+  label: string;
+  job: string;
+  cap: number;
+};
+
+const JOBS = [
+  "Instagram competitor",
+  "Instagram hashtag",
+  "TikTok",
+  "X (Twitter)",
+  "Overflow only",
+];
+
+const INITIAL_SLOTS: Slot[] = [
+  { id: 1, label: "Radwan", job: "Instagram competitor", cap: 4.5 },
+  { id: 2, label: "Partner A", job: "Instagram hashtag", cap: 4.5 },
+  { id: 3, label: "Partner B", job: "TikTok", cap: 4.5 },
+  { id: 4, label: "Partner C", job: "X (Twitter)", cap: 4.5 },
 ];
 
 export function Settings() {
@@ -49,37 +61,214 @@ export function Settings() {
 }
 
 function ApiKeys() {
+  const [slots, setSlots] = useState<Slot[]>(INITIAL_SLOTS);
+
+  const addSlot = () =>
+    setSlots((prev) => [
+      ...prev,
+      {
+        id: (prev[prev.length - 1]?.id ?? 0) + 1,
+        label: "",
+        job: JOBS[0]!,
+        cap: 4.5,
+      },
+    ]);
+
   return (
-    <div className="space-y-3">
+    <div className="aios-scroll max-h-[70dvh] overflow-y-auto pr-1">
       <div className="text-lg font-semibold text-fg">API Keys</div>
-      <div className="text-xs text-mute">Kept private on your device.</div>
-      <div className="mt-4 space-y-3">
-        {KEYS.map((k) => (
-          <KeyRow key={k} label={k} />
-        ))}
+
+      <div
+        role="alert"
+        className="mt-3 rounded-lg border border-[rgba(246,196,83,0.3)] bg-[rgba(246,196,83,0.1)] p-3 text-sm text-warn"
+      >
+        Not connected yet — nothing typed here is saved. Do not enter real keys
+        until backend storage is wired up.
       </div>
+
+      <FieldGroup title="AI Brain">
+        <KeyRow label="manifest.build — Base URL" placeholder="https://..." />
+        <KeyRow label="manifest.build — API Key" masked />
+      </FieldGroup>
+
+      <FieldGroup title="Scrapers — Apify">
+        <div className="space-y-3">
+          {slots.map((slot, i) => (
+            <SlotCard
+              key={slot.id}
+              slot={slot}
+              onChange={(next) =>
+                setSlots((prev) => prev.map((s, j) => (j === i ? next : s)))
+              }
+            />
+          ))}
+        </div>
+        <OutlineBtn onClick={addSlot} className="mt-3">
+          <Plus size={14} /> Add slot
+        </OutlineBtn>
+      </FieldGroup>
+
+      <FieldGroup title="Data Sources">
+        <KeyRow label="YouTube Data API Key" masked />
+        <KeyRow label="SerpApi Key" masked />
+        <KeyRow label="Reddit Client ID" />
+        <KeyRow label="Reddit Client Secret" masked />
+        <KeyRow label="Product Hunt Developer Token" masked />
+        <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[180px_minmax(0,1fr)]">
+          <div className="text-sm text-fg">Hacker News</div>
+          <div>
+            <Badge tone="success">No key required</Badge>
+          </div>
+        </div>
+      </FieldGroup>
+
+      <FieldGroup title="Notifications">
+        <KeyRow label="Telegram Bot Token" masked />
+        <KeyRow label="Telegram Chat ID" />
+      </FieldGroup>
     </div>
   );
 }
 
-function KeyRow({ label }: { label: string }) {
-  const [show, setShow] = useState(false);
+function FieldGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:grid-cols-[180px_minmax(0,1fr)_auto_auto]">
-      <div className="col-span-3 text-sm text-fg sm:col-span-1">{label}</div>
-      <Input
-        type={show ? "text" : "password"}
-        defaultValue="••••••••••••••••••"
-      />
+    <section className="mt-6">
+      <h3 className="sticky top-0 z-10 -mx-1 bg-cardx px-1 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-mute">
+        {title}
+      </h3>
+      <div className="mt-2 space-y-3">{children}</div>
+    </section>
+  );
+}
+
+function SaveBtn() {
+  return (
+    <Tooltip label="Saving is not wired up yet">
       <button
-        onClick={() => setShow(!show)}
-        className="grid h-10 w-10 place-items-center rounded-md border border-line text-fg2 hover:border-lime hover:text-lime"
+        type="button"
+        aria-label="Save"
+        className="grid h-10 w-10 place-items-center rounded-md border border-line text-lime hover:bg-[rgba(82,255,46,0.08)]"
       >
-        {show ? <EyeOff size={14} /> : <Eye size={14} />}
-      </button>
-      <button className="grid h-10 w-10 place-items-center rounded-md border border-line text-lime hover:bg-[rgba(82,255,46,0.08)]">
         <Save size={14} />
       </button>
+    </Tooltip>
+  );
+}
+
+function KeyRow({
+  label,
+  masked = false,
+  placeholder,
+}: {
+  label: string;
+  masked?: boolean;
+  placeholder?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[180px_minmax(0,1fr)_auto_auto] sm:items-center">
+      <div className="text-sm text-fg">{label}</div>
+      <div className="min-w-0">
+        <Input
+          type={masked && !show ? "password" : "text"}
+          placeholder={placeholder}
+        />
+        {masked && (
+          <div className="mt-1 text-[11px] text-mute">Not configured</div>
+        )}
+      </div>
+      {masked ? (
+        <button
+          type="button"
+          onClick={() => setShow(!show)}
+          aria-label={show ? "Hide value" : "Show value"}
+          className="grid h-10 w-10 place-items-center rounded-md border border-line text-fg2 hover:border-lime hover:text-lime"
+        >
+          {show ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+      ) : (
+        <span className="hidden sm:block sm:h-10 sm:w-10" />
+      )}
+      <SaveBtn />
+    </div>
+  );
+}
+
+function SlotCard({
+  slot,
+  onChange,
+}: {
+  slot: Slot;
+  onChange: (next: Slot) => void;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="rounded-lg border border-line bg-surface p-4">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="text-xs uppercase tracking-wide text-mute">Slot</div>
+        <Badge tone="success">active</Badge>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <div className="mb-1 text-xs text-mute">Label</div>
+          <Input
+            value={slot.label}
+            placeholder="Radwan"
+            onChange={(e) => onChange({ ...slot, label: e.target.value })}
+          />
+        </div>
+        <div>
+          <div className="mb-1 text-xs text-mute">API Token</div>
+          <div className="flex gap-2">
+            <Input type={show ? "text" : "password"} />
+            <button
+              type="button"
+              onClick={() => setShow(!show)}
+              aria-label={show ? "Hide token" : "Show token"}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-line text-fg2 hover:border-lime hover:text-lime"
+            >
+              {show ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+          <div className="mt-1 text-[11px] text-mute">Not configured</div>
+        </div>
+        <div>
+          <div className="mb-1 text-xs text-mute">Assigned job</div>
+          <Select
+            value={slot.job}
+            onChange={(e) => onChange({ ...slot, job: e.target.value })}
+          >
+            {JOBS.map((j) => (
+              <option key={j} value={j}>
+                {j}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <div className="mb-1 text-xs text-mute">Monthly cap USD</div>
+          <Input
+            type="number"
+            step="0.01"
+            value={slot.cap}
+            onChange={(e) =>
+              onChange({ ...slot, cap: Number(e.target.value) || 0 })
+            }
+          />
+        </div>
+      </div>
+      <div className="mt-3">
+        <Progress value={0} />
+        <div className="mt-1 text-[11px] text-mute">
+          $0.00 / ${slot.cap.toFixed(2)}
+        </div>
+      </div>
     </div>
   );
 }

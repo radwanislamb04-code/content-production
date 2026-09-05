@@ -4,9 +4,9 @@ import { Planner } from "@/components/aios/sections/Planner";
 export const Route = createFileRoute("/_app/calendar")({
   head: () => ({
     meta: [
-      { title: "Calendar — JepyLabs" },
+      { title: "JepyLabs — Calendar" },
       { name: "description", content: "Plan and schedule your content releases week by week." },
-      { property: "og:title", content: "Calendar — JepyLabs" },
+      { property: "og:title", content: "JepyLabs — Calendar" },
       { property: "og:description", content: "Plan and schedule your content releases week by week." },
     ],
   }),

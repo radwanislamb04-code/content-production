@@ -4,9 +4,9 @@ import { DailyBrief } from "@/components/aios/sections/Placeholders";
 export const Route = createFileRoute("/_app/daily-brief")({
   head: () => ({
     meta: [
-      { title: "Daily Brief — JepyLabs" },
+      { title: "JepyLabs — Daily Brief" },
       { name: "description", content: "Your morning content briefing, coming soon." },
-      { property: "og:title", content: "Daily Brief — JepyLabs" },
+      { property: "og:title", content: "JepyLabs — Daily Brief" },
       { property: "og:description", content: "Your morning content briefing, coming soon." },
     ],
   }),

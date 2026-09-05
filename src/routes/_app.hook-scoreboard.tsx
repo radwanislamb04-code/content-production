@@ -4,9 +4,9 @@ import { HookScoreboard } from "@/components/aios/sections/Placeholders";
 export const Route = createFileRoute("/_app/hook-scoreboard")({
   head: () => ({
     meta: [
-      { title: "Hook Scoreboard — Jepy Labs" },
+      { title: "JepyLabs — Hook Scoreboard" },
       { name: "description", content: "Ranked hook performance, coming soon." },
-      { property: "og:title", content: "Hook Scoreboard — Jepy Labs" },
+      { property: "og:title", content: "JepyLabs — Hook Scoreboard" },
       { property: "og:description", content: "Ranked hook performance, coming soon." },
     ],
   }),

@@ -5,9 +5,9 @@ import { Discover } from "@/components/aios/sections/Discover";
 export const Route = createFileRoute("/_app/ideator")({
   head: () => ({
     meta: [
-      { title: "Ideator — Jepy Labs" },
+      { title: "JepyLabs — Ideator" },
       { name: "description", content: "Generate content ideas from competitors, trends and your own posts." },
-      { property: "og:title", content: "Ideator — Jepy Labs" },
+      { property: "og:title", content: "JepyLabs — Ideator" },
       { property: "og:description", content: "Generate content ideas from competitors, trends and your own posts." },
     ],
   }),

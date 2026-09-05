@@ -4,9 +4,9 @@ import { Resources } from "@/components/aios/sections/Resources";
 export const Route = createFileRoute("/_app/resources")({
   head: () => ({
     meta: [
-      { title: "Resources — Jepy Labs" },
+      { title: "JepyLabs — Resources" },
       { name: "description", content: "Your bookmarked creator tools, previewable in one place." },
-      { property: "og:title", content: "Resources — Jepy Labs" },
+      { property: "og:title", content: "JepyLabs — Resources" },
       { property: "og:description", content: "Your bookmarked creator tools, previewable in one place." },
     ],
   }),

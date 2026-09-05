@@ -58,7 +58,7 @@ export function TopNav({
             </button>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+          <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-3">
             <button
               onClick={() => setOpen(true)}
               aria-label="Search"

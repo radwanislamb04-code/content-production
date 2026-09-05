@@ -9,7 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppAutopilotRouteImport } from './routes/_app.autopilot'
+import { Route as AppBriefHistoryRouteImport } from './routes/_app.brief-history'
+import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
+import { Route as AppCharactersRouteImport } from './routes/_app.characters'
+import { Route as AppContentScoreRouteImport } from './routes/_app.content-score'
+import { Route as AppDailyBriefRouteImport } from './routes/_app.daily-brief'
+import { Route as AppHookScoreboardRouteImport } from './routes/_app.hook-scoreboard'
+import { Route as AppIdeatorRouteImport } from './routes/_app.ideator'
+import { Route as AppLibraryRouteImport } from './routes/_app.library'
+import { Route as AppPerformanceRouteImport } from './routes/_app.performance'
+import { Route as AppProjectsRouteImport } from './routes/_app.projects'
+import { Route as AppResourcesRouteImport } from './routes/_app.resources'
+import { Route as AppScriptRouteImport } from './routes/_app.script'
+import { Route as AppSeriesRouteImport } from './routes/_app.series'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppSourcesRouteImport } from './routes/_app.sources'
+import { Route as AppStoryboardRouteImport } from './routes/_app.storyboard'
+import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
+import { Route as AppThumbnailStudioRouteImport } from './routes/_app.thumbnail-studio'
+import { Route as AppVideoAnalyzerRouteImport } from './routes/_app.video-analyzer'
+import { Route as AppVideoPromptRouteImport } from './routes/_app.video-prompt'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
 import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
@@ -30,10 +52,119 @@ import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
 import { Route as ApiLibraryTypeIdRouteImport } from './routes/api/library.$type.$id'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAutopilotRoute = AppAutopilotRouteImport.update({
+  id: '/autopilot',
+  path: '/autopilot',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBriefHistoryRoute = AppBriefHistoryRouteImport.update({
+  id: '/brief-history',
+  path: '/brief-history',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCharactersRoute = AppCharactersRouteImport.update({
+  id: '/characters',
+  path: '/characters',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContentScoreRoute = AppContentScoreRouteImport.update({
+  id: '/content-score',
+  path: '/content-score',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDailyBriefRoute = AppDailyBriefRouteImport.update({
+  id: '/daily-brief',
+  path: '/daily-brief',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHookScoreboardRoute = AppHookScoreboardRouteImport.update({
+  id: '/hook-scoreboard',
+  path: '/hook-scoreboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppIdeatorRoute = AppIdeatorRouteImport.update({
+  id: '/ideator',
+  path: '/ideator',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLibraryRoute = AppLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPerformanceRoute = AppPerformanceRouteImport.update({
+  id: '/performance',
+  path: '/performance',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectsRoute = AppProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppResourcesRoute = AppResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppScriptRoute = AppScriptRouteImport.update({
+  id: '/script',
+  path: '/script',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSeriesRoute = AppSeriesRouteImport.update({
+  id: '/series',
+  path: '/series',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSourcesRoute = AppSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStoryboardRoute = AppStoryboardRouteImport.update({
+  id: '/storyboard',
+  path: '/storyboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTemplatesRoute = AppTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppThumbnailStudioRoute = AppThumbnailStudioRouteImport.update({
+  id: '/thumbnail-studio',
+  path: '/thumbnail-studio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVideoAnalyzerRoute = AppVideoAnalyzerRouteImport.update({
+  id: '/video-analyzer',
+  path: '/video-analyzer',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVideoPromptRoute = AppVideoPromptRouteImport.update({
+  id: '/video-prompt',
+  path: '/video-prompt',
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiActivityRoute = ApiActivityRouteImport.update({
   id: '/api/activity',
@@ -133,7 +264,28 @@ const ApiLibraryTypeIdRoute = ApiLibraryTypeIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
+  '/autopilot': typeof AppAutopilotRoute
+  '/brief-history': typeof AppBriefHistoryRoute
+  '/calendar': typeof AppCalendarRoute
+  '/characters': typeof AppCharactersRoute
+  '/content-score': typeof AppContentScoreRoute
+  '/daily-brief': typeof AppDailyBriefRoute
+  '/hook-scoreboard': typeof AppHookScoreboardRoute
+  '/ideator': typeof AppIdeatorRoute
+  '/library': typeof AppLibraryRoute
+  '/performance': typeof AppPerformanceRoute
+  '/projects': typeof AppProjectsRoute
+  '/resources': typeof AppResourcesRoute
+  '/script': typeof AppScriptRoute
+  '/series': typeof AppSeriesRoute
+  '/settings': typeof AppSettingsRoute
+  '/sources': typeof AppSourcesRoute
+  '/storyboard': typeof AppStoryboardRoute
+  '/templates': typeof AppTemplatesRoute
+  '/thumbnail-studio': typeof AppThumbnailStudioRoute
+  '/video-analyzer': typeof AppVideoAnalyzerRoute
+  '/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
@@ -155,7 +307,27 @@ export interface FileRoutesByFullPath {
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/autopilot': typeof AppAutopilotRoute
+  '/brief-history': typeof AppBriefHistoryRoute
+  '/calendar': typeof AppCalendarRoute
+  '/characters': typeof AppCharactersRoute
+  '/content-score': typeof AppContentScoreRoute
+  '/daily-brief': typeof AppDailyBriefRoute
+  '/hook-scoreboard': typeof AppHookScoreboardRoute
+  '/ideator': typeof AppIdeatorRoute
+  '/library': typeof AppLibraryRoute
+  '/performance': typeof AppPerformanceRoute
+  '/projects': typeof AppProjectsRoute
+  '/resources': typeof AppResourcesRoute
+  '/script': typeof AppScriptRoute
+  '/series': typeof AppSeriesRoute
+  '/settings': typeof AppSettingsRoute
+  '/sources': typeof AppSourcesRoute
+  '/storyboard': typeof AppStoryboardRoute
+  '/templates': typeof AppTemplatesRoute
+  '/thumbnail-studio': typeof AppThumbnailStudioRoute
+  '/video-analyzer': typeof AppVideoAnalyzerRoute
+  '/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
@@ -172,13 +344,35 @@ export interface FileRoutesByTo {
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
+  '/': typeof AppIndexRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/autopilot': typeof AppAutopilotRoute
+  '/_app/brief-history': typeof AppBriefHistoryRoute
+  '/_app/calendar': typeof AppCalendarRoute
+  '/_app/characters': typeof AppCharactersRoute
+  '/_app/content-score': typeof AppContentScoreRoute
+  '/_app/daily-brief': typeof AppDailyBriefRoute
+  '/_app/hook-scoreboard': typeof AppHookScoreboardRoute
+  '/_app/ideator': typeof AppIdeatorRoute
+  '/_app/library': typeof AppLibraryRoute
+  '/_app/performance': typeof AppPerformanceRoute
+  '/_app/projects': typeof AppProjectsRoute
+  '/_app/resources': typeof AppResourcesRoute
+  '/_app/script': typeof AppScriptRoute
+  '/_app/series': typeof AppSeriesRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/sources': typeof AppSourcesRoute
+  '/_app/storyboard': typeof AppStoryboardRoute
+  '/_app/templates': typeof AppTemplatesRoute
+  '/_app/thumbnail-studio': typeof AppThumbnailStudioRoute
+  '/_app/video-analyzer': typeof AppVideoAnalyzerRoute
+  '/_app/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
@@ -195,6 +389,7 @@ export interface FileRoutesById {
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
+  '/_app/': typeof AppIndexRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -203,6 +398,27 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/autopilot'
+    | '/brief-history'
+    | '/calendar'
+    | '/characters'
+    | '/content-score'
+    | '/daily-brief'
+    | '/hook-scoreboard'
+    | '/ideator'
+    | '/library'
+    | '/performance'
+    | '/projects'
+    | '/resources'
+    | '/script'
+    | '/series'
+    | '/settings'
+    | '/sources'
+    | '/storyboard'
+    | '/templates'
+    | '/thumbnail-studio'
+    | '/video-analyzer'
+    | '/video-prompt'
     | '/api/activity'
     | '/api/characters'
     | '/api/embed-check'
@@ -224,7 +440,27 @@ export interface FileRouteTypes {
     | '/api/library/$type/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
+    | '/autopilot'
+    | '/brief-history'
+    | '/calendar'
+    | '/characters'
+    | '/content-score'
+    | '/daily-brief'
+    | '/hook-scoreboard'
+    | '/ideator'
+    | '/library'
+    | '/performance'
+    | '/projects'
+    | '/resources'
+    | '/script'
+    | '/series'
+    | '/settings'
+    | '/sources'
+    | '/storyboard'
+    | '/templates'
+    | '/thumbnail-studio'
+    | '/video-analyzer'
+    | '/video-prompt'
     | '/api/activity'
     | '/api/characters'
     | '/api/embed-check'
@@ -241,12 +477,34 @@ export interface FileRouteTypes {
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
+    | '/'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
   id:
     | '__root__'
-    | '/'
+    | '/_app'
+    | '/_app/autopilot'
+    | '/_app/brief-history'
+    | '/_app/calendar'
+    | '/_app/characters'
+    | '/_app/content-score'
+    | '/_app/daily-brief'
+    | '/_app/hook-scoreboard'
+    | '/_app/ideator'
+    | '/_app/library'
+    | '/_app/performance'
+    | '/_app/projects'
+    | '/_app/resources'
+    | '/_app/script'
+    | '/_app/series'
+    | '/_app/settings'
+    | '/_app/sources'
+    | '/_app/storyboard'
+    | '/_app/templates'
+    | '/_app/thumbnail-studio'
+    | '/_app/video-analyzer'
+    | '/_app/video-prompt'
     | '/api/activity'
     | '/api/characters'
     | '/api/embed-check'
@@ -263,13 +521,14 @@ export interface FileRouteTypes {
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
+    | '/_app/'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   ApiActivityRoute: typeof ApiActivityRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
@@ -292,12 +551,166 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/autopilot': {
+      id: '/_app/autopilot'
+      path: '/autopilot'
+      fullPath: '/autopilot'
+      preLoaderRoute: typeof AppAutopilotRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/brief-history': {
+      id: '/_app/brief-history'
+      path: '/brief-history'
+      fullPath: '/brief-history'
+      preLoaderRoute: typeof AppBriefHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/characters': {
+      id: '/_app/characters'
+      path: '/characters'
+      fullPath: '/characters'
+      preLoaderRoute: typeof AppCharactersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/content-score': {
+      id: '/_app/content-score'
+      path: '/content-score'
+      fullPath: '/content-score'
+      preLoaderRoute: typeof AppContentScoreRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/daily-brief': {
+      id: '/_app/daily-brief'
+      path: '/daily-brief'
+      fullPath: '/daily-brief'
+      preLoaderRoute: typeof AppDailyBriefRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/hook-scoreboard': {
+      id: '/_app/hook-scoreboard'
+      path: '/hook-scoreboard'
+      fullPath: '/hook-scoreboard'
+      preLoaderRoute: typeof AppHookScoreboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ideator': {
+      id: '/_app/ideator'
+      path: '/ideator'
+      fullPath: '/ideator'
+      preLoaderRoute: typeof AppIdeatorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/library': {
+      id: '/_app/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof AppLibraryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/performance': {
+      id: '/_app/performance'
+      path: '/performance'
+      fullPath: '/performance'
+      preLoaderRoute: typeof AppPerformanceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/projects': {
+      id: '/_app/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof AppProjectsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/resources': {
+      id: '/_app/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof AppResourcesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/script': {
+      id: '/_app/script'
+      path: '/script'
+      fullPath: '/script'
+      preLoaderRoute: typeof AppScriptRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/series': {
+      id: '/_app/series'
+      path: '/series'
+      fullPath: '/series'
+      preLoaderRoute: typeof AppSeriesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sources': {
+      id: '/_app/sources'
+      path: '/sources'
+      fullPath: '/sources'
+      preLoaderRoute: typeof AppSourcesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/storyboard': {
+      id: '/_app/storyboard'
+      path: '/storyboard'
+      fullPath: '/storyboard'
+      preLoaderRoute: typeof AppStoryboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/templates': {
+      id: '/_app/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AppTemplatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/thumbnail-studio': {
+      id: '/_app/thumbnail-studio'
+      path: '/thumbnail-studio'
+      fullPath: '/thumbnail-studio'
+      preLoaderRoute: typeof AppThumbnailStudioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/video-analyzer': {
+      id: '/_app/video-analyzer'
+      path: '/video-analyzer'
+      fullPath: '/video-analyzer'
+      preLoaderRoute: typeof AppVideoAnalyzerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/video-prompt': {
+      id: '/_app/video-prompt'
+      path: '/video-prompt'
+      fullPath: '/video-prompt'
+      preLoaderRoute: typeof AppVideoPromptRouteImport
+      parentRoute: typeof AppRoute
     }
     '/api/activity': {
       id: '/api/activity'
@@ -435,6 +848,58 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppRouteChildren {
+  AppAutopilotRoute: typeof AppAutopilotRoute
+  AppBriefHistoryRoute: typeof AppBriefHistoryRoute
+  AppCalendarRoute: typeof AppCalendarRoute
+  AppCharactersRoute: typeof AppCharactersRoute
+  AppContentScoreRoute: typeof AppContentScoreRoute
+  AppDailyBriefRoute: typeof AppDailyBriefRoute
+  AppHookScoreboardRoute: typeof AppHookScoreboardRoute
+  AppIdeatorRoute: typeof AppIdeatorRoute
+  AppLibraryRoute: typeof AppLibraryRoute
+  AppPerformanceRoute: typeof AppPerformanceRoute
+  AppProjectsRoute: typeof AppProjectsRoute
+  AppResourcesRoute: typeof AppResourcesRoute
+  AppScriptRoute: typeof AppScriptRoute
+  AppSeriesRoute: typeof AppSeriesRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppSourcesRoute: typeof AppSourcesRoute
+  AppStoryboardRoute: typeof AppStoryboardRoute
+  AppTemplatesRoute: typeof AppTemplatesRoute
+  AppThumbnailStudioRoute: typeof AppThumbnailStudioRoute
+  AppVideoAnalyzerRoute: typeof AppVideoAnalyzerRoute
+  AppVideoPromptRoute: typeof AppVideoPromptRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAutopilotRoute: AppAutopilotRoute,
+  AppBriefHistoryRoute: AppBriefHistoryRoute,
+  AppCalendarRoute: AppCalendarRoute,
+  AppCharactersRoute: AppCharactersRoute,
+  AppContentScoreRoute: AppContentScoreRoute,
+  AppDailyBriefRoute: AppDailyBriefRoute,
+  AppHookScoreboardRoute: AppHookScoreboardRoute,
+  AppIdeatorRoute: AppIdeatorRoute,
+  AppLibraryRoute: AppLibraryRoute,
+  AppPerformanceRoute: AppPerformanceRoute,
+  AppProjectsRoute: AppProjectsRoute,
+  AppResourcesRoute: AppResourcesRoute,
+  AppScriptRoute: AppScriptRoute,
+  AppSeriesRoute: AppSeriesRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppSourcesRoute: AppSourcesRoute,
+  AppStoryboardRoute: AppStoryboardRoute,
+  AppTemplatesRoute: AppTemplatesRoute,
+  AppThumbnailStudioRoute: AppThumbnailStudioRoute,
+  AppVideoAnalyzerRoute: AppVideoAnalyzerRoute,
+  AppVideoPromptRoute: AppVideoPromptRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 interface ApiLibraryTypeRouteChildren {
   ApiLibraryTypeIdRoute: typeof ApiLibraryTypeIdRoute
 }
@@ -448,7 +913,7 @@ const ApiLibraryTypeRouteWithChildren = ApiLibraryTypeRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   ApiActivityRoute: ApiActivityRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiEmbedCheckRoute: ApiEmbedCheckRoute,

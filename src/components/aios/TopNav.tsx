@@ -1,27 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, Bell, X, Menu } from "lucide-react";
 
-export const TABS = [
-  "Dashboard",
-  "Projects",
-  "Templates",
-  "Library",
-  "Resources",
-] as const;
-export type TabId = (typeof TABS)[number];
-
 type SearchResult = { id: string; title: string; module: string; date: string };
 
 export function TopNav({
   title,
-  activeTab,
-  onTabChange,
   onMenu,
   hasUnread = true,
 }: {
   title: string;
-  activeTab: TabId;
-  onTabChange: (t: TabId) => void;
   onMenu?: () => void;
   hasUnread?: boolean;
 }) {
@@ -98,21 +85,6 @@ export function TopNav({
         </div>
 
 
-        <div className="flex items-center gap-1 overflow-x-auto border-t border-line px-2 aios-scroll sm:px-4">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => onTabChange(t)}
-              className={`shrink-0 border-b-2 px-3 py-3 text-sm sm:px-4 sm:py-2 font-medium transition-colors ${
-                activeTab === t
-                  ? "border-lime text-fg"
-                  : "border-transparent text-mute hover:text-fg2"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
       </header>
 
       {open && <Spotlight onClose={() => setOpen(false)} />}

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
-import type { TabId } from "../TopNav";
 import { apiGet } from "@/lib/api";
 import { HeroClock } from "../widgets/HeroClock";
 import { QuoteBar } from "../widgets/QuoteBar";
@@ -64,10 +63,8 @@ function useGreeting() {
 
 export function Dashboard({
   onNav,
-  onTab,
 }: {
   onNav: (id: SectionId) => void;
-  onTab: (t: TabId) => void;
 }) {
   const greeting = useGreeting();
   const QUICK: { label: string; Icon: typeof Plus; onClick: () => void }[] = [
@@ -75,7 +72,6 @@ export function Dashboard({
       label: "New Project",
       Icon: PlusCircle,
       onClick: () => {
-        onTab("Projects");
         onNav("analyzer");
       },
     },

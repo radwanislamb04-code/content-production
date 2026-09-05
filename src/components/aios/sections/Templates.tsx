@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, Pill, OutlineBtn } from "../ui";
 import type { SectionId } from "../Sidebar";
-import type { TabId } from "../TopNav";
 import {
   Lightbulb,
   PenLine,
@@ -75,10 +74,8 @@ const CATEGORY_MATCH: Record<string, string> = {
 
 export function Templates({
   onNav,
-  onTab,
 }: {
   onNav: (id: SectionId) => void;
-  onTab: (t: TabId) => void;
 }) {
   const [cat, setCat] = useState<string>("All");
   const list =
@@ -87,7 +84,6 @@ export function Templates({
       : TEMPLATES.filter((t) => t.category === CATEGORY_MATCH[cat]);
 
   const use = () => {
-    onTab("Dashboard");
     onNav("analyzer");
     toast("Template loaded — customize your idea");
   };

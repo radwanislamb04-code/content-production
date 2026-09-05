@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, GhostBtn, EmptyState, SkeletonCards, Pill } from "../ui";
 import type { SectionId } from "../Sidebar";
-import type { TabId } from "../TopNav";
 import { useApi } from "@/hooks/useApi";
 import { FolderOpen, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -27,16 +26,13 @@ const STAGES = ["Discover", "Script", "Storyboard", "Video Prompt", "Planner"];
 
 export function Projects({
   onNav,
-  onTab,
 }: {
   onNav: (id: SectionId) => void;
-  onTab: (t: TabId) => void;
 }) {
   const [filter, setFilter] = useState("All");
   const [sort, setSort] = useState("modified");
 
   const startProject = () => {
-    onTab("Dashboard");
     onNav("analyzer");
     toast("New project started — add your idea in Video Analyzer");
   };

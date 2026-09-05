@@ -142,6 +142,15 @@ export function Sidebar({
             );
           })}
         </div>
+
+        <div className="mt-auto shrink-0 px-3 pt-2">
+          <div className="mb-2 h-px bg-line" aria-hidden="true" />
+          <div className="flex flex-col gap-0.5">
+            {BOTTOM_LINKS.map((item) => (
+              <NavItem key={item.path} item={item} onNavigate={onClose} />
+            ))}
+          </div>
+        </div>
       </aside>
     </>
   );

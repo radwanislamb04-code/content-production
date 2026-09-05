@@ -1,5 +1,5 @@
 import { EmptyState } from "../ui";
-import { History, Image, ListOrdered, Layers } from "lucide-react";
+import { History, ListOrdered, Layers } from "lucide-react";
 
 function Placeholder({
   title,

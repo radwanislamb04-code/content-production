@@ -60,6 +60,7 @@ export function ThumbnailStudioScreen() {
   const [align, setAlign] = useState<Align>("center");
   const [color, setColor] = useState(SWATCHES[0]!.id);
   const [outline, setOutline] = useState(true);
+  const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
 
   const hasCharacter = false;
   const colorValue = SWATCHES.find((s) => s.id === color)?.value ?? SWATCHES[0]!.value;
@@ -89,10 +90,10 @@ export function ThumbnailStudioScreen() {
         <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap gap-2">
             <FormatBtn active={format === "yt"} onClick={() => setFormat("yt")}>
-              YouTube 1280×720
+              16:9  YouTube
             </FormatBtn>
             <FormatBtn active={format === "reels"} onClick={() => setFormat("reels")}>
-              Reels 1080×1920
+              9:16  Reels
             </FormatBtn>
           </div>
 
@@ -102,7 +103,7 @@ export function ThumbnailStudioScreen() {
               style={{
                 aspectRatio: format === "yt" ? "16 / 9" : "9 / 16",
                 maxHeight: "min(60dvh, 520px)",
-                maxWidth: format === "yt" ? "100%" : "min(100%, 300px)",
+                maxWidth: "100%",
                 containerType: "inline-size",
               } as React.CSSProperties}
             >
@@ -142,6 +143,41 @@ export function ThumbnailStudioScreen() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Generated backgrounds filmstrip — single row, never wraps, scrolls if it overflows */}
+          <div className="space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wide text-mute">
+              Generated backgrounds
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {[0, 1, 2, 3].map((i) => {
+                const isSelected = selectedVariant === i;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSelectedVariant(isSelected ? null : i)}
+                    aria-pressed={isSelected}
+                    aria-label={`Variant ${i + 1}`}
+                    className={`shrink-0 grid place-items-center rounded-lg border bg-surface outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${
+                      isSelected
+                        ? "border-lime ring-2 ring-lime"
+                        : "border-line hover:border-lime"
+                    }`}
+                    style={{
+                      aspectRatio: format === "yt" ? "16 / 9" : "9 / 16",
+                      height: "88px",
+                    }}
+                  >
+                    <ImageIcon size={16} className="text-mute" />
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-center text-xs text-mute">
+              Generated options appear here
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -195,21 +231,6 @@ export function ThumbnailStudioScreen() {
               <PrimaryBtn className="w-full" title="Not wired up yet">
                 Generate background
               </PrimaryBtn>
-              <div className="rounded-xl border border-dashed border-line2 p-3">
-                <div className="grid grid-cols-2 gap-3">
-                  {[0, 1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="grid aspect-video place-items-center rounded-lg border border-line bg-surface text-mute"
-                    >
-                      <ImageIcon size={16} />
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-3 text-center text-xs text-mute">
-                  Generated options appear here
-                </p>
-              </div>
             </div>
           )}
 

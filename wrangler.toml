@@ -23,7 +23,7 @@ bucket_name = "content-os-media"
 # Scheduled triggers.
 # 0 9 * * *   — 09:00 UTC daily: the morning content brief.
 # 0 */3 * * * — every 3 hours: competitor viral check.
-[[triggers]]
+[triggers]
 crons = ["0 9 * * *", "0 */3 * * *"]
 
 # Workers AI binding for image generation and other AI tasks.

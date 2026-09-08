@@ -288,8 +288,9 @@ function KeyRow({
         <Input
           type={masked && !show ? "password" : "text"}
           placeholder={placeholder}
-          value={value ?? ""}
-          onChange={onChange}
+          {...(onChange
+            ? { value: value ?? "", onChange }
+            : { defaultValue: value ?? "" })}
         />
         {masked && (
           <div className="mt-1 text-[11px] text-mute">

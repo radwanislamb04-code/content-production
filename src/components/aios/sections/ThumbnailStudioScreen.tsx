@@ -214,7 +214,7 @@ export function ThumbnailStudioScreen() {
               className="relative w-full overflow-hidden rounded-lg border border-line2 bg-surface"
               style={{
                 aspectRatio: format === "yt" ? "16 / 9" : "9 / 16",
-                maxHeight: "min(52dvh, 460px)",
+                maxHeight: "min(48dvh, 420px)",
                 maxWidth: "100%",
                 containerType: "inline-size",
               } as React.CSSProperties}
@@ -309,7 +309,7 @@ export function ThumbnailStudioScreen() {
                     }`}
                     style={{
                       aspectRatio: format === "yt" ? "16 / 9" : "9 / 16",
-                      height: "72px",
+                      height: "64px",
                     }}
                   >
                     <input
@@ -380,7 +380,7 @@ export function ThumbnailStudioScreen() {
         </div>
 
         {/* Controls */}
-        <aside className="aios-scroll max-h-[calc(100dvh-220px)] min-w-0 space-y-4 overflow-y-auto rounded-xl border border-line bg-cardx p-4 lg:sticky lg:top-4">
+        <aside className="aios-scroll max-h-[calc(100dvh-180px)] min-w-0 space-y-3 overflow-y-auto rounded-xl border border-line bg-cardx p-3 lg:sticky lg:top-16">
           <Tabs
             tabs={[
               { id: "background", label: "Background" },
@@ -392,7 +392,7 @@ export function ThumbnailStudioScreen() {
           />
 
           {tab === "background" && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Textarea
                 rows={3}
                 value={prompt}
@@ -459,7 +459,7 @@ export function ThumbnailStudioScreen() {
           )}
 
           {tab === "character" && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <EmptyState
                 icon={<User size={20} />}
                 title="No characters yet"
@@ -510,7 +510,7 @@ export function ThumbnailStudioScreen() {
           )}
 
           {tab === "text" && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Field label="Headline">
                 <Input
                   value={headline}

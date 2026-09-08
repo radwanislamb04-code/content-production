@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Eye, EyeOff, Image as ImageIcon, User } from "lucide-react";
 import {
@@ -16,6 +16,21 @@ type Align = "left" | "center" | "right";
 type Pos = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 const STYLE_PRESETS = ["Studio", "Neon", "Gradient", "Office", "Abstract", "Outdoor"];
+
+// External free image-generation sites. Gemini is the default because it
+// is the only one that is reliably free without a paid subscription.
+// ChatGPT image generation requires Plus for reliable results, hence the
+// hint in the chip label.
+const SITES = [
+  { id: "gemini", label: "Gemini", url: "https://gemini.google.com/app" },
+  { id: "chatgpt", label: "ChatGPT (Plus)", url: "https://chatgpt.com/" },
+  {
+    id: "arena",
+    label: "arena.ai",
+    url: "https://arena.ai/image/side-by-side?model_a=seedream-5.0-pro&model_b=gpt-image-1",
+  },
+] as const;
+type SiteKey = (typeof SITES)[number]["id"];
 
 const SWATCHES: { id: string; label: string; value: string }[] = [
   { id: "fg", label: "Primary text", value: "var(--color-fg)" },
@@ -62,6 +77,21 @@ export function ThumbnailStudioScreen() {
   const [outline, setOutline] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
 
+  // Site picker for "Generate background" — defaults to Gemini.
+  const [site, setSite] = useState<SiteKey>("gemini");
+  // Per-tile uploaded image (blob: or data: or http(s): URL).
+  const [variantImages, setVariantImages] = useState<Record<number, string>>({});
+  // Image URL input row.
+  const [imageUrl, setImageUrl] = useState("");
+  // Fallback shown in a visible textarea when navigator.clipboard fails.
+  const [clipboardFallback, setClipboardFallback] = useState<string | null>(null);
+  // Inline hint after the user clicks "Generate background".
+  const [showGenerateHint, setShowGenerateHint] = useState(false);
+  // Which tile is currently being dragged over (for the border highlight).
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  // Refs to each tile's hidden file input so the tile's onClick can open it.
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const hasCharacter = false;
   const colorValue = SWATCHES.find((s) => s.id === color)?.value ?? SWATCHES[0]!.value;
   const row = Math.floor(pos / 3);
@@ -78,6 +108,88 @@ export function ThumbnailStudioScreen() {
       : "none",
   };
 
+  // URL of the currently-active background image, or null to show the
+  // gradient placeholder. Derived from the selected variant's upload.
+  const backgroundImage =
+    selectedVariant !== null && variantImages[selectedVariant]
+      ? variantImages[selectedVariant]
+      : null;
+
+  const siteUrl = SITES.find((s) => s.id === site)?.url ?? SITES[0]!.url;
+
+  // CHANGE 1 — Generate background: copy the prompt to the clipboard, open
+  // the chosen site in a new tab, show an inline hint. If clipboard fails,
+  // expose the prompt in a visible textarea the user can copy by hand.
+  const handleGenerate = async () => {
+    const text = prompt || "";
+    let copied = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        copied = true;
+      }
+    } catch {
+      copied = false;
+    }
+    if (!copied) {
+      setClipboardFallback(text);
+    } else {
+      setClipboardFallback(null);
+    }
+    window.open(siteUrl, "_blank", "noopener,noreferrer");
+    setShowGenerateHint(true);
+  };
+
+  // CHANGE 2 — Tile upload: read a dropped/picked file, store its blob URL,
+  // and auto-select the tile. Replaces any prior blob URL for the same tile
+  // (revoked to avoid leaks). Rejects non-image files.
+  const handleFileSelect = (index: number, file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    const url = URL.createObjectURL(file);
+    const prior = variantImages[index];
+    if (prior?.startsWith("blob:")) {
+      try { URL.revokeObjectURL(prior); } catch { /* noop */ }
+    }
+    setVariantImages((prev) => ({ ...prev, [index]: url }));
+    setSelectedVariant(index);
+  };
+
+  // CHANGE 2 — Clear button on a tile: revoke the blob URL and deselect.
+  const handleClearTile = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const prior = variantImages[index];
+    if (prior?.startsWith("blob:")) {
+      try { URL.revokeObjectURL(prior); } catch { /* noop */ }
+    }
+    setVariantImages((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+    if (selectedVariant === index) setSelectedVariant(null);
+  };
+
+  // CHANGE 2 — Click on a tile: select it, then open its file picker.
+  const handleTileClick = (index: number) => {
+    setSelectedVariant(index);
+    fileInputRefs.current[index]?.click();
+  };
+
+  // CHANGE 3 — URL submit: load the URL into the selected tile (or tile 0
+  // if nothing is selected). Validates that the URL looks reasonable
+  // (http(s) or data:). The actual fetch is implicit when the <img> renders.
+  const handleUrlSubmit = () => {
+    const url = imageUrl.trim();
+    if (!url) return;
+    if (!/^(https?:\/\/|data:)/i.test(url)) return;
+    const targetIndex = selectedVariant ?? 0;
+    setVariantImages((prev) => ({ ...prev, [targetIndex]: url }));
+    setSelectedVariant(targetIndex);
+    setImageUrl("");
+  };
+
   return (
     <div className="mx-auto w-full max-w-[1400px]">
       <SectionHeader
@@ -87,7 +199,7 @@ export function ThumbnailStudioScreen() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* Stage */}
-        <div className="min-w-0 space-y-3">
+        <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap gap-2">
             <FormatBtn active={format === "yt"} onClick={() => setFormat("yt")}>
               16:9  YouTube
@@ -102,14 +214,22 @@ export function ThumbnailStudioScreen() {
               className="relative w-full overflow-hidden rounded-lg border border-line2 bg-surface"
               style={{
                 aspectRatio: format === "yt" ? "16 / 9" : "9 / 16",
-                maxHeight: "min(60dvh, 520px)",
+                maxHeight: "min(52dvh, 460px)",
                 maxWidth: "100%",
                 containerType: "inline-size",
               } as React.CSSProperties}
             >
               {showBg && (
-                <div className="absolute inset-0 grid place-items-center bg-[linear-gradient(135deg,var(--color-cardhi),var(--color-surface)_45%,var(--color-app))]">
-                  <span className="text-xs text-mute">No background generated yet</span>
+                <div className="absolute inset-0 grid place-items-center overflow-hidden bg-[linear-gradient(135deg,var(--color-cardhi),var(--color-surface)_45%,var(--color-app))]">
+                  {backgroundImage ? (
+                    <img
+                      src={backgroundImage}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs text-mute">No background generated yet</span>
+                  )}
                 </div>
               )}
 
@@ -153,31 +273,97 @@ export function ThumbnailStudioScreen() {
             <div className="flex gap-3 overflow-x-auto pb-1">
               {[0, 1, 2, 3].map((i) => {
                 const isSelected = selectedVariant === i;
+                const img = variantImages[i];
                 return (
-                  <button
+                  <div
                     key={i}
-                    type="button"
-                    onClick={() => setSelectedVariant(isSelected ? null : i)}
+                    role="button"
+                    tabIndex={0}
                     aria-pressed={isSelected}
-                    aria-label={`Variant ${i + 1}`}
-                    className={`shrink-0 grid place-items-center rounded-lg border bg-surface outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${
+                    aria-label={`Variant ${i + 1}${img ? " (image loaded)" : ""}`}
+                    onClick={() => handleTileClick(i)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleTileClick(i);
+                      }
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOverIndex(i);
+                    }}
+                    onDragLeave={() =>
+                      setDragOverIndex((cur) => (cur === i ? null : cur))
+                    }
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOverIndex(null);
+                      handleFileSelect(i, e.dataTransfer.files?.[0]);
+                    }}
+                    className={`relative shrink-0 cursor-pointer overflow-hidden rounded-lg border bg-surface outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${
                       isSelected
                         ? "border-lime ring-2 ring-lime"
-                        : "border-line hover:border-lime"
+                        : dragOverIndex === i
+                          ? "border-lime"
+                          : "border-line hover:border-lime"
                     }`}
                     style={{
                       aspectRatio: format === "yt" ? "16 / 9" : "9 / 16",
-                      height: "88px",
+                      height: "72px",
                     }}
                   >
-                    <ImageIcon size={16} className="text-mute" />
-                  </button>
+                    <input
+                      ref={(el) => {
+                        fileInputRefs.current[i] = el;
+                      }}
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(e) => handleFileSelect(i, e.target.files?.[0])}
+                    />
+                    {img ? (
+                      <img
+                        src={img}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <ImageIcon size={16} className="text-mute" />
+                      </div>
+                    )}
+                    {img && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleClearTile(i, e)}
+                        className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full border border-line bg-app/80 text-[10px] text-fg2 outline-none hover:border-err hover:text-err focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-1 focus-visible:ring-offset-app"
+                        aria-label={`Clear image on variant ${i + 1}`}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
             <p className="text-center text-xs text-mute">
               Generated options appear here
             </p>
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 text-[11px] uppercase tracking-wide text-mute">
+                Or paste an image URL
+              </span>
+              <Input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleUrlSubmit();
+                }}
+                placeholder="https://…"
+                className="h-9 flex-1 text-xs"
+              />
+              <OutlineBtn onClick={handleUrlSubmit}>Use</OutlineBtn>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -208,7 +394,7 @@ export function ThumbnailStudioScreen() {
           {tab === "background" && (
             <div className="space-y-3">
               <Textarea
-                rows={4}
+                rows={3}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Describe the background — e.g. dark studio with neon rim light"
@@ -228,9 +414,47 @@ export function ThumbnailStudioScreen() {
                   </button>
                 ))}
               </div>
-              <PrimaryBtn className="w-full" title="Not wired up yet">
+              <div className="flex flex-wrap gap-2">
+                {SITES.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSite(s.id)}
+                    aria-pressed={site === s.id}
+                    className={`h-8 rounded-full px-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${
+                      site === s.id
+                        ? "bg-lime font-bold text-app"
+                        : "border border-line text-fg2 hover:border-lime hover:text-lime"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-mute">
+                Sign in once in Chrome — it will reuse your login for every new tab.
+              </p>
+              <PrimaryBtn className="w-full" onClick={handleGenerate}>
                 Generate background
               </PrimaryBtn>
+              {showGenerateHint && (
+                <p className="text-[11px] text-mute">
+                  Prompt copied — paste it into the opened site, generate, then download the image and drop it onto a background tile below.
+                </p>
+              )}
+              {clipboardFallback !== null && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-warn">
+                    Clipboard write failed — copy the prompt manually:
+                  </p>
+                  <Textarea
+                    readOnly
+                    value={clipboardFallback}
+                    rows={3}
+                    className="text-xs"
+                  />
+                </div>
+              )}
             </div>
           )}
 

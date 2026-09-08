@@ -35,6 +35,7 @@ import { Route as AppVideoPromptRouteImport } from './routes/_app.video-prompt'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
 import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
+import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
@@ -42,6 +43,7 @@ import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
 import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiSettingsImagegenRouteImport } from './routes/api/settings-imagegen'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
 import { Route as ApiTrendSpyRouteImport } from './routes/api/trend-spy'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
@@ -181,6 +183,11 @@ const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
   path: '/api/embed-check',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
+  id: '/api/generate-image',
+  path: '/api/generate-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHookScriptWriterRoute = ApiHookScriptWriterRouteImport.update({
   id: '/api/hook-script-writer',
   path: '/api/hook-script-writer',
@@ -214,6 +221,11 @@ const ApiScriptsListRoute = ApiScriptsListRouteImport.update({
 const ApiSearchRoute = ApiSearchRouteImport.update({
   id: '/api/search',
   path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSettingsImagegenRoute = ApiSettingsImagegenRouteImport.update({
+  id: '/api/settings-imagegen',
+  path: '/api/settings-imagegen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
@@ -289,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/api/activity': typeof ApiActivityRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
@@ -296,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
@@ -331,6 +345,7 @@ export interface FileRoutesByTo {
   '/api/activity': typeof ApiActivityRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
@@ -338,6 +353,7 @@ export interface FileRoutesByTo {
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
@@ -376,6 +392,7 @@ export interface FileRoutesById {
   '/api/activity': typeof ApiActivityRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
@@ -383,6 +400,7 @@ export interface FileRoutesById {
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
@@ -422,6 +440,7 @@ export interface FileRouteTypes {
     | '/api/activity'
     | '/api/characters'
     | '/api/embed-check'
+    | '/api/generate-image'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/projects'
@@ -429,6 +448,7 @@ export interface FileRouteTypes {
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
+    | '/api/settings-imagegen'
     | '/api/telegram-cron'
     | '/api/trend-spy'
     | '/api/trends'
@@ -464,6 +484,7 @@ export interface FileRouteTypes {
     | '/api/activity'
     | '/api/characters'
     | '/api/embed-check'
+    | '/api/generate-image'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/projects'
@@ -471,6 +492,7 @@ export interface FileRouteTypes {
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
+    | '/api/settings-imagegen'
     | '/api/telegram-cron'
     | '/api/trend-spy'
     | '/api/trends'
@@ -508,6 +530,7 @@ export interface FileRouteTypes {
     | '/api/activity'
     | '/api/characters'
     | '/api/embed-check'
+    | '/api/generate-image'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/projects'
@@ -515,6 +538,7 @@ export interface FileRouteTypes {
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
+    | '/api/settings-imagegen'
     | '/api/telegram-cron'
     | '/api/trend-spy'
     | '/api/trends'
@@ -532,6 +556,7 @@ export interface RootRouteChildren {
   ApiActivityRoute: typeof ApiActivityRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
+  ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
@@ -539,6 +564,7 @@ export interface RootRouteChildren {
   ApiScrapeCompetitorRoute: typeof ApiScrapeCompetitorRoute
   ApiScriptsListRoute: typeof ApiScriptsListRoute
   ApiSearchRoute: typeof ApiSearchRoute
+  ApiSettingsImagegenRoute: typeof ApiSettingsImagegenRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
   ApiTrendSpyRoute: typeof ApiTrendSpyRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
@@ -733,6 +759,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEmbedCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate-image': {
+      id: '/api/generate-image'
+      path: '/api/generate-image'
+      fullPath: '/api/generate-image'
+      preLoaderRoute: typeof ApiGenerateImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/hook-script-writer': {
       id: '/api/hook-script-writer'
       path: '/api/hook-script-writer'
@@ -780,6 +813,13 @@ declare module '@tanstack/react-router' {
       path: '/api/search'
       fullPath: '/api/search'
       preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings-imagegen': {
+      id: '/api/settings-imagegen'
+      path: '/api/settings-imagegen'
+      fullPath: '/api/settings-imagegen'
+      preLoaderRoute: typeof ApiSettingsImagegenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/telegram-cron': {
@@ -917,6 +957,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiActivityRoute: ApiActivityRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiEmbedCheckRoute: ApiEmbedCheckRoute,
+  ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
   ApiProjectsRoute: ApiProjectsRoute,
@@ -924,6 +965,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiScrapeCompetitorRoute: ApiScrapeCompetitorRoute,
   ApiScriptsListRoute: ApiScriptsListRoute,
   ApiSearchRoute: ApiSearchRoute,
+  ApiSettingsImagegenRoute: ApiSettingsImagegenRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
   ApiTrendSpyRoute: ApiTrendSpyRoute,
   ApiTrendsRoute: ApiTrendsRoute,

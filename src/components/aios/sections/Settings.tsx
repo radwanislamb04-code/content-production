@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge, Card, Input, OutlineBtn, Progress, Select, Tooltip } from "../ui";
 import { Eye, EyeOff, Save, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { Characters } from "./Characters";
 
 
@@ -63,6 +64,67 @@ export function Settings() {
 function ApiKeys() {
   const [slots, setSlots] = useState<Slot[]>(INITIAL_SLOTS);
 
+  // Image-generation settings (fetched from /api/settings-imagegen).
+  // The model list must match the whitelist in the API route.
+  const IG_ALLOWED_MODELS = [
+    "@cf/black-forest-labs/flux-2-klein-4b",
+    "@cf/black-forest-labs/flux-2-dev",
+    "@cf/black-forest-labs/flux-2-klein-9b",
+  ];
+  const [igDefaultModel, setIgDefaultModel] = useState<string>(IG_ALLOWED_MODELS[0]);
+  const [igVyceaiConfigured, setIgVyceaiConfigured] = useState(false);
+  const [igVyceaiLast4, setIgVyceaiLast4] = useState<string | null>(null);
+  const [igKeyInput, setIgKeyInput] = useState("");
+  const [igSaving, setIgSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings-imagegen")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.defaultModel) setIgDefaultModel(data.defaultModel);
+        if (data?.vyceai) {
+          setIgVyceaiConfigured(!!data.vyceai.configured);
+          setIgVyceaiLast4(data.vyceai.last4 ?? null);
+        }
+      })
+      .catch(() => {
+        /* ignore — local dev may not have KV */
+      });
+  }, []);
+
+  const handleSaveImageGen = async () => {
+    setIgSaving(true);
+    try {
+      const body: { defaultModel?: string; vyceaiKey?: string } = {
+        defaultModel: igDefaultModel,
+      };
+      if (igKeyInput.length > 0) {
+        body.vyceaiKey = igKeyInput;
+      }
+      const res = await fetch("/api/settings-imagegen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        toast.error(data?.error ?? "Save failed");
+        return;
+      }
+      if (data.vyceai) {
+        setIgVyceaiConfigured(!!data.vyceai.configured);
+        setIgVyceaiLast4(data.vyceai.last4 ?? null);
+      }
+      if (data.defaultModel) setIgDefaultModel(data.defaultModel);
+      setIgKeyInput("");
+      toast.success("Image generation settings saved");
+    } catch (err: any) {
+      toast.error(`Save failed: ${err?.message ?? String(err)}`);
+    } finally {
+      setIgSaving(false);
+    }
+  };
+
   const addSlot = () =>
     setSlots((prev) => [
       ...prev,
@@ -82,13 +144,55 @@ function ApiKeys() {
         role="alert"
         className="mt-3 rounded-lg border border-[rgba(246,196,83,0.3)] bg-[rgba(246,196,83,0.1)] p-3 text-sm text-warn"
       >
-        Not connected yet — nothing typed here is saved. Do not enter real keys
-        until backend storage is wired up.
+        Image-generation keys are saved to Cloudflare KV and used only by the
+        /api/generate-image route. Other sections are not saved yet.
       </div>
 
       <FieldGroup title="AI Brain">
         <KeyRow label="manifest.build — Base URL" placeholder="https://..." />
         <KeyRow label="manifest.build — API Key" masked />
+      </FieldGroup>
+
+      <FieldGroup title="Image Generation">
+        <div className="space-y-2">
+          <div className="text-sm text-fg">Workers AI — Model</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={igDefaultModel}
+              onChange={(e) => setIgDefaultModel(e.target.value)}
+              className="min-w-[280px]"
+            >
+              {IG_ALLOWED_MODELS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </Select>
+            <Badge tone="success">No key required</Badge>
+          </div>
+        </div>
+        <KeyRow
+          label="VyceAI — API Key"
+          masked
+          value={igKeyInput}
+          onChange={(e) => setIgKeyInput(e.target.value)}
+          status={
+            igVyceaiConfigured
+              ? `Configured (…${igVyceaiLast4 ?? "????"})`
+              : "Not configured"
+          }
+        />
+        <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[180px_minmax(0,1fr)]">
+          <div className="text-sm text-fg">VyceAI — Model</div>
+          <div>
+            <Badge>grok-imagine-2</Badge>
+          </div>
+        </div>
+        <div className="flex justify-end pt-1">
+          <OutlineBtn onClick={handleSaveImageGen} disabled={igSaving}>
+            {igSaving ? "Saving…" : "Save image generation"}
+          </OutlineBtn>
+        </div>
       </FieldGroup>
 
       <FieldGroup title="Scrapers — Apify">
@@ -165,10 +269,16 @@ function KeyRow({
   label,
   masked = false,
   placeholder,
+  value,
+  onChange,
+  status,
 }: {
   label: string;
   masked?: boolean;
   placeholder?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  status?: string;
 }) {
   const [show, setShow] = useState(false);
   return (
@@ -178,9 +288,13 @@ function KeyRow({
         <Input
           type={masked && !show ? "password" : "text"}
           placeholder={placeholder}
+          value={value ?? ""}
+          onChange={onChange}
         />
         {masked && (
-          <div className="mt-1 text-[11px] text-mute">Not configured</div>
+          <div className="mt-1 text-[11px] text-mute">
+            {status ?? "Not configured"}
+          </div>
         )}
       </div>
       {masked ? (

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Eye, EyeOff, Image as ImageIcon, User } from "lucide-react";
 import {
@@ -7,6 +7,7 @@ import {
   OutlineBtn,
   PrimaryBtn,
   SectionHeader,
+  Select,
   Tabs,
   Textarea,
 } from "../ui";
@@ -17,11 +18,13 @@ type Pos = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 const STYLE_PRESETS = ["Studio", "Neon", "Gradient", "Office", "Abstract", "Outdoor"];
 
-// External free image-generation sites. Gemini is the default because it
-// is the only one that is reliably free without a paid subscription.
-// ChatGPT image generation requires Plus for reliable results, hence the
-// hint in the chip label.
+// Image-generation providers. The first two (workers-ai, vyceai) generate
+// inside the app via /api/generate-image — url is null so the chip
+// handler does not open a new tab. The last three open an external site
+// in a new tab and copy the prompt to the clipboard.
 const SITES = [
+  { id: "workers-ai", label: "Workers AI", url: null },
+  { id: "vyceai", label: "VyceAI (Custom)", url: null },
   { id: "gemini", label: "Gemini", url: "https://gemini.google.com/app" },
   { id: "chatgpt", label: "ChatGPT (Plus)", url: "https://chatgpt.com/" },
   {
@@ -31,6 +34,13 @@ const SITES = [
   },
 ] as const;
 type SiteKey = (typeof SITES)[number]["id"];
+
+const AI_MODEL_OPTIONS = [
+  "@cf/black-forest-labs/flux-2-klein-4b",
+  "@cf/black-forest-labs/flux-2-dev",
+  "@cf/black-forest-labs/flux-2-klein-9b",
+];
+const DEFAULT_AI_MODEL = AI_MODEL_OPTIONS[0];
 
 const SWATCHES: { id: string; label: string; value: string }[] = [
   { id: "fg", label: "Primary text", value: "var(--color-fg)" },
@@ -77,20 +87,40 @@ export function ThumbnailStudioScreen() {
   const [outline, setOutline] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
 
-  // Site picker for "Generate background" — defaults to Gemini.
-  const [site, setSite] = useState<SiteKey>("gemini");
+  // Site picker for "Generate background" — defaults to Workers AI
+  // (in-app, no key required, free).
+  const [site, setSite] = useState<SiteKey>("workers-ai");
   // Per-tile uploaded image (blob: or data: or http(s): URL).
   const [variantImages, setVariantImages] = useState<Record<number, string>>({});
   // Image URL input row.
   const [imageUrl, setImageUrl] = useState("");
   // Fallback shown in a visible textarea when navigator.clipboard fails.
   const [clipboardFallback, setClipboardFallback] = useState<string | null>(null);
-  // Inline hint after the user clicks "Generate background".
+  // Inline hint after the user clicks "Generate background" (external sites).
   const [showGenerateHint, setShowGenerateHint] = useState(false);
   // Which tile is currently being dragged over (for the border highlight).
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   // Refs to each tile's hidden file input so the tile's onClick can open it.
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // Workers AI model — default is the smallest flux-2 variant, can be
+  // overridden by the user's Settings → Image Generation preference.
+  const [aiModel, setAiModel] = useState<string>(DEFAULT_AI_MODEL);
+  // "Generating..." state and the last error / success hint for the
+  // in-app providers (workers-ai, vyceai).
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [inAppHint, setInAppHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/settings-imagegen")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.defaultModel) setAiModel(data.defaultModel);
+      })
+      .catch(() => {
+        /* ignore — local dev may not have the route wired up */
+      });
+  }, []);
 
   const hasCharacter = false;
   const colorValue = SWATCHES.find((s) => s.id === color)?.value ?? SWATCHES[0]!.value;
@@ -115,13 +145,65 @@ export function ThumbnailStudioScreen() {
       ? variantImages[selectedVariant]
       : null;
 
-  const siteUrl = SITES.find((s) => s.id === site)?.url ?? SITES[0]!.url;
+  const siteUrl = SITES.find((s) => s.id === site)?.url ?? null;
 
-  // CHANGE 1 — Generate background: copy the prompt to the clipboard, open
-  // the chosen site in a new tab, show an inline hint. If clipboard fails,
-  // expose the prompt in a visible textarea the user can copy by hand.
+  // CHANGE 1 + STEP 4 — Generate background:
+  //   - In-app providers (workers-ai, vyceai): POST /api/generate-image,
+  //     load the returned data URL into the selected tile (or tile 0).
+  //   - External providers (gemini, chatgpt, arena): copy the prompt to the
+  //     clipboard, open the site in a new tab, show an inline hint.
   const handleGenerate = async () => {
     const text = prompt || "";
+    setGenerateError(null);
+    setInAppHint(null);
+
+    // In-app providers
+    if (site === "workers-ai" || site === "vyceai") {
+      if (!text) {
+        setGenerateError("Write a prompt first");
+        return;
+      }
+      setGenerating(true);
+      try {
+        const res = await fetch("/api/generate-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: text,
+            provider: site,
+            model: site === "workers-ai" ? aiModel : undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) {
+          setGenerateError(
+            data?.error ?? `Generate failed (HTTP ${res.status})`
+          );
+          return;
+        }
+        const targetIndex = selectedVariant ?? 0;
+        setVariantImages((prev) => {
+          const prior = prev[targetIndex];
+          if (prior?.startsWith("blob:")) {
+            try { URL.revokeObjectURL(prior); } catch { /* noop */ }
+          }
+          return { ...prev, [targetIndex]: data.url };
+        });
+        setSelectedVariant(targetIndex);
+        setInAppHint(
+          "Image ready — edit the headline and download PNG."
+        );
+      } catch (err: any) {
+        setGenerateError(
+          `Generate failed: ${err?.message ?? String(err)}`
+        );
+      } finally {
+        setGenerating(false);
+      }
+      return;
+    }
+
+    // External providers
     let copied = false;
     try {
       if (navigator.clipboard?.writeText) {
@@ -136,7 +218,9 @@ export function ThumbnailStudioScreen() {
     } else {
       setClipboardFallback(null);
     }
-    window.open(siteUrl, "_blank", "noopener,noreferrer");
+    if (siteUrl) {
+      window.open(siteUrl, "_blank", "noopener,noreferrer");
+    }
     setShowGenerateHint(true);
   };
 
@@ -431,12 +515,42 @@ export function ThumbnailStudioScreen() {
                   </button>
                 ))}
               </div>
+              {site === "workers-ai" && (
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-mute">
+                    Model
+                  </div>
+                  <Select
+                    value={aiModel}
+                    onChange={(e) => setAiModel(e.target.value)}
+                    className="text-xs"
+                    aria-label="Workers AI model"
+                  >
+                    {AI_MODEL_OPTIONS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
               <p className="text-[11px] text-mute">
-                Sign in once in Chrome — it will reuse your login for every new tab.
+                Workers AI and VyceAI generate inside the app; Gemini, ChatGPT
+                and arena.ai open in a new tab.
               </p>
-              <PrimaryBtn className="w-full" onClick={handleGenerate}>
-                Generate background
+              <PrimaryBtn
+                className="w-full"
+                onClick={handleGenerate}
+                disabled={generating}
+              >
+                {generating ? "Generating…" : "Generate background"}
               </PrimaryBtn>
+              {generateError && (
+                <p className="text-[11px] text-err">{generateError}</p>
+              )}
+              {inAppHint && (
+                <p className="text-[11px] text-mute">{inAppHint}</p>
+              )}
               {showGenerateHint && (
                 <p className="text-[11px] text-mute">
                   Prompt copied — paste it into the opened site, generate, then download the image and drop it onto a background tile below.

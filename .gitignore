@@ -20,6 +20,20 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Secrets — never commit these.
+# NOTE: .dev.vars alone is NOT enough. Before this change `.env` and
+# `keys.txt` were NOT ignored, so a single stray file would have landed raw
+# API keys in a public repository.
+.env
+.env.*
+!.env.example
+keys.txt
+keys*.txt
+*.pem
+*.p12
+credentials.json
+service-account*.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

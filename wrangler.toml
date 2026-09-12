@@ -1,5 +1,12 @@
 name = "content-production"
-compatibility_date = "2024-01-01"
+
+# Bumped from 2024-01-01. Nitro copies this value into the generated
+# .output/server/wrangler.json, so changing it here is enough — do NOT add a
+# `main` entry to this file. Nitro generates its own config with
+# main = "index.mjs" plus the ASSETS binding, and Wrangler picks it up via
+# .wrangler/deploy/config.json. `npx wrangler deploy --dry-run` resolves this
+# file correctly as-is.
+compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
@@ -14,19 +21,26 @@ id = "e9050d4f59524e32a0b783a4b1a95384"
 
 # R2 bucket for thumbnail images and other media assets.
 # Binding name `MEDIA` is what the Worker code uses (e.g. env.MEDIA).
-# bucket_name is the actual R2 bucket; rename to match the bucket you create
-# in the Cloudflare dashboard (or via `wrangler r2 bucket create`).
+# NOTE: as of this commit nothing in src/ reads env.MEDIA yet — the binding is
+# declared but unused, so thumbnails are not persisted. See audit sprint-2.
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "content-os-media"
 
 # Scheduled triggers.
-# 0 9 * * *   — 09:00 UTC daily: the morning content brief.
-# 0 */3 * * * — every 3 hours: competitor viral check.
+#   "0 9 * * *"    — 09:00 UTC daily: the morning content brief.
+#   "0 */3 * * *"  — every 3 hours: competitor viral check.
+# These are handled in server/plugins/content-os-cron.ts, which is registered
+# from vite.config.ts. Without that plugin the triggers fire into a no-op.
 [triggers]
 crons = ["0 9 * * *", "0 */3 * * *"]
 
 # Workers AI binding for image generation and other AI tasks.
-# Access in code as `env.AI` (e.g. env.AI.run("@cf/black-forest-labs/flux-1-schnell", { prompt })).
+# Access in code as `env.AI` (e.g. env.AI.run("@cf/black-forest-labs/flux-2-klein-4b", { prompt })).
 [ai]
 binding = "AI"
+
+# Required if you want production logs and error visibility for the Worker.
+# Without this, a failing API route leaves no trace in the dashboard.
+[observability]
+enabled = true

@@ -12,5 +12,18 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-});
 
+  // Register the Nitro cron plugin that handles the `cloudflare:scheduled` hook.
+  //
+  // Why the cast: Nitro supports `plugins` at runtime, and the wrapper spreads
+  // these options straight through to `nitro()`, but its declared type only
+  // lists `preset` / `output` / `cloudflare`. Without the cast, `tsc --noEmit`
+  // (which typechecks this file) fails with an excess-property error.
+  //
+  // Note: Nitro does NOT auto-scan a `server/plugins/` directory here, so the
+  // plugin path must be listed explicitly.
+  nitro: {
+    preset: "cloudflare-module",
+    plugins: ["./server/plugins/content-os-cron.ts"],
+  } as unknown as { preset: string },
+});

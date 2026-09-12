@@ -1,4 +1,4 @@
-name = "content-production"
+name = "content-production-worker"
 
 # Bumped from 2024-01-01. Nitro copies this value into the generated
 # .output/server/wrangler.json, so changing it here is enough — do NOT add a

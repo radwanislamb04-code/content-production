@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { readAiConfig } from "../../lib/settings";
+import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 
 type ScriptRow = {
   id: string;
@@ -358,7 +358,7 @@ export const Route = createFileRoute("/api/visual-storyboard")({
 
         const userPrompt = `Script title: ${scriptRow.title}\nScript content:\n${scriptContentText}\n\nGenerate the storyboard shot list.`;
 
-        const anthropicUrl = `${String(baseUrl).replace(/\/$/, "")}/messages`;
+        const anthropicUrl = anthropicMessagesUrl(String(baseUrl));
         const requestPayload = {
           model: "auto",
           max_tokens: 8000,

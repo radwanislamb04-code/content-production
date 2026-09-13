@@ -218,6 +218,24 @@ export async function readAiConfig(
 }
 
 /**
+ * Build the chat endpoint from whatever the user pasted as the AI base URL.
+ * Anthropic and Anthropic-compatible gateways (including manifest.build) serve
+ * `POST /v1/messages`, but people paste all sorts of things — with or without a
+ * trailing slash, with or without the version segment, occasionally the whole
+ * path. Normalise so a missing `/v1` can never cause a mystery 404:
+ *   https://app.manifest.build        -> https://app.manifest.build/v1/messages
+ *   https://app.manifest.build/       -> https://app.manifest.build/v1/messages
+ *   https://app.manifest.build/v1     -> https://app.manifest.build/v1/messages
+ *   https://api.anthropic.com/v1/messages -> unchanged
+ */
+export function anthropicMessagesUrl(baseUrl: string): string {
+  const base = String(baseUrl).trim().replace(/\/+$/, "");
+  if (/\/messages$/.test(base)) return base;
+  if (/\/v\d+(beta)?$/i.test(base)) return `${base}/messages`;
+  return `${base}/v1/messages`;
+}
+
+/**
  * The Apify token to use for a given job. Slots live in one JSON setting, each
  * with its own token; pick the slot assigned to `job`, else the first slot that
  * actually has a token, else the single APIFY_API_TOKEN env fallback.

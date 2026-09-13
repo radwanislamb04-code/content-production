@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { fetchYouTubeTrends, fetchGoogleTrends } from "./trends";
 import {
   readAiConfig,
+  anthropicMessagesUrl,
   readSetting,
   SETTINGS_KEYS,
 } from "../../lib/settings";
@@ -117,7 +118,7 @@ IMPORTANT: You MUST respond with ONLY valid JSON in this exact structure: {"insi
 
         const userPrompt = `Category: ${category}\n\nRaw trend data:\n${JSON.stringify(rawTrends, null, 2)}\n\nAnalyze and cluster into thematic pattern-level insights.`;
 
-        const anthropicUrl = `${String(baseUrl).replace(/\/$/, "")}/messages`;
+        const anthropicUrl = anthropicMessagesUrl(String(baseUrl));
         const requestPayload = {
           model: "auto",
           max_tokens: 8000,

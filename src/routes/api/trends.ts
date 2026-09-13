@@ -17,7 +17,9 @@ export const Route = createFileRoute("/api/trends")({
         const url = new URL(request.url);
         const platform = url.searchParams.get("platform") ?? "google";
         const category = platform === "youtube" ? (url.searchParams.get("category") ?? url.searchParams.get("q") ?? "") : "";
-        const cacheKey = `trends:${platform}${category ? ":" + category : ""}`;
+        // SerpApi region for the "trending now" feed; BD by default.
+        const geo = url.searchParams.get("geo") ?? "BD";
+        const cacheKey = `trends:${platform}${category ? ":" + category : ""}${platform === "google" ? ":" + geo : ""}`;
 
         // --- Try cache first ---
         try {
@@ -32,7 +34,7 @@ export const Route = createFileRoute("/api/trends")({
         let items: TrendItem[];
 
         if (platform === "google") {
-          items = await fetchGoogleTrends(serApiKey);
+          items = await fetchGoogleTrends(serApiKey, geo);
         } else if (platform === "youtube") {
           items = await fetchYouTubeTrends(youtubeApiKey, category);
         } else {
@@ -57,31 +59,57 @@ export const Route = createFileRoute("/api/trends")({
 
 export async function fetchGoogleTrends(
   apiKey?: string | null,
+  geo = "BD",
 ): Promise<TrendItem[]> {
   if (!apiKey) {
     return [{ title: "SerpApi key not configured", metric: "", source: "google" }];
   }
 
+  // NOTE: `engine=google_trends` requires a `q` (or `category`) parameter and
+  // fails with HTTP 400 "Missing query `q` or `category` parameter." without
+  // one. The "trending right now" feed is a different engine —
+  // `google_trends_trending_now` — and only needs a `geo`.
   const url = new URL("https://serpapi.com/search");
-  url.searchParams.set("engine", "google_trends");
+  url.searchParams.set("engine", "google_trends_trending_now");
+  url.searchParams.set("geo", geo);
   url.searchParams.set("api_key", apiKey);
 
   const res = await fetch(url.toString());
   if (!res.ok) {
-    return [{ title: `SerpApi error: ${res.status}`, metric: "", source: "google" }];
+    let detail = "";
+    try {
+      detail = ((await res.json()) as any)?.error ?? "";
+    } catch {
+      /* response was not JSON */
+    }
+    return [
+      {
+        title: `SerpApi error: ${res.status}${detail ? ` — ${detail}` : ""}`,
+        metric: "",
+        source: "google",
+      },
+    ];
   }
 
   const data = (await res.json()) as Record<string, unknown>;
-  const trendingSearches = (data.trendingSearches as any[]) ?? [];
-  const dayTrends = trendingSearches[0]?.dayTrends ?? trendingSearches[0]?.trends ?? [];
+  const trending = (data.trending_searches as any[]) ?? [];
 
-  return (dayTrends as any[])
-    .slice(0, 10)
-    .map((t: any) => ({
-      title: t.title ?? "",
-      metric: t.formattedTraffic ?? t.searches ?? "",
-      source: "google",
-    }));
+  return trending.slice(0, 10).map((t: any) => ({
+    title: t.query ?? t.title ?? "",
+    metric: formatVolume(t.search_volume),
+    source: "google",
+  }));
+}
+
+/** SerpApi returns a raw number; the UI shows a short "1.2M / 45K" string. */
+function formatVolume(volume: unknown): string {
+  const n = Number(volume);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  if (n >= 1_000_000) {
+    return `${Number((n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1))}M`;
+  }
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return String(n);
 }
 
 export async function fetchYouTubeTrends(

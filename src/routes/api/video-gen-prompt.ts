@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { readAiConfig } from "../../lib/settings";
+import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 
 // Read the skill file and strip the "Output structure" code-block section
 type SkillFileContent = string;
@@ -320,7 +320,7 @@ ${JSON.stringify({ shots })}
 
 Generate shot-by-shot video generation prompts. Incorporate model=${model}, aspect_ratio=${aspectRatio}, quality=${quality} explicitly into each video_prompt.`;
 
-        const anthropicUrl = `${String(baseUrl).replace(/\/$/, "")}/messages`;
+        const anthropicUrl = anthropicMessagesUrl(String(baseUrl));
         const requestPayload = {
           model: "auto",
           max_tokens: 8000,

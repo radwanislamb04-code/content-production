@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { readAiConfig } from "../../lib/settings";
+import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 
 type Source = "my_posts" | "competitor" | "trend";
 
@@ -149,7 +149,7 @@ export const Route = createFileRoute("/api/ideator-generate")({
         const prompt = buildPrompt(source, source_data);
 
         // --- Call Anthropic-compatible /messages endpoint ---
-        const anthropicUrl = `${String(baseUrl).replace(/\/$/, "")}/messages`;
+        const anthropicUrl = anthropicMessagesUrl(String(baseUrl));
         let res: Response;
         try {
           res = await fetch(anthropicUrl, {

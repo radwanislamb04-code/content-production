@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { readAiConfig } from "../../lib/settings";
+import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 
 type Hook = {
   spoken: string;
@@ -318,7 +318,7 @@ export const Route = createFileRoute("/api/video-analyzer")({
         // The full skill markdown is passed as the top-level `system` field
         // (standard Anthropic Messages API), which the Manifest proxy passes
         // through to the model.
-        const anthropicUrl = `${String(baseUrl).replace(/\/$/, "")}/messages`;
+        const anthropicUrl = anthropicMessagesUrl(String(baseUrl));
         const requestPayload = {
           model: "auto",
           max_tokens: 4096,

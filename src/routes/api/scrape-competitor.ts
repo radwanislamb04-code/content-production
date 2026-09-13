@@ -1,5 +1,7 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
 
+import { readApifyToken } from "../../lib/settings";
+
 type CompetitorPost = {
   caption: string;
   likes: number;
@@ -14,9 +16,14 @@ export const Route = createFileRoute("/api/scrape-competitor")({
   server: {
     handlers: {
       POST: async ({ request, context }) => {
-        const db = (context as any).cloudflare?.env?.DB;
-        const kv = (context as any).cloudflare?.env?.KV;
-        const apifyApiToken = (context as any).cloudflare?.env?.APIFY_API_TOKEN;
+        const env =
+          (request as any)?.runtime?.cloudflare?.env ??
+          (context as any).cloudflare?.env;
+        const db = env?.DB;
+        const kv = env?.KV;
+        // Apify token comes from Settings → Apify slots (job: "Instagram
+        // competitor"), falling back to the APIFY_API_TOKEN env var.
+        const apifyApiToken = await readApifyToken(env, "Instagram competitor");
 
         console.log("DEBUG: db:", !!db, "kv:", !!kv, "apify:", !!apifyApiToken);
 
@@ -68,7 +75,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         let result: any;
 
         if (platform === "instagram") {
-          result = await fetchInstagramPosts(apifyApiToken, handle);
+          result = await fetchInstagramPosts(apifyApiToken ?? undefined, handle);
         } else {
           return Response.json(
             { error: `Unsupported platform: ${platform}. Use "instagram"`, stage: "apify_error" },

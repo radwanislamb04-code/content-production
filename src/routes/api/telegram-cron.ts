@@ -1,21 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { readTelegramConfig } from "../../lib/settings";
+
 const BATCH_LIMIT = 10;
 
 export const Route = createFileRoute("/api/telegram-cron")({
   server: {
     handlers: {
       POST: async ({ request, context }) => {
-      const db = (context as any).cloudflare?.env?.DB;
-      const kv = (context as any).cloudflare?.env?.KV;
+      const env =
+        (request as any)?.runtime?.cloudflare?.env ??
+        (context as any).cloudflare?.env;
+      const db = env?.DB;
+      const kv = env?.KV;
       const now = new Date().toISOString();
 
-      // --- Validate KV keys ---
+      // --- Load credentials ---
+      // Settings → Notifications (KV) is the source of truth; the legacy
+      // telegram_bot_token / telegram_chat_id keys and the env vars are
+      // still honoured as fallbacks by readTelegramConfig.
       let botToken: string;
       let chatId: string;
       try {
-        botToken = (await kv?.get("telegram_bot_token")) ?? "";
-        chatId = (await kv?.get("telegram_chat_id")) ?? "";
+        const cfg = await readTelegramConfig(env);
+        botToken = cfg.botToken ?? "";
+        chatId = cfg.chatId ?? "";
       } catch {
         // KV not available — log and return
         if (db) {

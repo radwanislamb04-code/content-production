@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { fetchYouTubeTrends, fetchGoogleTrends } from "./trends";
+import {
+  readAiConfig,
+  readSetting,
+  SETTINGS_KEYS,
+} from "../../lib/settings";
 
 type TrendItem = { title: string; metric: string; source: string };
 
@@ -18,13 +23,15 @@ export const Route = createFileRoute("/api/trend-spy")({
     handlers: {
       POST: async ({ request, context }) => {
         const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
-        const apiKey = env?.ANTHROPIC_API_KEY;
-        const baseUrl = env?.ANTHROPIC_BASE_URL;
+        const { apiKey, baseUrl } = await readAiConfig(env);
         const kv = env?.KV;
 
         if (!apiKey || !baseUrl) {
           return Response.json(
-            { error: "ANTHROPIC_API_KEY or ANTHROPIC_BASE_URL not configured" },
+            {
+              error:
+                "ANTHROPIC_API_KEY or ANTHROPIC_BASE_URL not configured — add them in Settings → API Keys.",
+            },
             { status: 500 },
           );
         }
@@ -59,8 +66,8 @@ export const Route = createFileRoute("/api/trend-spy")({
         // --- Fetch raw trend data by calling trends.ts logic directly ---
         // Pass category through so YouTube uses search.list (q=category) instead of chart=mostPopular
         let rawTrends: TrendItem[] = [];
-        const youtubeApiKey = env?.YOUTUBE_API_KEY;
-        const serApiKey = env?.SERPAPI_KEY;
+        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube);
+        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi);
 
         try {
           const youtubeResults = await fetchYouTubeTrends(youtubeApiKey, category);

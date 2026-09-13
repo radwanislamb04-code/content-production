@@ -43,8 +43,10 @@ import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
 import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiSettingsRouteImport } from './routes/api/settings'
 import { Route as ApiSettingsImagegenRouteImport } from './routes/api/settings-imagegen'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
+import { Route as ApiTelegramTestRouteImport } from './routes/api/telegram-test'
 import { Route as ApiTrendSpyRouteImport } from './routes/api/trend-spy'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
 import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
@@ -223,6 +225,11 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSettingsRoute = ApiSettingsRouteImport.update({
+  id: '/api/settings',
+  path: '/api/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSettingsImagegenRoute = ApiSettingsImagegenRouteImport.update({
   id: '/api/settings-imagegen',
   path: '/api/settings-imagegen',
@@ -231,6 +238,11 @@ const ApiSettingsImagegenRoute = ApiSettingsImagegenRouteImport.update({
 const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
   id: '/api/telegram-cron',
   path: '/api/telegram-cron',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTelegramTestRoute = ApiTelegramTestRouteImport.update({
+  id: '/api/telegram-test',
+  path: '/api/telegram-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTrendSpyRoute = ApiTrendSpyRouteImport.update({
@@ -309,8 +321,10 @@ export interface FileRoutesByFullPath {
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/settings': typeof ApiSettingsRoute
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/telegram-test': typeof ApiTelegramTestRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
@@ -353,8 +367,10 @@ export interface FileRoutesByTo {
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/settings': typeof ApiSettingsRoute
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/telegram-test': typeof ApiTelegramTestRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
@@ -400,8 +416,10 @@ export interface FileRoutesById {
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
+  '/api/settings': typeof ApiSettingsRoute
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/telegram-test': typeof ApiTelegramTestRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
@@ -448,8 +466,10 @@ export interface FileRouteTypes {
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
+    | '/api/settings'
     | '/api/settings-imagegen'
     | '/api/telegram-cron'
+    | '/api/telegram-test'
     | '/api/trend-spy'
     | '/api/trends'
     | '/api/video-analyzer'
@@ -492,8 +512,10 @@ export interface FileRouteTypes {
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
+    | '/api/settings'
     | '/api/settings-imagegen'
     | '/api/telegram-cron'
+    | '/api/telegram-test'
     | '/api/trend-spy'
     | '/api/trends'
     | '/api/video-analyzer'
@@ -538,8 +560,10 @@ export interface FileRouteTypes {
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
+    | '/api/settings'
     | '/api/settings-imagegen'
     | '/api/telegram-cron'
+    | '/api/telegram-test'
     | '/api/trend-spy'
     | '/api/trends'
     | '/api/video-analyzer'
@@ -564,8 +588,10 @@ export interface RootRouteChildren {
   ApiScrapeCompetitorRoute: typeof ApiScrapeCompetitorRoute
   ApiScriptsListRoute: typeof ApiScriptsListRoute
   ApiSearchRoute: typeof ApiSearchRoute
+  ApiSettingsRoute: typeof ApiSettingsRoute
   ApiSettingsImagegenRoute: typeof ApiSettingsImagegenRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
+  ApiTelegramTestRoute: typeof ApiTelegramTestRoute
   ApiTrendSpyRoute: typeof ApiTrendSpyRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
   ApiVideoAnalyzerRoute: typeof ApiVideoAnalyzerRoute
@@ -815,6 +841,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/settings': {
+      id: '/api/settings'
+      path: '/api/settings'
+      fullPath: '/api/settings'
+      preLoaderRoute: typeof ApiSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/settings-imagegen': {
       id: '/api/settings-imagegen'
       path: '/api/settings-imagegen'
@@ -827,6 +860,13 @@ declare module '@tanstack/react-router' {
       path: '/api/telegram-cron'
       fullPath: '/api/telegram-cron'
       preLoaderRoute: typeof ApiTelegramCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/telegram-test': {
+      id: '/api/telegram-test'
+      path: '/api/telegram-test'
+      fullPath: '/api/telegram-test'
+      preLoaderRoute: typeof ApiTelegramTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/trend-spy': {
@@ -965,8 +1005,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiScrapeCompetitorRoute: ApiScrapeCompetitorRoute,
   ApiScriptsListRoute: ApiScriptsListRoute,
   ApiSearchRoute: ApiSearchRoute,
+  ApiSettingsRoute: ApiSettingsRoute,
   ApiSettingsImagegenRoute: ApiSettingsImagegenRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
+  ApiTelegramTestRoute: ApiTelegramTestRoute,
   ApiTrendSpyRoute: ApiTrendSpyRoute,
   ApiTrendsRoute: ApiTrendsRoute,
   ApiVideoAnalyzerRoute: ApiVideoAnalyzerRoute,

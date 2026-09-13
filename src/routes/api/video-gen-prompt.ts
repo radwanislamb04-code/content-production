@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { readAiConfig } from "../../lib/settings";
 
 // Read the skill file and strip the "Output structure" code-block section
 type SkillFileContent = string;
@@ -229,13 +230,15 @@ export const Route = createFileRoute("/api/video-gen-prompt")({
     handlers: {
       POST: async ({ request, context }) => {
         const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
-        const apiKey = env?.ANTHROPIC_API_KEY;
-        const baseUrl = env?.ANTHROPIC_BASE_URL;
+        const { apiKey, baseUrl } = await readAiConfig(env);
         const db = env?.DB;
 
         if (!apiKey || !baseUrl) {
           return Response.json(
-            { error: "ANTHROPIC_API_KEY or ANTHROPIC_BASE_URL not configured" },
+            {
+              error:
+                "ANTHROPIC_API_KEY or ANTHROPIC_BASE_URL not configured — add them in Settings → API Keys.",
+            },
             { status: 500 },
           );
         }

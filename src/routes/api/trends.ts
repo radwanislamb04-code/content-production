@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { readSetting, SETTINGS_KEYS } from "../../lib/settings";
 
 type TrendItem = { title: string; metric: string; source: string };
 
@@ -10,8 +11,8 @@ export const Route = createFileRoute("/api/trends")({
       GET: async ({ request, context }) => {
         const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
         const kv = env?.KV;
-        const serApiKey = env?.SERPAPI_KEY;
-        const youtubeApiKey = env?.YOUTUBE_API_KEY;
+        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi);
+        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube);
 
         const url = new URL(request.url);
         const platform = url.searchParams.get("platform") ?? "google";
@@ -54,7 +55,9 @@ export const Route = createFileRoute("/api/trends")({
   },
 });
 
-export async function fetchGoogleTrends(apiKey?: string): Promise<TrendItem[]> {
+export async function fetchGoogleTrends(
+  apiKey?: string | null,
+): Promise<TrendItem[]> {
   if (!apiKey) {
     return [{ title: "SerpApi key not configured", metric: "", source: "google" }];
   }
@@ -81,7 +84,10 @@ export async function fetchGoogleTrends(apiKey?: string): Promise<TrendItem[]> {
     }));
 }
 
-export async function fetchYouTubeTrends(apiKey?: string, category?: string): Promise<TrendItem[]> {
+export async function fetchYouTubeTrends(
+  apiKey?: string | null,
+  category?: string,
+): Promise<TrendItem[]> {
   if (!apiKey) {
     return [{ title: "YouTube API key not configured", metric: "", source: "youtube" }];
   }

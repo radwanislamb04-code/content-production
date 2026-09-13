@@ -27,13 +27,15 @@ id = "e9050d4f59524e32a0b783a4b1a95384"
 binding = "MEDIA"
 bucket_name = "content-os-media"
 
-# Scheduled triggers.
-#   "0 9 * * *"    — 09:00 UTC daily: the morning content brief.
-#   "0 */3 * * *"  — every 3 hours: competitor viral check.
-# These are handled in server/plugins/content-os-cron.ts, which is registered
-# from vite.config.ts. Without that plugin the triggers fire into a no-op.
+# Scheduled triggers. Cloudflare cron expressions are ALWAYS evaluated in UTC —
+# there is no timezone field, so the local time you want must be converted here.
+#   "0 2 * * *"   — 02:00 UTC = 08:00 Asia/Dhaka (BD) — morning content brief.
+#   "0 14 * * *"  — 14:00 UTC = 20:00 Asia/Dhaka (BD) — evening competitor check.
+# These must match the constants in server/plugins/content-os-cron.ts exactly.
+# That plugin is registered from vite.config.ts; without it the triggers fire
+# into a silent no-op.
 [triggers]
-crons = ["0 9 * * *", "0 */3 * * *"]
+crons = ["0 2 * * *", "0 14 * * *"]
 
 # Workers AI binding for image generation and other AI tasks.
 # Access in code as `env.AI` (e.g. env.AI.run("@cf/black-forest-labs/flux-2-klein-4b", { prompt })).

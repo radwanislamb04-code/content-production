@@ -47,8 +47,10 @@ type CronEnv = {
 };
 
 // Must match `[triggers].crons` in wrangler.toml exactly.
-const MORNING_BRIEF_CRON = "0 9 * * *";
-const COMPETITOR_CHECK_CRON = "0 " + "*/" + "3 * * *";
+// Cron expressions are UTC: 02:00 UTC = 08:00 Asia/Dhaka (BD morning brief),
+// 14:00 UTC = 20:00 Asia/Dhaka (BD evening competitor check).
+const MORNING_BRIEF_CRON = "0 2 * * *";
+const COMPETITOR_CHECK_CRON = "0 14 * * *";
 
 async function logActivity(
   env: CronEnv,

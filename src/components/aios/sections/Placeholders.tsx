@@ -1,55 +1,12 @@
-import { EmptyState } from "../ui";
-import { History, ListOrdered, Layers } from "lucide-react";
-
-function Placeholder({
-  title,
-  description,
-  icon,
-}: {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="mx-auto w-full max-w-[900px] space-y-4">
-      <h1 className="text-lg font-semibold text-fg">{title}</h1>
-      <EmptyState icon={icon} title="Coming soon" description={description} />
-    </div>
-  );
-}
+/**
+ * Barrel for the section screens whose routes import them by these names.
+ *
+ * It used to host "Coming soon" stubs for Brief History, Hook Scoreboard and
+ * Series. All three are now real screens (or, for Series, an honest
+ * "not built yet" page), so no placeholder component remains.
+ */
 
 export { DailyBriefScreen as DailyBrief } from "./DailyBriefScreen";
-
-export function BriefHistory() {
-  return (
-    <Placeholder
-      title="Brief History"
-      description="Past daily briefs will be archived here."
-      icon={<History size={20} />}
-    />
-  );
-}
-
+export { BriefHistoryScreen as BriefHistory } from "./BriefHistoryScreen";
 export { ThumbnailStudioScreen as ThumbnailStudio } from "./ThumbnailStudioScreen";
-
-export function HookScoreboard() {
-  return (
-    <Placeholder
-      title="Hook Scoreboard"
-      description="Ranked hook performance will appear here."
-      icon={<ListOrdered size={20} />}
-    />
-  );
-}
-
-export function Series() {
-  return (
-    <Placeholder
-      title="Series"
-      description="Group content into recurring series here."
-      icon={<Layers size={20} />}
-    />
-  );
-}
-
 export { SourcesScreen as Sources } from "./SourcesScreen";

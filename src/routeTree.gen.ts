@@ -39,8 +39,10 @@ import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiGeneratePlanRouteImport } from './routes/api/generate-plan'
 import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
+import { Route as ApiHooksRouteImport } from './routes/api/hooks'
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
 import { Route as ApiNotificationsRouteImport } from './routes/api/notifications'
+import { Route as ApiPillarsRouteImport } from './routes/api/pillars'
 import { Route as ApiPostPerformanceRouteImport } from './routes/api/post-performance'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
@@ -214,6 +216,11 @@ const ApiHookScriptWriterRoute = ApiHookScriptWriterRouteImport.update({
   path: '/api/hook-script-writer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHooksRoute = ApiHooksRouteImport.update({
+  id: '/api/hooks',
+  path: '/api/hooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
   id: '/api/ideator-generate',
   path: '/api/ideator-generate',
@@ -222,6 +229,11 @@ const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
 const ApiNotificationsRoute = ApiNotificationsRouteImport.update({
   id: '/api/notifications',
   path: '/api/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPillarsRoute = ApiPillarsRouteImport.update({
+  id: '/api/pillars',
+  path: '/api/pillars',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPostPerformanceRoute = ApiPostPerformanceRouteImport.update({
@@ -371,8 +383,10 @@ export interface FileRoutesByFullPath {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
+  '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/notifications': typeof ApiNotificationsRoute
+  '/api/pillars': typeof ApiPillarsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
@@ -426,8 +440,10 @@ export interface FileRoutesByTo {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
+  '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/notifications': typeof ApiNotificationsRoute
+  '/api/pillars': typeof ApiPillarsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
@@ -484,8 +500,10 @@ export interface FileRoutesById {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
+  '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/notifications': typeof ApiNotificationsRoute
+  '/api/pillars': typeof ApiPillarsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
@@ -543,8 +561,10 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/generate-plan'
     | '/api/hook-script-writer'
+    | '/api/hooks'
     | '/api/ideator-generate'
     | '/api/notifications'
+    | '/api/pillars'
     | '/api/post-performance'
     | '/api/projects'
     | '/api/resources'
@@ -598,8 +618,10 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/generate-plan'
     | '/api/hook-script-writer'
+    | '/api/hooks'
     | '/api/ideator-generate'
     | '/api/notifications'
+    | '/api/pillars'
     | '/api/post-performance'
     | '/api/projects'
     | '/api/resources'
@@ -655,8 +677,10 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/generate-plan'
     | '/api/hook-script-writer'
+    | '/api/hooks'
     | '/api/ideator-generate'
     | '/api/notifications'
+    | '/api/pillars'
     | '/api/post-performance'
     | '/api/projects'
     | '/api/resources'
@@ -692,8 +716,10 @@ export interface RootRouteChildren {
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiGeneratePlanRoute: typeof ApiGeneratePlanRoute
   ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
+  ApiHooksRoute: typeof ApiHooksRoute
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
   ApiNotificationsRoute: typeof ApiNotificationsRoute
+  ApiPillarsRoute: typeof ApiPillarsRoute
   ApiPostPerformanceRoute: typeof ApiPostPerformanceRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiResourcesRoute: typeof ApiResourcesRoute
@@ -929,6 +955,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHookScriptWriterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/hooks': {
+      id: '/api/hooks'
+      path: '/api/hooks'
+      fullPath: '/api/hooks'
+      preLoaderRoute: typeof ApiHooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ideator-generate': {
       id: '/api/ideator-generate'
       path: '/api/ideator-generate'
@@ -941,6 +974,13 @@ declare module '@tanstack/react-router' {
       path: '/api/notifications'
       fullPath: '/api/notifications'
       preLoaderRoute: typeof ApiNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/pillars': {
+      id: '/api/pillars'
+      path: '/api/pillars'
+      fullPath: '/api/pillars'
+      preLoaderRoute: typeof ApiPillarsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/post-performance': {
@@ -1192,8 +1232,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiGeneratePlanRoute: ApiGeneratePlanRoute,
   ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,
+  ApiHooksRoute: ApiHooksRoute,
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
   ApiNotificationsRoute: ApiNotificationsRoute,
+  ApiPillarsRoute: ApiPillarsRoute,
   ApiPostPerformanceRoute: ApiPostPerformanceRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiResourcesRoute: ApiResourcesRoute,

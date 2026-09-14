@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BriefHistory } from "@/components/aios/sections/Placeholders";
+import { BriefHistoryScreen } from "@/components/aios/sections/BriefHistoryScreen";
 
 export const Route = createFileRoute("/_app/brief-history")({
   head: () => ({
@@ -14,5 +14,5 @@ export const Route = createFileRoute("/_app/brief-history")({
 });
 
 function BriefHistoryPage() {
-  return <BriefHistory />;
+  return <BriefHistoryScreen />;
 }

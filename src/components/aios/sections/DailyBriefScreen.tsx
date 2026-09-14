@@ -8,70 +8,16 @@ import { Card, OutlineBtn, PrimaryBtn } from "../ui";
  * is a mock: if no brief exists yet, it says so and offers to build one.
  */
 
-type Brief = {
-  date: string;
-  generated_at: number;
-  markdown: string;
-  context?: {
-    trends?: { title: string; metric: string }[];
-    youtube?: { title: string; metric: string }[];
-    viral?: any[];
-    picks?: any[];
-  };
-};
+import { type Brief, clock, parseBrief } from "../brief-view";
 
 type BriefResponse = {
   ok: boolean;
   date: string;
   today: string;
   brief: Brief | null;
-  history: { date: string; updated_at: number }[];
+  history: { date: string; updated_at: number; preview?: string }[];
   error?: string;
 };
-
-const HEADINGS = [
-  "TODAY'S PICKS",
-  "TRENDING NOW",
-  "COMPETITOR WATCH",
-  "HOOK IDEAS",
-  "ACTION ITEMS",
-];
-
-/** Split the AI's plain-text brief into its named sections. */
-function parseBrief(markdown: string) {
-  const sections: { title: string; items: string[] }[] = [];
-  const intro: string[] = [];
-  let current: { title: string; items: string[] } | null = null;
-
-  for (const raw of String(markdown ?? "").split("\n")) {
-    const line = raw.trim();
-    if (!line) continue;
-    const bare = line.replace(/[*#:]+$/g, "").trim().toUpperCase();
-    const hit = HEADINGS.find((h) => bare === h || bare === `${h}:`);
-    if (hit) {
-      current = { title: hit, items: [] };
-      sections.push(current);
-      continue;
-    }
-    const clean = line.replace(/^[-•*]\s*/, "").trim();
-    if (current) current.items.push(clean);
-    else if (clean) intro.push(clean);
-  }
-  return { intro, sections };
-}
-
-function clock(ts: number): string {
-  try {
-    return new Date(ts).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
 
 export function DailyBriefScreen() {
   const [tab, setTab] = useState<"today" | "history">("today");
@@ -156,8 +102,7 @@ export function DailyBriefScreen() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Daily Brief</h1>
           <p className="mt-0.5 text-sm text-muted">
-            Built automatically at 08:00 and 20:00 (Asia/Dhaka) and sent to
-            Telegram.
+            Built automatically at 08:00 and 20:00 (Asia/Dhaka) and sent to Telegram.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -182,9 +127,7 @@ export function DailyBriefScreen() {
             Send to Telegram
           </OutlineBtn>
           <PrimaryBtn onClick={generate} disabled={busy !== null}>
-            {busy === "generate" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : null}
+            {busy === "generate" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {busy === "generate" ? "Generating…" : "Generate now"}
           </PrimaryBtn>
         </div>
@@ -197,9 +140,7 @@ export function DailyBriefScreen() {
             key={t}
             onClick={() => setTab(t)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm capitalize transition-colors ${
-              tab === t
-                ? "border-lime text-fg"
-                : "border-transparent text-muted hover:text-fg"
+              tab === t ? "border-lime text-fg" : "border-transparent text-muted hover:text-fg"
             }`}
           >
             {t}
@@ -222,9 +163,8 @@ export function DailyBriefScreen() {
             <Card className="p-6 text-center">
               <p className="text-sm font-medium">No brief yet</p>
               <p className="mt-1 text-sm text-muted">
-                The next one arrives automatically at 08:00 or 20:00
-                (Asia/Dhaka) — or press <em>Generate now</em> to build it right
-                away.
+                The next one arrives automatically at 08:00 or 20:00 (Asia/Dhaka) — or press{" "}
+                <em>Generate now</em> to build it right away.
               </p>
             </Card>
           ) : (
@@ -240,9 +180,7 @@ export function DailyBriefScreen() {
               <div className="grid gap-3 lg:grid-cols-2">
                 {(parsed?.sections ?? []).map((s) => (
                   <Card key={s.title} className="p-4">
-                    <div className="mb-2 text-xs uppercase tracking-wide text-muted">
-                      {s.title}
-                    </div>
+                    <div className="mb-2 text-xs uppercase tracking-wide text-muted">{s.title}</div>
                     {s.items.length === 0 ? (
                       <p className="text-sm text-muted">No data yet.</p>
                     ) : (
@@ -283,9 +221,10 @@ export function DailyBriefScreen() {
                     }}
                   >
                     <td className="px-4 py-2.5">{h.date}</td>
-                    <td className="px-4 py-2.5 text-right text-muted">
-                      {clock(h.updated_at)}
+                    <td className="max-w-[420px] truncate px-4 py-2.5 text-muted">
+                      {h.preview ?? ""}
                     </td>
+                    <td className="px-4 py-2.5 text-right text-muted">{clock(h.updated_at)}</td>
                   </tr>
                 ))}
               </tbody>

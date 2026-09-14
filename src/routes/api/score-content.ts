@@ -56,16 +56,11 @@ export const Route = createFileRoute("/api/score-content")({
         let item: any;
         try {
           item = await db
-            .prepare(
-              "SELECT id, type, title, content, quality_score FROM library WHERE id = ?",
-            )
+            .prepare("SELECT id, type, title, content, quality_score FROM library WHERE id = ?")
             .bind(parsed.data.id)
             .first();
         } catch (err: any) {
-          return Response.json(
-            { ok: false, error: err?.message ?? String(err) },
-            { status: 500 },
-          );
+          return Response.json({ ok: false, error: err?.message ?? String(err) }, { status: 500 });
         }
         if (!item) {
           return Response.json({ ok: false, error: "Item not found" }, { status: 404 });
@@ -116,12 +111,7 @@ export const Route = createFileRoute("/api/score-content")({
             .prepare(
               "UPDATE library SET quality_score = ?, quality_analysis = ?, updated_at = ? WHERE id = ?",
             )
-            .bind(
-              Math.round(analysis.score),
-              JSON.stringify(analysis),
-              Date.now(),
-              parsed.data.id,
-            )
+            .bind(Math.round(analysis.score), JSON.stringify(analysis), Date.now(), parsed.data.id)
             .run();
         } catch (err: any) {
           return Response.json(
@@ -173,9 +163,7 @@ function normalize(got: Partial<ScoreAnalysis>): ScoreAnalysis {
     strengths: list(got.strengths),
     weaknesses: list(got.weaknesses),
     improvement_suggestions: list(got.improvement_suggestions),
-    recommended_action: ["publish", "revise", "discard"].includes(action)
-      ? action
-      : "revise",
+    recommended_action: ["publish", "revise", "discard"].includes(action) ? action : "revise",
     summary: String(got.summary ?? "").slice(0, 600),
   };
 }

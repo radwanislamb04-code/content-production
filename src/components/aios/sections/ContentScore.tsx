@@ -96,10 +96,7 @@ export function ContentScore() {
     () => items.find((i) => i.id === selectedId) ?? null,
     [items, selectedId],
   );
-  const analysis = useMemo(
-    () => parseAnalysis(selected?.quality_analysis ?? null),
-    [selected],
-  );
+  const analysis = useMemo(() => parseAnalysis(selected?.quality_analysis ?? null), [selected]);
 
   const score = useCallback(async () => {
     if (!selected) return;
@@ -141,8 +138,7 @@ export function ContentScore() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Content Score</h1>
           <p className="mt-0.5 text-sm text-muted">
-            A 1-10 verdict with a five-part breakdown, scored by the AI and saved
-            on the item.
+            A 1-10 verdict with a five-part breakdown, scored by the AI and saved on the item.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -189,8 +185,8 @@ export function ContentScore() {
         <Card className="p-6 text-center">
           <p className="text-sm font-medium">Not scored yet</p>
           <p className="mt-1 text-sm text-muted">
-            Press <em>Score this content</em> to get a verdict, sub-scores and
-            specific fixes for “{selected.title.slice(0, 60)}”.
+            Press <em>Score this content</em> to get a verdict, sub-scores and specific fixes for “
+            {selected.title.slice(0, 60)}”.
           </p>
         </Card>
       ) : (
@@ -212,9 +208,7 @@ export function ContentScore() {
             </Card>
 
             <Card className="p-5">
-              <div className="mb-3 text-xs uppercase tracking-wide text-muted">
-                Breakdown
-              </div>
+              <div className="mb-3 text-xs uppercase tracking-wide text-muted">Breakdown</div>
               <div className="space-y-3">
                 {SUBSCORES.map(([key, label]) => {
                   const value = Number(analysis.breakdown?.[key] ?? 0);
@@ -234,9 +228,7 @@ export function ContentScore() {
                   );
                 })}
               </div>
-              {analysis.summary && (
-                <p className="mt-4 text-sm text-muted">{analysis.summary}</p>
-              )}
+              {analysis.summary && <p className="mt-4 text-sm text-muted">{analysis.summary}</p>}
             </Card>
           </div>
 
@@ -249,9 +241,7 @@ export function ContentScore() {
               ] as const
             ).map(([title, list, tone]) => (
               <Card key={title} className="p-4">
-                <div className={`mb-2 text-xs uppercase tracking-wide ${tone}`}>
-                  {title}
-                </div>
+                <div className={`mb-2 text-xs uppercase tracking-wide ${tone}`}>{title}</div>
                 {list.length === 0 ? (
                   <p className="text-sm text-muted">None given.</p>
                 ) : (

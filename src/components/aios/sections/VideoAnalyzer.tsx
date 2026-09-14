@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, PrimaryBtn, GhostBtn, Textarea, SectionHeader, Input } from "../ui";
+import { takePendingTemplate } from "@/lib/pending-template";
 import type { SectionId } from "../Sidebar";
 import { toast } from "sonner";
 import { apiPost, errorMessage } from "@/lib/api";
@@ -50,6 +51,13 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzerResult | null>(null);
   const [otab, setOtab] = useState<OTab>("Hooks");
+
+  // A template chosen on the Templates page arrives here once (see
+  // lib/pending-template) and pre-fills the idea box.
+  useEffect(() => {
+    const pending = takePendingTemplate();
+    if (pending) setText((prev) => (prev ? prev : pending));
+  }, []);
 
   const copy = (value: string) => {
     navigator.clipboard.writeText(value).then(

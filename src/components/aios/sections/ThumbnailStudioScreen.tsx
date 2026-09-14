@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   Eye,
   EyeOff,
   Image as ImageIcon,
@@ -9,6 +10,7 @@ import {
   User,
 } from "lucide-react";
 import {
+  Card,
   EmptyState,
   Input,
   OutlineBtn,
@@ -89,9 +91,7 @@ export function ThumbnailStudioScreen() {
   const [subline, setSubline] = useState("");
 
   // "Prompt from script" — text-only AI art direction (no image generation).
-  const [scripts, setScripts] = useState<
-    { id: string; title: string; content: string }[]
-  >([]);
+  const [scripts, setScripts] = useState<{ id: string; title: string; content: string }[]>([]);
   const [scriptId, setScriptId] = useState("");
   const [promptNotes, setPromptNotes] = useState("");
   const [promptBusy, setPromptBusy] = useState(false);
@@ -250,27 +250,25 @@ export function ThumbnailStudioScreen() {
         });
         const data = await res.json();
         if (!res.ok || !data?.ok) {
-          setGenerateError(
-            data?.error ?? `Generate failed (HTTP ${res.status})`
-          );
+          setGenerateError(data?.error ?? `Generate failed (HTTP ${res.status})`);
           return;
         }
         const targetIndex = selectedVariant ?? 0;
         setVariantImages((prev) => {
           const prior = prev[targetIndex];
           if (prior?.startsWith("blob:")) {
-            try { URL.revokeObjectURL(prior); } catch { /* noop */ }
+            try {
+              URL.revokeObjectURL(prior);
+            } catch {
+              /* noop */
+            }
           }
           return { ...prev, [targetIndex]: data.url };
         });
         setSelectedVariant(targetIndex);
-        setInAppHint(
-          "Image ready — edit the headline and download PNG."
-        );
+        setInAppHint("Image ready in the selected tile — use Download background to save it.");
       } catch (err: any) {
-        setGenerateError(
-          `Generate failed: ${err?.message ?? String(err)}`
-        );
+        setGenerateError(`Generate failed: ${err?.message ?? String(err)}`);
       } finally {
         setGenerating(false);
       }
@@ -307,7 +305,11 @@ export function ThumbnailStudioScreen() {
     const url = URL.createObjectURL(file);
     const prior = variantImages[index];
     if (prior?.startsWith("blob:")) {
-      try { URL.revokeObjectURL(prior); } catch { /* noop */ }
+      try {
+        URL.revokeObjectURL(prior);
+      } catch {
+        /* noop */
+      }
     }
     setVariantImages((prev) => ({ ...prev, [index]: url }));
     setSelectedVariant(index);
@@ -319,7 +321,11 @@ export function ThumbnailStudioScreen() {
     e.preventDefault();
     const prior = variantImages[index];
     if (prior?.startsWith("blob:")) {
-      try { URL.revokeObjectURL(prior); } catch { /* noop */ }
+      try {
+        URL.revokeObjectURL(prior);
+      } catch {
+        /* noop */
+      }
     }
     setVariantImages((prev) => {
       const next = { ...prev };
@@ -338,6 +344,41 @@ export function ThumbnailStudioScreen() {
   // CHANGE 3 — URL submit: load the URL into the selected tile (or tile 0
   // if nothing is selected). Validates that the URL looks reasonable
   // (http(s) or data:). The actual fetch is implicit when the <img> renders.
+  /**
+   * Download the background that is actually loaded in the selected tile.
+   * This saves the source image — the headline/sub-line are DOM overlays, so
+   * composing them into the PNG is not done here (and is not claimed).
+   */
+  const downloadBackground = async () => {
+    const src = backgroundImage;
+    if (!src) return;
+    const name = `thumbnail-background-${Date.now()}.png`;
+    try {
+      const res = await fetch(src);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 4000);
+    } catch {
+      // Cross-origin images cannot be read as a blob — fall back to a plain
+      // link so the browser still saves/opens the file.
+      const a = document.createElement("a");
+      a.href = src;
+      a.download = name;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  };
+
   const handleUrlSubmit = () => {
     const url = imageUrl.trim();
     if (!url) return;
@@ -360,31 +401,29 @@ export function ThumbnailStudioScreen() {
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap gap-2">
             <FormatBtn active={format === "yt"} onClick={() => setFormat("yt")}>
-              16:9  YouTube
+              16:9 YouTube
             </FormatBtn>
             <FormatBtn active={format === "reels"} onClick={() => setFormat("reels")}>
-              9:16  Reels
+              9:16 Reels
             </FormatBtn>
           </div>
 
           <div className="grid place-items-center overflow-hidden rounded-xl border border-line bg-app p-4">
             <div
               className="relative w-full overflow-hidden rounded-lg border border-line2 bg-surface"
-              style={{
-                aspectRatio: format === "yt" ? "16 / 9" : "9 / 16",
-                maxHeight: "min(48dvh, 420px)",
-                maxWidth: "100%",
-                containerType: "inline-size",
-              } as React.CSSProperties}
+              style={
+                {
+                  aspectRatio: format === "yt" ? "16 / 9" : "9 / 16",
+                  maxHeight: "min(48dvh, 420px)",
+                  maxWidth: "100%",
+                  containerType: "inline-size",
+                } as React.CSSProperties
+              }
             >
               {showBg && (
                 <div className="absolute inset-0 grid place-items-center overflow-hidden bg-[linear-gradient(135deg,var(--color-cardhi),var(--color-surface)_45%,var(--color-app))]">
                   {backgroundImage ? (
-                    <img
-                      src={backgroundImage}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
+                    <img src={backgroundImage} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <span className="text-xs text-mute">No background generated yet</span>
                   )}
@@ -414,7 +453,10 @@ export function ThumbnailStudioScreen() {
                 >
                   <span className="w-full break-words">{headline}</span>
                   {subline && (
-                    <span className="w-full break-words" style={{ fontSize: "0.55em", opacity: 0.9 }}>
+                    <span
+                      className="w-full break-words"
+                      style={{ fontSize: "0.55em", opacity: 0.9 }}
+                    >
                       {subline}
                     </span>
                   )}
@@ -450,9 +492,7 @@ export function ThumbnailStudioScreen() {
                       e.preventDefault();
                       setDragOverIndex(i);
                     }}
-                    onDragLeave={() =>
-                      setDragOverIndex((cur) => (cur === i ? null : cur))
-                    }
+                    onDragLeave={() => setDragOverIndex((cur) => (cur === i ? null : cur))}
                     onDrop={(e) => {
                       e.preventDefault();
                       setDragOverIndex(null);
@@ -480,11 +520,7 @@ export function ThumbnailStudioScreen() {
                       onChange={(e) => handleFileSelect(i, e.target.files?.[0])}
                     />
                     {img ? (
-                      <img
-                        src={img}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={img} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <ImageIcon size={16} className="text-mute" />
@@ -504,9 +540,7 @@ export function ThumbnailStudioScreen() {
                 );
               })}
             </div>
-            <p className="text-center text-xs text-mute">
-              Generated options appear here
-            </p>
+            <p className="text-center text-xs text-mute">Generated options appear here</p>
             <div className="flex items-center gap-2">
               <span className="shrink-0 text-[11px] uppercase tracking-wide text-mute">
                 Or paste an image URL
@@ -531,8 +565,23 @@ export function ThumbnailStudioScreen() {
               <LayerToggle label="Text" on={showText} onClick={() => setShowText((v) => !v)} />
             </div>
             <div className="flex flex-wrap gap-2">
-              <PrimaryBtn title="Not wired up yet">Download PNG</PrimaryBtn>
-              <OutlineBtn title="Not wired up yet">Save to Library</OutlineBtn>
+              <PrimaryBtn
+                onClick={downloadBackground}
+                disabled={!backgroundImage}
+                title={
+                  backgroundImage
+                    ? "Downloads the background image loaded in the selected tile (headline text is an on-screen overlay and is not baked in)"
+                    : "Add or generate a background first"
+                }
+              >
+                {backgroundImage ? "Download background" : "Download PNG"}
+              </PrimaryBtn>
+              <OutlineBtn
+                disabled
+                title="Saving images to the library is not wired up yet — copy the prompt and use an external provider for now"
+              >
+                Save to Library
+              </OutlineBtn>
             </div>
           </div>
         </div>
@@ -553,13 +602,8 @@ export function ThumbnailStudioScreen() {
             <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-mute">
               <Sparkles size={13} /> Prompt from script
             </div>
-            <Select
-              value={scriptId}
-              onChange={(e: any) => setScriptId(e.target.value)}
-            >
-              {scripts.length === 0 && (
-                <option value="">No scripts in the library yet</option>
-              )}
+            <Select value={scriptId} onChange={(e: any) => setScriptId(e.target.value)}>
+              {scripts.length === 0 && <option value="">No scripts in the library yet</option>}
               {scripts.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.title.slice(0, 60)}
@@ -574,13 +618,9 @@ export function ThumbnailStudioScreen() {
             />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <span className="text-[11px] text-mute">
-                Writes the headline, sub-line and background prompt from that
-                script.
+                Writes the headline, sub-line and background prompt from that script.
               </span>
-              <OutlineBtn
-                onClick={buildPromptFromScript}
-                disabled={promptBusy || !scriptId}
-              >
+              <OutlineBtn onClick={buildPromptFromScript} disabled={promptBusy || !scriptId}>
                 {promptBusy ? (
                   <Loader2 size={13} className="animate-spin" />
                 ) : (
@@ -589,9 +629,7 @@ export function ThumbnailStudioScreen() {
                 {promptBusy ? "Building…" : "Generate prompt"}
               </OutlineBtn>
             </div>
-            {promptError && (
-              <p className="mt-2 text-[11px] text-err">{promptError}</p>
-            )}
+            {promptError && <p className="mt-2 text-[11px] text-err">{promptError}</p>}
           </div>
 
           {tab === "background" && (
@@ -653,26 +691,30 @@ export function ThumbnailStudioScreen() {
                   </Select>
                 </div>
               )}
+              {(site === "workers-ai" || site === "vyceai") && (
+                <Card className="flex items-start gap-2 p-3">
+                  <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warn" />
+                  <span className="text-[11px] text-warn">
+                    In-app generation is not working yet: Workers AI rejects the request (error 5006
+                    — the configured model expects multipart input, we send JSON). Use Gemini,
+                    ChatGPT or arena.ai below instead: the prompt is copied and the site opens in a
+                    new tab.
+                  </span>
+                </Card>
+              )}
               <p className="text-[11px] text-mute">
-                Workers AI and VyceAI generate inside the app; Gemini, ChatGPT
-                and arena.ai open in a new tab.
+                Gemini, ChatGPT and arena.ai open in a new tab with the prompt already on your
+                clipboard.
               </p>
-              <PrimaryBtn
-                className="w-full"
-                onClick={handleGenerate}
-                disabled={generating}
-              >
+              <PrimaryBtn className="w-full" onClick={handleGenerate} disabled={generating}>
                 {generating ? "Generating…" : "Generate background"}
               </PrimaryBtn>
-              {generateError && (
-                <p className="text-[11px] text-err">{generateError}</p>
-              )}
-              {inAppHint && (
-                <p className="text-[11px] text-mute">{inAppHint}</p>
-              )}
+              {generateError && <p className="text-[11px] text-err">{generateError}</p>}
+              {inAppHint && <p className="text-[11px] text-mute">{inAppHint}</p>}
               {showGenerateHint && (
                 <p className="text-[11px] text-mute">
-                  Prompt copied — paste it into the opened site, generate, then download the image and drop it onto a background tile below.
+                  Prompt copied — paste it into the opened site, generate, then download the image
+                  and drop it onto a background tile below.
                 </p>
               )}
               {clipboardFallback !== null && (
@@ -680,12 +722,7 @@ export function ThumbnailStudioScreen() {
                   <p className="text-[11px] text-warn">
                     Clipboard write failed — copy the prompt manually:
                   </p>
-                  <Textarea
-                    readOnly
-                    value={clipboardFallback}
-                    rows={3}
-                    className="text-xs"
-                  />
+                  <Textarea readOnly value={clipboardFallback} rows={3} className="text-xs" />
                 </div>
               )}
             </div>
@@ -867,15 +904,7 @@ function FormatBtn({
   );
 }
 
-function LayerToggle({
-  label,
-  on,
-  onClick,
-}: {
-  label: string;
-  on: boolean;
-  onClick: () => void;
-}) {
+function LayerToggle({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
     <button
       type="button"

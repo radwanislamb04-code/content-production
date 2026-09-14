@@ -59,9 +59,7 @@ function oneLine(text: unknown, max = 90): string {
         .find((v) => typeof v === "string" && v.trim());
       // Storyboards and video prompts start with fields like `model`/`shots` —
       // fall back to the first substantial string anywhere in the object.
-      const generic = Object.values(obj).find(
-        (v) => typeof v === "string" && v.trim().length > 12,
-      );
+      const generic = Object.values(obj).find((v) => typeof v === "string" && v.trim().length > 12);
       const chosen = preferred ?? generic;
       if (chosen) {
         value = String(chosen);
@@ -95,7 +93,10 @@ export const Route = createFileRoute("/api/search")({
         /** Run one query without letting a missing table break the whole search. */
         const safe = async (sql: string, args: unknown[]) => {
           try {
-            const { results } = await db.prepare(sql).bind(...args).all();
+            const { results } = await db
+              .prepare(sql)
+              .bind(...args)
+              .all();
             return (results ?? []) as any[];
           } catch {
             return [];
@@ -164,8 +165,8 @@ export const Route = createFileRoute("/api/search")({
               title: `Brief — ${String(b.key).replace(/^brief_/, "")}`,
               module: "Brief",
               date: String(b.key).replace(/^brief_/, ""),
-              href: "/daily-brief",
-              snippet: "Open the daily brief",
+              href: "/brief-history",
+              snippet: "Open this brief in the archive",
             });
           }
         } else {

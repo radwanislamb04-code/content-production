@@ -1,18 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { HookScoreboard } from "@/components/aios/sections/Placeholders";
+import { HookScoreboardScreen } from "@/components/aios/sections/HookScoreboardScreen";
 
 export const Route = createFileRoute("/_app/hook-scoreboard")({
   head: () => ({
     meta: [
       { title: "JepyLabs — Hook Scoreboard" },
-      { name: "description", content: "Ranked hook performance, coming soon." },
+      { name: "description", content: "Your written hooks and how your published posts performed." },
       { property: "og:title", content: "JepyLabs — Hook Scoreboard" },
-      { property: "og:description", content: "Ranked hook performance, coming soon." },
+      { property: "og:description", content: "Your written hooks and how your published posts performed." },
     ],
   }),
   component: HookScoreboardPage,
 });
 
 function HookScoreboardPage() {
-  return <HookScoreboard />;
+  return <HookScoreboardScreen />;
 }

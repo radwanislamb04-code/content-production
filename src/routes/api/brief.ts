@@ -1,7 +1,50 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { dhakaDateKey, runPipeline } from "../../lib/pipeline";
 import { getEnv } from "../../lib/settings";
-import { getWorkspace, listWorkspaceKeys } from "../../lib/workspace";
+import { getWorkspace } from "../../lib/workspace";
+
+/** Readable one-liner for a stored brief, so the history list is not just dates. */
+const HEADINGS = [
+  "TODAY'S PICKS",
+  "TRENDING NOW",
+  "COMPETITOR WATCH",
+  "HOOK IDEAS",
+  "ACTION ITEMS",
+];
+
+function previewOf(raw: unknown, max = 110): string {
+  try {
+    const value = typeof raw === "string" ? JSON.parse(raw) : raw;
+    const md = String((value as any)?.markdown ?? "");
+    const lines = md
+      .split("\n")
+      .map((l: string) =>
+        l
+          .replace(/^[-•*#\s]+/, "")
+          .replace(/[*#:]+$/, "")
+          .replace(/\*\*/g, "")
+          .trim(),
+      )
+      .filter((l: string) => {
+        if (!l) return false;
+        const bare = l
+          .replace(/[*#:]+$/g, "")
+          .trim()
+          .toUpperCase();
+        // Skip the brief's own section labels so the preview shows content.
+        if (HEADINGS.includes(bare)) return false;
+        if (lettersOf(l) >= 4 && l === l.toUpperCase()) return false;
+        return true;
+      });
+    return (lines[0] ?? "").slice(0, max);
+  } catch {
+    return "";
+  }
+}
+
+function lettersOf(s: string): number {
+  return s.replace(/[^A-Za-z]/g, "").length;
+}
 
 /**
  * GET  /api/brief            — today's brief + the history index
@@ -21,17 +64,30 @@ export const Route = createFileRoute("/api/brief")({
         const dateKey = wanted && /^\d{4}-\d{2}-\d{2}$/.test(wanted) ? wanted : dhakaDateKey();
 
         const brief = await getWorkspace<any>(env, `brief_${dateKey}`);
-        const keys = await listWorkspaceKeys(env, "brief_", 30);
+
+        // History with a real preview — `listWorkspaceKeys` returns no values, so
+        // the page could only ever show bare dates. A brief is small (~7 KB), so
+        // reading the last 30 values is cheap.
+        let history: { date: string; updated_at: number; preview: string }[] = [];
+        try {
+          const { results } = await env.DB.prepare(
+            "SELECT key, value, updated_at FROM workspace WHERE key LIKE 'brief_%' ORDER BY key DESC LIMIT 30",
+          ).all();
+          history = (results ?? []).map((r: any) => ({
+            date: String(r.key).replace(/^brief_/, ""),
+            updated_at: Number(r.updated_at),
+            preview: previewOf(r.value),
+          }));
+        } catch {
+          history = [];
+        }
 
         return Response.json({
           ok: true,
           date: dateKey,
           today: dhakaDateKey(),
           brief,
-          history: keys.map((k) => ({
-            date: k.key.replace(/^brief_/, ""),
-            updated_at: k.updated_at,
-          })),
+          history,
         });
       },
 

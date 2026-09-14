@@ -10,3 +10,12 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npx tsc --noEmit
       - run: npm run build
+
+      # Lint reports but does not gate: the repo carries ~1,000 pre-existing
+      # findings (mostly @typescript-eslint/no-explicit-any and prettier
+      # formatting from the original scaffold). Making this blocking today would
+      # fail every push, so it runs `continue-on-error` until that debt is
+      # cleared — remove the flag once the count is at zero.
+      - name: lint (report only)
+        continue-on-error: true
+        run: npm run lint

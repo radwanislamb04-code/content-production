@@ -1,14 +1,9 @@
 import { useState } from "react";
 import { Card, Pill, OutlineBtn } from "../ui";
 import type { SectionId } from "../Sidebar";
-import {
-  Lightbulb,
-  PenLine,
-  LayoutPanelLeft,
-  Film,
-  TrendingUp,
-} from "lucide-react";
+import { Lightbulb, PenLine, LayoutPanelLeft, Film, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { setPendingTemplate } from "@/lib/pending-template";
 
 const MODULE_ICONS = {
   Ideator: Lightbulb,
@@ -72,29 +67,34 @@ const CATEGORY_MATCH: Record<string, string> = {
   Stories: "Story",
 };
 
-export function Templates({
-  onNav,
-}: {
-  onNav: (id: SectionId) => void;
-}) {
+export function Templates({ onNav }: { onNav: (id: SectionId) => void }) {
   const [cat, setCat] = useState<string>("All");
   const list =
-    cat === "All"
-      ? TEMPLATES
-      : TEMPLATES.filter((t) => t.category === CATEGORY_MATCH[cat]);
+    cat === "All" ? TEMPLATES : TEMPLATES.filter((t) => t.category === CATEGORY_MATCH[cat]);
 
-  const use = () => {
+  /**
+   * Hand the template to the Video Analyzer and go there. The analyzer claims
+   * it on mount and pre-fills the idea box, so "Use Template" actually loads it
+   * (it used to say "loaded" while sending nothing).
+   */
+  const use = (t: (typeof TEMPLATES)[number]) => {
+    setPendingTemplate(
+      [
+        `${t.name} — ${t.description}`,
+        `Structure: ${t.modules.join(" → ")}.`,
+        "",
+        "My topic: ",
+      ].join("\n"),
+    );
     onNav("analyzer");
-    toast("Template loaded — customize your idea");
+    toast("Template loaded — describe your topic and hit Analyze");
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-[28px] font-bold text-fg">Templates</h1>
-        <p className="mt-1 text-sm text-fg2">
-          Start with a proven content structure
-        </p>
+        <p className="mt-1 text-sm text-fg2">Start with a proven content structure</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -111,20 +111,14 @@ export function Templates({
             <div>
               <Pill
                 variant={
-                  t.category === "Reel"
-                    ? "accent"
-                    : t.category === "Carousel"
-                      ? "warn"
-                      : "default"
+                  t.category === "Reel" ? "accent" : t.category === "Carousel" ? "warn" : "default"
                 }
               >
                 {t.category}
               </Pill>
             </div>
             <div className="mt-3 text-base font-semibold text-fg">{t.name}</div>
-            <p className="mt-1 line-clamp-2 text-[13px] text-fg2">
-              {t.description}
-            </p>
+            <p className="mt-1 line-clamp-2 text-[13px] text-fg2">{t.description}</p>
             <div className="mt-4 flex items-center gap-2.5">
               {t.modules.map((m) => {
                 const Icon = MODULE_ICONS[m];
@@ -136,7 +130,7 @@ export function Templates({
               })}
             </div>
             <div className="mt-4">
-              <OutlineBtn onClick={use}>Use Template →</OutlineBtn>
+              <OutlineBtn onClick={() => use(t)}>Use Template →</OutlineBtn>
             </div>
           </Card>
         ))}

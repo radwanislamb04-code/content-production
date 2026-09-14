@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, Input, EmptyState } from "../ui";
 import { Lightbulb, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +15,15 @@ const SOURCES = [
 
 type Source = (typeof SOURCES)[number]["id"];
 
+type MyPost = {
+  hook: string;
+  likes: number;
+  comments: number;
+  engagement: number;
+  posted_at: string;
+  url: string;
+};
+
 export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
   const { ideas, setIdeas, selectedIdea, setSelectedIdea } = usePipeline();
   const [source, setSource] = useState<Source>("my_posts");
@@ -22,6 +31,24 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"idle" | "sourcing" | "generating">("idle");
+  const [myPosts, setMyPosts] = useState<MyPost[] | null>(null);
+
+  // Load the real scraped posts as soon as "My Posts" is selected, so the panel
+  // shows what will actually feed the idea generator.
+  useEffect(() => {
+    if (source !== "my_posts" || myPosts !== null) return;
+    let cancelled = false;
+    apiGet<{ published?: MyPost[] }>("/api/hooks")
+      .then((res) => {
+        if (!cancelled) setMyPosts(res?.published ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setMyPosts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [source, myPosts]);
 
   const active = SOURCES.find((s) => s.id === source)!;
 
@@ -85,6 +112,16 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
     return all;
   };
 
+  /**
+   * Your own posts, from the last scrape — the same rows the Performance and
+   * Hook Scoreboard pages read. This branch used to send an empty array, so
+   * "ideas from my best performing posts" was generated from nothing.
+   */
+  const collectMyPostData = async () => {
+    const res = await apiGet<{ published?: MyPost[] }>("/api/hooks");
+    return (res?.published ?? []).slice(0, 10);
+  };
+
   const generate = async () => {
     setLoading(true);
     try {
@@ -92,13 +129,21 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
       if (source !== "my_posts") {
         setStep("sourcing");
         sourceData =
-          source === "competitor"
-            ? await collectCompetitorData()
-            : await collectTrendData();
+          source === "competitor" ? await collectCompetitorData() : await collectTrendData();
         if (sourceData.length === 0) {
           toast.error("No source data found — try different entries.");
           return;
         }
+      } else {
+        setStep("sourcing");
+        const mine = await collectMyPostData();
+        if (mine.length === 0) {
+          toast.error(
+            "No posts of yours are tracked yet — add your handle in Settings → Instagram, then run the scrape in Sources.",
+          );
+          return;
+        }
+        sourceData = mine;
       }
       setStep("generating");
       const res = await apiPost<{ ideas: Idea[] }>("/api/ideator-generate", {
@@ -115,13 +160,10 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
     }
   };
 
-
   return (
     <div className="space-y-6 pb-24">
       <div>
-        <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">
-          Ideator
-        </h1>
+        <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">Ideator</h1>
         <p className="mt-1 text-sm text-mute">
           Generate fresh content ideas from your posts, competitors, or trends.
         </p>
@@ -147,8 +189,42 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
         <div className="text-sm text-fg2">{active.hint}</div>
 
         {source === "my_posts" && (
-          <div className="mt-3 inline-flex items-center rounded-full border border-line bg-surface px-3 py-1 text-[11px] text-warn">
-            Coming soon — full analytics integration
+          <div className="mt-3">
+            {myPosts === null ? (
+              <p className="text-sm text-mute">Loading your tracked posts…</p>
+            ) : myPosts.length === 0 ? (
+              <div className="rounded-lg border border-line bg-surface p-4">
+                <p className="text-sm text-fg2">
+                  No posts of yours are tracked yet, so there is nothing to derive ideas from.
+                </p>
+                <p className="mt-1.5 text-xs text-mute">
+                  Add your Instagram handle in Settings → Instagram, then run the scrape from
+                  Sources. Your posts then appear here, in Performance and on the Hook Scoreboard.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-line bg-surface p-4">
+                <div className="text-sm text-fg2">
+                  {myPosts.length} of your posts from the last scrape will feed the generator, most
+                  engagement first.
+                </div>
+                <ul className="mt-3 space-y-1.5">
+                  {myPosts.slice(0, 5).map((p, i) => (
+                    <li key={`${p.posted_at}-${i}`} className="flex gap-2 text-xs">
+                      <span className="text-mute">{p.engagement}</span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {p.hook || "(no caption text)"}
+                      </span>
+                      <span className="shrink-0 text-mute">{p.posted_at || ""}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-[11px] text-mute">
+                  Instagram hides like counts from scrapers, so engagement here is a floor, not a
+                  score.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -161,9 +237,7 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") addEntry();
                 }}
-                placeholder={
-                  source === "competitor" ? "@handle" : "trending keyword"
-                }
+                placeholder={source === "competitor" ? "@handle" : "trending keyword"}
               />
               <button
                 onClick={addEntry}
@@ -182,9 +256,7 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
                   >
                     {e}
                     <button
-                      onClick={() =>
-                        setEntries((prev) => prev.filter((x) => x !== e))
-                      }
+                      onClick={() => setEntries((prev) => prev.filter((x) => x !== e))}
                       className="text-mute hover:text-err"
                     >
                       <X size={11} />
@@ -205,12 +277,13 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
           {step === "sourcing"
             ? source === "competitor"
               ? "Fetching competitor data…"
-              : "Fetching trend data…"
+              : source === "my_posts"
+                ? "Loading your posts…"
+                : "Fetching trend data…"
             : step === "generating"
               ? "Generating ideas…"
               : "Generate Ideas"}
         </PrimaryBtn>
-
       </Card>
 
       {ideas.length === 0 ? (
@@ -226,9 +299,7 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
               <Card
                 key={idea.id}
                 className={`p-5 transition-all ${
-                  isSel
-                    ? "border-lime shadow-[0_0_16px_rgba(82,255,46,0.2)]"
-                    : ""
+                  isSel ? "border-lime shadow-[0_0_16px_rgba(82,255,46,0.2)]" : ""
                 }`}
               >
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -236,9 +307,7 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
                   {idea.content_pillar && <Pill>{idea.content_pillar}</Pill>}
                   {idea.status && <Pill>{idea.status}</Pill>}
                 </div>
-                <div className="mt-3 text-[15px] font-semibold text-fg">
-                  {idea.title}
-                </div>
+                <div className="mt-3 text-[15px] font-semibold text-fg">{idea.title}</div>
                 {idea.why_it_works && (
                   <div className="mt-2 text-xs italic text-fg2">
                     Why it works: {idea.why_it_works}
@@ -269,9 +338,7 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
               <span className="text-mute">Selected:</span>{" "}
               <span className="break-words text-fg">{selectedIdea.title}</span>
             </div>
-            <PrimaryBtn onClick={() => onNav("script")}>
-              Open Script →
-            </PrimaryBtn>
+            <PrimaryBtn onClick={() => onNav("script")}>Open Script →</PrimaryBtn>
           </div>
         </div>
       )}

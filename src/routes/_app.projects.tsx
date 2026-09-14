@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSectionNav } from "@/lib/use-section-nav";
 import { Projects } from "@/components/aios/sections/Projects";
 
 export const Route = createFileRoute("/_app/projects")({
@@ -15,6 +14,5 @@ export const Route = createFileRoute("/_app/projects")({
 });
 
 function ProjectsPage() {
-  const onNav = useSectionNav();
-  return <Projects onNav={onNav} />;
+  return <Projects />;
 }

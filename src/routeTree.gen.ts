@@ -40,6 +40,7 @@ import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-scrip
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
+import { Route as ApiRunPipelineRouteImport } from './routes/api/run-pipeline'
 import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
 import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
@@ -47,6 +48,7 @@ import { Route as ApiSettingsRouteImport } from './routes/api/settings'
 import { Route as ApiSettingsImagegenRouteImport } from './routes/api/settings-imagegen'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
 import { Route as ApiTelegramTestRouteImport } from './routes/api/telegram-test'
+import { Route as ApiThumbnailPromptRouteImport } from './routes/api/thumbnail-prompt'
 import { Route as ApiTrendSpyRouteImport } from './routes/api/trend-spy'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
 import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
@@ -210,6 +212,11 @@ const ApiResourcesRoute = ApiResourcesRouteImport.update({
   path: '/api/resources',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRunPipelineRoute = ApiRunPipelineRouteImport.update({
+  id: '/api/run-pipeline',
+  path: '/api/run-pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiScrapeCompetitorRoute = ApiScrapeCompetitorRouteImport.update({
   id: '/api/scrape-competitor',
   path: '/api/scrape-competitor',
@@ -243,6 +250,11 @@ const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
 const ApiTelegramTestRoute = ApiTelegramTestRouteImport.update({
   id: '/api/telegram-test',
   path: '/api/telegram-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiThumbnailPromptRoute = ApiThumbnailPromptRouteImport.update({
+  id: '/api/thumbnail-prompt',
+  path: '/api/thumbnail-prompt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTrendSpyRoute = ApiTrendSpyRouteImport.update({
@@ -318,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
+  '/api/run-pipeline': typeof ApiRunPipelineRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
@@ -325,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
+  '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
@@ -364,6 +378,7 @@ export interface FileRoutesByTo {
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
+  '/api/run-pipeline': typeof ApiRunPipelineRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
@@ -371,6 +386,7 @@ export interface FileRoutesByTo {
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
+  '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
@@ -413,6 +429,7 @@ export interface FileRoutesById {
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
+  '/api/run-pipeline': typeof ApiRunPipelineRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
@@ -420,6 +437,7 @@ export interface FileRoutesById {
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
+  '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
@@ -463,6 +481,7 @@ export interface FileRouteTypes {
     | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
+    | '/api/run-pipeline'
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
@@ -470,6 +489,7 @@ export interface FileRouteTypes {
     | '/api/settings-imagegen'
     | '/api/telegram-cron'
     | '/api/telegram-test'
+    | '/api/thumbnail-prompt'
     | '/api/trend-spy'
     | '/api/trends'
     | '/api/video-analyzer'
@@ -509,6 +529,7 @@ export interface FileRouteTypes {
     | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
+    | '/api/run-pipeline'
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
@@ -516,6 +537,7 @@ export interface FileRouteTypes {
     | '/api/settings-imagegen'
     | '/api/telegram-cron'
     | '/api/telegram-test'
+    | '/api/thumbnail-prompt'
     | '/api/trend-spy'
     | '/api/trends'
     | '/api/video-analyzer'
@@ -557,6 +579,7 @@ export interface FileRouteTypes {
     | '/api/ideator-generate'
     | '/api/projects'
     | '/api/resources'
+    | '/api/run-pipeline'
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
@@ -564,6 +587,7 @@ export interface FileRouteTypes {
     | '/api/settings-imagegen'
     | '/api/telegram-cron'
     | '/api/telegram-test'
+    | '/api/thumbnail-prompt'
     | '/api/trend-spy'
     | '/api/trends'
     | '/api/video-analyzer'
@@ -585,6 +609,7 @@ export interface RootRouteChildren {
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiResourcesRoute: typeof ApiResourcesRoute
+  ApiRunPipelineRoute: typeof ApiRunPipelineRoute
   ApiScrapeCompetitorRoute: typeof ApiScrapeCompetitorRoute
   ApiScriptsListRoute: typeof ApiScriptsListRoute
   ApiSearchRoute: typeof ApiSearchRoute
@@ -592,6 +617,7 @@ export interface RootRouteChildren {
   ApiSettingsImagegenRoute: typeof ApiSettingsImagegenRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
   ApiTelegramTestRoute: typeof ApiTelegramTestRoute
+  ApiThumbnailPromptRoute: typeof ApiThumbnailPromptRoute
   ApiTrendSpyRoute: typeof ApiTrendSpyRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
   ApiVideoAnalyzerRoute: typeof ApiVideoAnalyzerRoute
@@ -820,6 +846,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiResourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/run-pipeline': {
+      id: '/api/run-pipeline'
+      path: '/api/run-pipeline'
+      fullPath: '/api/run-pipeline'
+      preLoaderRoute: typeof ApiRunPipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/scrape-competitor': {
       id: '/api/scrape-competitor'
       path: '/api/scrape-competitor'
@@ -867,6 +900,13 @@ declare module '@tanstack/react-router' {
       path: '/api/telegram-test'
       fullPath: '/api/telegram-test'
       preLoaderRoute: typeof ApiTelegramTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/thumbnail-prompt': {
+      id: '/api/thumbnail-prompt'
+      path: '/api/thumbnail-prompt'
+      fullPath: '/api/thumbnail-prompt'
+      preLoaderRoute: typeof ApiThumbnailPromptRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/trend-spy': {
@@ -1002,6 +1042,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiResourcesRoute: ApiResourcesRoute,
+  ApiRunPipelineRoute: ApiRunPipelineRoute,
   ApiScrapeCompetitorRoute: ApiScrapeCompetitorRoute,
   ApiScriptsListRoute: ApiScriptsListRoute,
   ApiSearchRoute: ApiSearchRoute,
@@ -1009,6 +1050,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSettingsImagegenRoute: ApiSettingsImagegenRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
   ApiTelegramTestRoute: ApiTelegramTestRoute,
+  ApiThumbnailPromptRoute: ApiThumbnailPromptRoute,
   ApiTrendSpyRoute: ApiTrendSpyRoute,
   ApiTrendsRoute: ApiTrendsRoute,
   ApiVideoAnalyzerRoute: ApiVideoAnalyzerRoute,

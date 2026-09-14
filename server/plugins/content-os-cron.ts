@@ -4,8 +4,8 @@
 // --------------------
 // `wrangler.toml` declares two cron triggers:
 //
-//   "0 9 * * *"    — daily morning brief
-//   "0 */3 * * *"  — competitor viral check (every 3 hours)
+//   "0 2 * * *"   — 02:00 UTC = 08:00 Asia/Dhaka — morning brief
+//   "0 14 * * *"  — 14:00 UTC = 20:00 Asia/Dhaka — evening competitor check
 //
 // Nitro's `cloudflare-module` preset DOES emit a worker `scheduled` export, but
 // that export only forwards to the Nitro hook `cloudflare:scheduled`:
@@ -15,12 +15,7 @@
 //   }
 //
 // Nothing in the app registered a listener for that hook, so every cron fire
-// was a silent no-op. This plugin registers the listener, which makes the
-// triggers actually run.
-//
-// VERIFIED: the built worker exports
-//   fetch, scheduled, email, queue, tail, trace
-// and invoking `scheduled({ cron })` reaches the handlers below.
+// was a silent no-op. This plugin registers the listener.
 //
 // HOW IT IS WIRED
 // ---------------
@@ -28,77 +23,30 @@
 // Nitro does NOT auto-scan a `server/plugins/` directory in this setup, so the
 // file is referenced explicitly.
 //
-// NOTE ON SCOPE
-// -------------
-// This plugin owns TRANSPORT + OBSERVABILITY only: which cron fired, and an
-// `activity` table row so runs are visible. The actual brief/scrape business
-// logic is deliberately left as explicit, logged stubs — see the sprint-4
-// tasks in the audit report. A stub that logs beats a trigger that silently
-// does nothing, but it is not a finished feature.
+// WHAT IT DOES NOW
+// ----------------
+// Transport only: it decides which steps each trigger runs and hands them to
+// the shared pipeline in `src/lib/pipeline.ts` — the exact same runner the
+// AutoPilot buttons call on demand via `POST /api/run-pipeline`. Step results,
+// deliveries and failures are all recorded in the `activity` table.
 
-type CronEnv = {
-  DB?: {
-    prepare(query: string): {
-      bind(...values: unknown[]): { run(): Promise<unknown> };
-    };
-  };
-  KV?: unknown;
-  MEDIA?: unknown;
-};
+import { logActivity } from "../../src/lib/activity";
+import { runPipeline } from "../../src/lib/pipeline";
 
-// Must match `[triggers].crons` in wrangler.toml exactly.
-// Cron expressions are UTC: 02:00 UTC = 08:00 Asia/Dhaka (BD morning brief),
-// 14:00 UTC = 20:00 Asia/Dhaka (BD evening competitor check).
+// Must match `[triggers].crons` in wrangler.toml exactly. Cron expressions are
+// ALWAYS UTC; the Dhaka times above are what the user asked for.
 const MORNING_BRIEF_CRON = "0 2 * * *";
 const COMPETITOR_CHECK_CRON = "0 14 * * *";
 
-async function logActivity(
-  env: CronEnv,
-  action: string,
-  detail: string,
-): Promise<void> {
-  const db = env && env.DB;
-  if (!db) return; // local dev without bindings — nothing to log to
+// 08:00 — fresh trends + competitor data, compose the brief, deliver it.
+const MORNING_STEPS = ["trends", "scrape", "brief", "send"];
 
-  try {
-    await db
-      .prepare(
-        "INSERT INTO activity (id, module, action, detail, created_at) VALUES (?, ?, ?, ?, ?)",
-      )
-      .bind(crypto.randomUUID(), "cron", action, detail, Date.now())
-      .run();
-  } catch {
-    // Never let an observability write break the cron run.
-  }
-}
+// 20:00 — refresh competitor data and deliver the evening update.
+const EVENING_STEPS = ["scrape", "brief", "send"];
 
-// Morning brief (09:00 UTC daily): assemble and deliver the daily brief.
-async function runMorningBrief(env: CronEnv): Promise<void> {
-  // TODO(sprint-4): scrape -> quality score -> ideate -> compose -> Telegram send.
-  // The send half already exists on POST /api/telegram-cron; extract it into a
-  // shared module before wiring it here so the logic lives in one place.
-  await logActivity(
-    env,
-    "morning_brief_skipped",
-    "cron fired; brief pipeline not implemented yet (see audit sprint 4)",
-  );
-}
-
-// Competitor viral check (every 3 hours).
-async function runCompetitorCheck(env: CronEnv): Promise<void> {
-  // TODO(sprint-4): call the scrape-competitor logic, filter by viral score,
-  // write rows into post_performance. The route already exists at
-  // POST /api/scrape-competitor against the Apify Instagram actor.
-  await logActivity(
-    env,
-    "competitor_check_skipped",
-    "cron fired; competitor pipeline not implemented yet (see audit sprint 4)",
-  );
-}
-
-const CRON_TASKS: Record<string, (env: CronEnv) => Promise<void>> = {
-  [MORNING_BRIEF_CRON]: runMorningBrief,
-  [COMPETITOR_CHECK_CRON]: runCompetitorCheck,
+const CRON_TASKS: Record<string, string[]> = {
+  [MORNING_BRIEF_CRON]: MORNING_STEPS,
+  [COMPETITOR_CHECK_CRON]: EVENING_STEPS,
 };
 
 export default function contentOsCron(nitroApp: {
@@ -108,21 +56,37 @@ export default function contentOsCron(nitroApp: {
     "cloudflare:scheduled",
     async ({ controller, env }: any) => {
       const cron: string = (controller && controller.cron) || "";
-      const task = CRON_TASKS[cron];
+      const steps = CRON_TASKS[cron];
 
-      if (!task) {
-        await logActivity(env, "cron_unknown", 'no task registered for "' + cron + '"');
+      if (!steps) {
+        await logActivity(env, "cron", "cron_unknown", `no task for "${cron}"`);
         return;
       }
 
       try {
-        await task(env as CronEnv);
-        await logActivity(env, "cron_ok", '"' + cron + '" completed');
+        const report = await runPipeline(env, steps);
+        const failed = report.steps.filter((s) => !s.ok);
+        const summary = report.steps
+          .map((s) => `${s.step}:${s.ok ? "ok" : "failed"}`)
+          .join(" ");
+
+        await logActivity(
+          env,
+          "cron",
+          failed.length ? "cron_partial" : "cron_ok",
+          `"${cron}" → ${summary}${report.telegramSent ? ` · ${report.telegramSent} message(s) sent` : ""}`,
+        );
+
+        if (failed.length) {
+          // Surface partial failures in Workers Logs / Observability instead of
+          // hiding them behind a green "completed" line.
+          throw new Error(
+            failed.map((f) => `${f.step}: ${f.detail}`).join(" | "),
+          );
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        await logActivity(env, "cron_failed", '"' + cron + '" failed: ' + message);
-        // Re-throw into waitUntil so the failure surfaces in Workers Logs /
-        // Observability instead of being swallowed.
+        await logActivity(env, "cron", "cron_failed", `"${cron}" failed: ${message}`);
         throw error;
       }
     },

@@ -133,7 +133,8 @@ export const Route = createFileRoute("/api/scrape-competitor")({
   },
 });
 
-async function fetchInstagramPosts(
+/** Also used by the pipeline's `scrape` step (src/lib/pipeline.ts). */
+export async function fetchInstagramPosts(
   apifyApiToken: string | undefined,
   handle: string,
 ): Promise<CompetitorPost[]> {
@@ -146,12 +147,22 @@ async function fetchInstagramPosts(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: handle, maxPosts: 10 }),
+      // The actor's schema requires `usernames` (an array) — sending
+      // `{ username }` is rejected with
+      // HTTP 400 "Field input.usernames is required".
+      body: JSON.stringify({ usernames: [handle], resultsLimit: 12 }),
     },
   );
 
   if (!res.ok) {
-    return [{ caption: `Apify error: ${res.status}`, likes: 0, comments: 0, url: "", timestamp: "" }];
+    const detail = await res.text().catch(() => "");
+    let message = `Apify error: ${res.status}`;
+    try {
+      message = `Apify error: ${res.status} — ${JSON.parse(detail)?.error?.message ?? ""}`;
+    } catch {
+      /* non-JSON error body */
+    }
+    return [{ caption: message, likes: 0, comments: 0, url: "", timestamp: "" }];
   }
 
   const rawText = await res.text();

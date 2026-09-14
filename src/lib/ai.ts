@@ -28,32 +28,41 @@ export async function callAi(
     );
   }
 
-  let res: Response;
-  try {
-    res = await fetch(anthropicMessagesUrl(baseUrl), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: opts.model ?? "auto",
-        max_tokens: opts.maxTokens ?? 1024,
-        ...(opts.system ? { system: opts.system } : {}),
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-  } catch (err: any) {
-    throw new Error(`Failed to reach the AI endpoint: ${err?.message ?? String(err)}`);
+  const url = anthropicMessagesUrl(baseUrl);
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+    "anthropic-version": "2023-06-01",
+  };
+  const body = JSON.stringify({
+    model: opts.model ?? "auto",
+    max_tokens: opts.maxTokens ?? 1024,
+    ...(opts.system ? { system: opts.system } : {}),
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  // The endpoint occasionally answers 429/5xx to a single request (we hit a
+  // real 502 on the first scoring attempt). One retry turns a transient blip
+  // into a success instead of a failed pipeline step.
+  let res: Response | null = null;
+  let failure = "";
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const r = await fetch(url, { method: "POST", headers, body });
+      if (r.ok) {
+        res = r;
+        break;
+      }
+      const detail = await r.text().catch(() => "");
+      failure = `AI error ${r.status}${detail ? ` — ${detail.slice(0, 300)}` : ""}`;
+      if (r.status !== 429 && r.status < 500) break; // a real client error — do not retry
+    } catch (err: any) {
+      failure = `Failed to reach the AI endpoint: ${err?.message ?? String(err)}`;
+    }
+    if (attempt === 1) await new Promise((resolve) => setTimeout(resolve, 800));
   }
 
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(
-      `AI error ${res.status}${detail ? ` — ${detail.slice(0, 300)}` : ""}`,
-    );
-  }
+  if (!res) throw new Error(failure || "The AI endpoint did not respond");
 
   const data = (await res.json()) as {
     content?: Array<{ type: string; text?: string }>;

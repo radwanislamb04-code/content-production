@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Eye, EyeOff, Image as ImageIcon, User } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Image as ImageIcon,
+  Loader2,
+  Sparkles,
+  User,
+} from "lucide-react";
 import {
   EmptyState,
   Input,
@@ -80,6 +87,73 @@ export function ThumbnailStudioScreen() {
 
   const [headline, setHeadline] = useState("YOUR HEADLINE");
   const [subline, setSubline] = useState("");
+
+  // "Prompt from script" — text-only AI art direction (no image generation).
+  const [scripts, setScripts] = useState<
+    { id: string; title: string; content: string }[]
+  >([]);
+  const [scriptId, setScriptId] = useState("");
+  const [promptNotes, setPromptNotes] = useState("");
+  const [promptBusy, setPromptBusy] = useState(false);
+  const [promptError, setPromptError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/library/script")
+      .then((r) => r.json())
+      .then((rows) => {
+        if (cancelled || !Array.isArray(rows)) return;
+        const list = rows.map((r: any) => ({
+          id: String(r.id),
+          title: String(r.title ?? "Untitled script"),
+          content: String(r.content ?? ""),
+        }));
+        setScripts(list);
+        setScriptId((prev) => prev || list[0]?.id || "");
+      })
+      .catch(() => {
+        /* panel simply stays empty */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Ask the AI for thumbnail art direction built from the chosen script. */
+  const buildPromptFromScript = async () => {
+    const script = scripts.find((s) => s.id === scriptId);
+    if (!script) {
+      setPromptError("Pick a script first.");
+      return;
+    }
+    setPromptBusy(true);
+    setPromptError(null);
+    try {
+      const res = await fetch("/api/thumbnail-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          script: script.content || script.title,
+          style: promptNotes || undefined,
+          saveId: scriptId,
+        }),
+      });
+      const json = await res.json();
+      if (!json?.ok) {
+        setPromptError(json?.error ?? "Could not build a prompt");
+        return;
+      }
+      const p = json.prompt ?? {};
+      if (p.background_prompt) setPrompt(String(p.background_prompt));
+      if (p.headline) setHeadline(String(p.headline).toUpperCase());
+      if (p.subline) setSubline(String(p.subline));
+      setTab("background");
+    } catch (err: any) {
+      setPromptError(err?.message ?? "Could not build a prompt");
+    } finally {
+      setPromptBusy(false);
+    }
+  };
   const [fontSize, setFontSize] = useState(9);
   const [pos, setPos] = useState<Pos>(4);
   const [align, setAlign] = useState<Align>("center");
@@ -474,6 +548,51 @@ export function ThumbnailStudioScreen() {
             active={tab}
             onChange={setTab}
           />
+
+          <div className="mb-3 rounded-lg border border-line bg-surface p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-mute">
+              <Sparkles size={13} /> Prompt from script
+            </div>
+            <Select
+              value={scriptId}
+              onChange={(e: any) => setScriptId(e.target.value)}
+            >
+              {scripts.length === 0 && (
+                <option value="">No scripts in the library yet</option>
+              )}
+              {scripts.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title.slice(0, 60)}
+                </option>
+              ))}
+            </Select>
+            <Input
+              value={promptNotes}
+              onChange={(e: any) => setPromptNotes(e.target.value)}
+              placeholder="Optional style note — e.g. dark studio, neon rim light"
+              className="mt-2"
+            />
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] text-mute">
+                Writes the headline, sub-line and background prompt from that
+                script.
+              </span>
+              <OutlineBtn
+                onClick={buildPromptFromScript}
+                disabled={promptBusy || !scriptId}
+              >
+                {promptBusy ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Sparkles size={13} />
+                )}
+                {promptBusy ? "Building…" : "Generate prompt"}
+              </OutlineBtn>
+            </div>
+            {promptError && (
+              <p className="mt-2 text-[11px] text-err">{promptError}</p>
+            )}
+          </div>
 
           {tab === "background" && (
             <div className="space-y-2">

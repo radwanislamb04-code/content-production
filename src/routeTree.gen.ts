@@ -45,6 +45,7 @@ import { Route as ApiPostPerformanceRouteImport } from './routes/api/post-perfor
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiRunPipelineRouteImport } from './routes/api/run-pipeline'
+import { Route as ApiScoreContentRouteImport } from './routes/api/score-content'
 import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
 import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
@@ -243,6 +244,11 @@ const ApiRunPipelineRoute = ApiRunPipelineRouteImport.update({
   path: '/api/run-pipeline',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiScoreContentRoute = ApiScoreContentRouteImport.update({
+  id: '/api/score-content',
+  path: '/api/score-content',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiScrapeCompetitorRoute = ApiScrapeCompetitorRouteImport.update({
   id: '/api/scrape-competitor',
   path: '/api/scrape-competitor',
@@ -371,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/run-pipeline': typeof ApiRunPipelineRoute
+  '/api/score-content': typeof ApiScoreContentRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
@@ -425,6 +432,7 @@ export interface FileRoutesByTo {
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/run-pipeline': typeof ApiRunPipelineRoute
+  '/api/score-content': typeof ApiScoreContentRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
@@ -482,6 +490,7 @@ export interface FileRoutesById {
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/run-pipeline': typeof ApiRunPipelineRoute
+  '/api/score-content': typeof ApiScoreContentRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
@@ -540,6 +549,7 @@ export interface FileRouteTypes {
     | '/api/projects'
     | '/api/resources'
     | '/api/run-pipeline'
+    | '/api/score-content'
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
@@ -594,6 +604,7 @@ export interface FileRouteTypes {
     | '/api/projects'
     | '/api/resources'
     | '/api/run-pipeline'
+    | '/api/score-content'
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
@@ -650,6 +661,7 @@ export interface FileRouteTypes {
     | '/api/projects'
     | '/api/resources'
     | '/api/run-pipeline'
+    | '/api/score-content'
     | '/api/scrape-competitor'
     | '/api/scripts-list'
     | '/api/search'
@@ -686,6 +698,7 @@ export interface RootRouteChildren {
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiResourcesRoute: typeof ApiResourcesRoute
   ApiRunPipelineRoute: typeof ApiRunPipelineRoute
+  ApiScoreContentRoute: typeof ApiScoreContentRoute
   ApiScrapeCompetitorRoute: typeof ApiScrapeCompetitorRoute
   ApiScriptsListRoute: typeof ApiScriptsListRoute
   ApiSearchRoute: typeof ApiSearchRoute
@@ -958,6 +971,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRunPipelineRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/score-content': {
+      id: '/api/score-content'
+      path: '/api/score-content'
+      fullPath: '/api/score-content'
+      preLoaderRoute: typeof ApiScoreContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/scrape-competitor': {
       id: '/api/scrape-competitor'
       path: '/api/scrape-competitor'
@@ -1178,6 +1198,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProjectsRoute: ApiProjectsRoute,
   ApiResourcesRoute: ApiResourcesRoute,
   ApiRunPipelineRoute: ApiRunPipelineRoute,
+  ApiScoreContentRoute: ApiScoreContentRoute,
   ApiScrapeCompetitorRoute: ApiScrapeCompetitorRoute,
   ApiScriptsListRoute: ApiScriptsListRoute,
   ApiSearchRoute: ApiSearchRoute,

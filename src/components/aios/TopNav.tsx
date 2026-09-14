@@ -10,7 +10,14 @@ import {
   X,
 } from "lucide-react";
 
-type SearchResult = { id: string; title: string; module: string; date: string };
+type SearchResult = {
+  id: string;
+  title: string;
+  module: string;
+  date: string;
+  href?: string;
+  snippet?: string;
+};
 
 type NotificationItem = {
   id: string;
@@ -220,6 +227,7 @@ export function TopNav({
 }
 
 function Spotlight({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -240,7 +248,16 @@ function Spotlight({ onClose }: { onClose: () => void }) {
         .then((res) => res.json())
         .then((json) => {
           if (cancelled) return;
-          setResults(Array.isArray(json) ? json : []);
+          // The endpoint returns a flat array. Older builds returned
+          // { projects, library }, so tolerate both instead of showing nothing.
+          const list = Array.isArray(json)
+            ? json
+            : Array.isArray(json?.results)
+              ? json.results
+              : Array.isArray(json?.library)
+                ? json.library
+                : [];
+          setResults(list);
           setLoading(false);
         })
         .catch(() => {
@@ -267,11 +284,15 @@ function Spotlight({ onClose }: { onClose: () => void }) {
         e.preventDefault();
         setCursor((c) => (c - 1 + results.length) % results.length);
       }
-      if (e.key === "Enter") onClose();
+      if (e.key === "Enter") {
+        const hit = results[cursor];
+        onClose();
+        if (hit?.href) navigate({ to: hit.href } as any);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [results, onClose]);
+  }, [results, cursor, onClose, navigate]);
 
   return (
     <div
@@ -330,13 +351,21 @@ function Spotlight({ onClose }: { onClose: () => void }) {
               <button
                 key={r.id}
                 onMouseEnter={() => setCursor(i)}
-                onClick={onClose}
+                onClick={() => {
+                  onClose();
+                  if (r.href) navigate({ to: r.href } as any);
+                }}
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left ${
                   cursor === i ? "bg-[rgba(82,255,46,0.08)]" : ""
                 }`}
               >
-                <span className="min-w-0 flex-1 truncate text-sm text-fg">
-                  {r.title}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm text-fg">{r.title}</span>
+                  {r.snippet ? (
+                    <span className="mt-0.5 block truncate text-[11px] text-mute">
+                      {r.snippet}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="shrink-0 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-fg2">
                   {r.module}

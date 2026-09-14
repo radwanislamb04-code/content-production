@@ -14,7 +14,8 @@ export const Route = createFileRoute("/api/activity")({
         return Response.json(await readActivity(env, limit, module));
       },
       POST: async ({ request, context }) => {
-        const db = (context as any).cloudflare?.env?.DB;
+        const env = getEnv(request, context);
+        const db = env?.DB;
         if (!db) {
           return Response.json({ error: "DB unavailable" }, { status: 500 });
         }

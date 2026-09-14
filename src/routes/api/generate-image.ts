@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { getEnv } from "../../lib/settings";
 
 /**
  * POST /api/generate-image
@@ -152,7 +153,7 @@ export const Route = createFileRoute("/api/generate-image")({
   server: {
     handlers: {
       POST: async ({ request, context }) => {
-        const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
+        const env = getEnv(request, context);
 
         let body: z.infer<typeof bodySchema>;
         try {

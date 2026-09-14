@@ -4,11 +4,12 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/aios/Sidebar";
 import { TopNav } from "@/components/aios/TopNav";
 import { PipelineProvider } from "@/components/aios/pipeline";
 import { TITLE_BY_PATH, groupForPath } from "@/lib/nav";
+import { hydrateAppearance, loadAppearance } from "@/lib/appearance";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -19,6 +20,13 @@ function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const path = pathname.replace(/(.)\/$/, "$1");
   const title = TITLE_BY_PATH[path] ?? "Dashboard";
+
+  // Apply the stored appearance before the shell paints: the localStorage
+  // mirror first (no dark flash), then the account copy.
+  useEffect(() => {
+    hydrateAppearance();
+    loadAppearance();
+  }, []);
 
   return (
     <PipelineProvider>

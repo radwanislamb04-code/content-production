@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { fetchYouTubeTrends, fetchGoogleTrends } from "./trends";
 import {
+  getEnv,
   readAiConfig,
   anthropicMessagesUrl,
   readSetting,
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/api/trend-spy")({
   server: {
     handlers: {
       POST: async ({ request, context }) => {
-        const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
+        const env = getEnv(request, context);
         const { apiKey, baseUrl } = await readAiConfig(env);
         const kv = env?.KV;
 

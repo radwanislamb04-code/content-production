@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { readTelegramConfig } from "../../lib/settings";
+import { getEnv } from "../../lib/settings";
 
 const BATCH_LIMIT = 10;
 
@@ -8,9 +9,7 @@ export const Route = createFileRoute("/api/telegram-cron")({
   server: {
     handlers: {
       POST: async ({ request, context }) => {
-      const env =
-        (request as any)?.runtime?.cloudflare?.env ??
-        (context as any).cloudflare?.env;
+      const env = getEnv(request, context);
       const db = env?.DB;
       const kv = env?.KV;
       const now = new Date().toISOString();

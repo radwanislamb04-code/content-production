@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getEnv } from "../../lib/settings";
 
 type LibraryRow = {
   id: string;
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/api/characters")({
   server: {
     handlers: {
       GET: async ({ request, context }) => {
-        const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
+        const env = getEnv(request, context);
         const db = env?.DB;
         if (!db) {
           return Response.json([]);
@@ -65,7 +66,7 @@ export const Route = createFileRoute("/api/characters")({
         }
       },
       POST: async ({ request, context }) => {
-        const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
+        const env = getEnv(request, context);
         const db = env?.DB;
         if (!db) {
           return Response.json({ error: "DB not configured" }, { status: 500 });

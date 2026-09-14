@@ -33,6 +33,7 @@ import { Route as AppThumbnailStudioRouteImport } from './routes/_app.thumbnail-
 import { Route as AppVideoAnalyzerRouteImport } from './routes/_app.video-analyzer'
 import { Route as AppVideoPromptRouteImport } from './routes/_app.video-prompt'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
+import { Route as ApiAppearanceRouteImport } from './routes/api/appearance'
 import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
 import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
@@ -184,6 +185,11 @@ const AppVideoPromptRoute = AppVideoPromptRouteImport.update({
 const ApiActivityRoute = ApiActivityRouteImport.update({
   id: '/api/activity',
   path: '/api/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAppearanceRoute = ApiAppearanceRouteImport.update({
+  id: '/api/appearance',
+  path: '/api/appearance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBriefRoute = ApiBriefRouteImport.update({
@@ -377,6 +383,7 @@ export interface FileRoutesByFullPath {
   '/video-analyzer': typeof AppVideoAnalyzerRoute
   '/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/appearance': typeof ApiAppearanceRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
@@ -434,6 +441,7 @@ export interface FileRoutesByTo {
   '/video-analyzer': typeof AppVideoAnalyzerRoute
   '/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/appearance': typeof ApiAppearanceRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
@@ -494,6 +502,7 @@ export interface FileRoutesById {
   '/_app/video-analyzer': typeof AppVideoAnalyzerRoute
   '/_app/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/appearance': typeof ApiAppearanceRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
@@ -555,6 +564,7 @@ export interface FileRouteTypes {
     | '/video-analyzer'
     | '/video-prompt'
     | '/api/activity'
+    | '/api/appearance'
     | '/api/brief'
     | '/api/characters'
     | '/api/embed-check'
@@ -612,6 +622,7 @@ export interface FileRouteTypes {
     | '/video-analyzer'
     | '/video-prompt'
     | '/api/activity'
+    | '/api/appearance'
     | '/api/brief'
     | '/api/characters'
     | '/api/embed-check'
@@ -671,6 +682,7 @@ export interface FileRouteTypes {
     | '/_app/video-analyzer'
     | '/_app/video-prompt'
     | '/api/activity'
+    | '/api/appearance'
     | '/api/brief'
     | '/api/characters'
     | '/api/embed-check'
@@ -710,6 +722,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ApiActivityRoute: typeof ApiActivityRoute
+  ApiAppearanceRoute: typeof ApiAppearanceRoute
   ApiBriefRoute: typeof ApiBriefRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
@@ -911,6 +924,13 @@ declare module '@tanstack/react-router' {
       path: '/api/activity'
       fullPath: '/api/activity'
       preLoaderRoute: typeof ApiActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/appearance': {
+      id: '/api/appearance'
+      path: '/api/appearance'
+      fullPath: '/api/appearance'
+      preLoaderRoute: typeof ApiAppearanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/brief': {
@@ -1226,6 +1246,7 @@ const ApiLibraryTypeRouteWithChildren = ApiLibraryTypeRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ApiActivityRoute: ApiActivityRoute,
+  ApiAppearanceRoute: ApiAppearanceRoute,
   ApiBriefRoute: ApiBriefRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiEmbedCheckRoute: ApiEmbedCheckRoute,

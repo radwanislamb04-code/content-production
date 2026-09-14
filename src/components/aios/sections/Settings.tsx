@@ -1,3 +1,4 @@
+import { AppearancePanel } from "./AppearancePanel";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Card, Input, OutlineBtn, Progress, Select } from "../ui";
 import { Eye, EyeOff, Save, Plus, X, Send, RefreshCw } from "lucide-react";
@@ -144,7 +145,7 @@ export function Settings() {
         {tab === "Telegram" && <TelegramTab settings={settings} />}
         {tab === "Characters" && <Characters />}
         {tab === "Schedule" && <ScheduleTab settings={settings} />}
-        {tab === "Appearance" && <Placeholder label="Appearance" />}
+        {tab === "Appearance" && <AppearancePanel />}
       </Card>
     </div>
   );
@@ -1055,16 +1056,3 @@ function ScheduleTab({
   );
 }
 
-function Placeholder({ label }: { label: string }) {
-  return (
-    <div className="grid min-h-[300px] place-items-center text-center text-sm text-mute">
-      <div>
-        <div className="text-fg">{label} settings</div>
-        <div className="mt-1">
-          Not built yet — there is no backend for this section, so nothing here
-          would persist.
-        </div>
-      </div>
-    </div>
-  );
-}

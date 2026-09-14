@@ -5,6 +5,7 @@
  * text, so the splitter and the formatter live here instead of being copied.
  */
 
+import { currentTimeZone } from "@/lib/appearance";
 import { Card } from "./ui";
 
 export type Brief = {
@@ -54,12 +55,14 @@ export function parseBrief(markdown: string) {
 }
 
 export function clock(ts: number): string {
+  const timeZone = currentTimeZone();
   try {
     return new Date(ts).toLocaleString(undefined, {
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      ...(timeZone ? { timeZone } : {}),
     });
   } catch {
     return "—";

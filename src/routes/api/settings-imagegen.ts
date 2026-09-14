@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { getEnv } from "../../lib/settings";
 
 /**
  * GET  /api/settings-imagegen — read which providers are configured
@@ -43,9 +44,7 @@ export const Route = createFileRoute("/api/settings-imagegen")({
   server: {
     handlers: {
       GET: async ({ request, context }) => {
-        const env =
-          (request as any)?.runtime?.cloudflare?.env ??
-          (context as any).cloudflare?.env;
+        const env = getEnv(request, context);
         const kv = await getKv(env);
 
         let vyceaiKey: string | null = null;
@@ -78,9 +77,7 @@ export const Route = createFileRoute("/api/settings-imagegen")({
       },
 
       POST: async ({ request, context }) => {
-        const env =
-          (request as any)?.runtime?.cloudflare?.env ??
-          (context as any).cloudflare?.env;
+        const env = getEnv(request, context);
         const kv = await getKv(env);
 
         if (!kv) {

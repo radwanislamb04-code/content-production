@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
+import { getEnv } from "../../lib/settings";
 
 type Source = "my_posts" | "competitor" | "trend";
 
@@ -111,7 +112,7 @@ export const Route = createFileRoute("/api/ideator-generate")({
   server: {
     handlers: {
       POST: async ({ request, context }) => {
-        const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
+        const env = getEnv(request, context);
         const { apiKey, baseUrl } = await readAiConfig(env);
         const db = env?.DB;
 

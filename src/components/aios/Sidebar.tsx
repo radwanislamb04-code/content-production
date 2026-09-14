@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getAppearance } from "@/lib/appearance";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { NAV_GROUPS, TOP_LINKS, BOTTOM_LINKS, type NavEntry } from "@/lib/nav";
@@ -8,7 +9,12 @@ export type { SectionId } from "@/lib/nav";
 const STORAGE_KEY = "aios.sidebar.groups";
 
 function defaultOpenState(): Record<string, boolean> {
-  return Object.fromEntries(NAV_GROUPS.map((g) => [g.id, g.defaultOpen]));
+  // Appearance → "Sidebar on load" decides the first paint; a manual
+  // open/close is stored per browser and wins from then on.
+  const collapsed = getAppearance().sidebarDefault === "collapsed";
+  return Object.fromEntries(
+    NAV_GROUPS.map((g) => [g.id, collapsed ? false : g.defaultOpen]),
+  );
 }
 
 function readStored(): Record<string, boolean> | null {

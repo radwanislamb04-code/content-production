@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getAppearance } from "@/lib/appearance";
 import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -73,7 +74,7 @@ const POS_LABELS = [
 ];
 
 export function ThumbnailStudioScreen() {
-  const [format, setFormat] = useState<Format>("yt");
+  const [format, setFormat] = useState<Format>(getAppearance().thumbnailFormat);
   const [tab, setTab] = useState("background");
 
   const [showBg, setShowBg] = useState(true);

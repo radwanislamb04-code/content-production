@@ -1,6 +1,7 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
 
 import { readApifyToken } from "../../lib/settings";
+import { getEnv } from "../../lib/settings";
 
 type CompetitorPost = {
   caption: string;
@@ -16,9 +17,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
   server: {
     handlers: {
       POST: async ({ request, context }) => {
-        const env =
-          (request as any)?.runtime?.cloudflare?.env ??
-          (context as any).cloudflare?.env;
+        const env = getEnv(request, context);
         const db = env?.DB;
         const kv = env?.KV;
         // Apify token comes from Settings → Apify slots (job: "Instagram

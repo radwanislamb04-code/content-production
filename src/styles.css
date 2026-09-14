@@ -60,21 +60,29 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* JepyLabs Content OS tokens */
-  --color-app: #030504;
-  --color-app2: #070A08;
-  --color-surface: #0C100E;
-  --color-cardx: #101513;
-  --color-cardhi: #151B18;
-  --color-line: #1E2622;
-  --color-line2: #2A332E;
-  --color-lime: #52FF2E;
-  --color-lime2: #7CFF5B;
-  --color-fg: #F3F5F2;
-  --color-fg2: #A7ACA7;
-  --color-mute: #808880;
-  --color-warn: #F6C453;
-  --color-err: #FF5D5D;
+  /*
+   * JepyLabs Content OS tokens.
+   *
+   * These used to be hardcoded dark literals in this block, which made the
+   * Appearance theme toggle impossible: the shadcn tokens flip with `.dark`,
+   * but the whole app UI is painted with THESE, so light mode would have been
+   * dark-on-light text over dark surfaces. The values now live in `:root`
+   * (light) and `.dark` (dark), exactly like the tokens above.
+   */
+  --color-app: var(--cos-app);
+  --color-app2: var(--cos-app2);
+  --color-surface: var(--cos-surface);
+  --color-cardx: var(--cos-cardx);
+  --color-cardhi: var(--cos-cardhi);
+  --color-line: var(--cos-line);
+  --color-line2: var(--cos-line2);
+  --color-lime: var(--cos-lime);
+  --color-lime2: var(--cos-lime2);
+  --color-fg: var(--cos-fg);
+  --color-fg2: var(--cos-fg2);
+  --color-mute: var(--cos-mute);
+  --color-warn: var(--cos-warn);
+  --color-err: var(--cos-err);
 
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -114,6 +122,34 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* Content OS — light palette (Appearance → Theme: Light). */
+  --cos-app: #f6f8f6;
+  --cos-app2: #eff2ef;
+  --cos-surface: #ffffff;
+  --cos-cardx: #ffffff;
+  --cos-cardhi: #f1f4f1;
+  --cos-line: #e1e6e1;
+  --cos-line2: #cbd3cc;
+  /* Deeper than the dark-mode green: the same #52FF2E is unreadable as text
+     on white, and `bg-lime` buttons need contrast against --cos-app text. */
+  --cos-lime: #1a940e;
+  --cos-lime2: #22b013;
+  --cos-fg: #0a0f0b;
+  --cos-fg2: #454d46;
+  --cos-mute: #6b746c;
+  --cos-warn: #9a6a05;
+  --cos-err: #c02626;
+}
+
+/* Motion preference from Appearance — set on <html> by lib/appearance. */
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }
 
 .dark {
@@ -149,6 +185,22 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+
+  /* Content OS — dark palette (the app's original colours). */
+  --cos-app: #030504;
+  --cos-app2: #070a08;
+  --cos-surface: #0c100e;
+  --cos-cardx: #101513;
+  --cos-cardhi: #151b18;
+  --cos-line: #1e2622;
+  --cos-line2: #2a332e;
+  --cos-lime: #52ff2e;
+  --cos-lime2: #7cff5b;
+  --cos-fg: #f3f5f2;
+  --cos-fg2: #a7aca7;
+  --cos-mute: #808880;
+  --cos-warn: #f6c453;
+  --cos-err: #ff5d5d;
 }
 
 @layer base {

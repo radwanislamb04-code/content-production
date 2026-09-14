@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { getEnv } from "../../lib/settings";
 
 const bodySchema = z.object({
   ideas: z.array(z.string().min(1).max(500)).max(50),
@@ -9,7 +10,8 @@ export const Route = createFileRoute("/api/workspace/selected_idea")({
   server: {
     handlers: {
       PUT: async ({ request, context }) => {
-        const db = (context as any).cloudflare?.env?.DB;
+        const env = getEnv(request, context);
+        const db = env?.DB;
         if (!db) {
           return new Response("Internal server error", { status: 500 });
         }
@@ -51,8 +53,9 @@ export const Route = createFileRoute("/api/workspace/selected_idea")({
           return new Response("Internal server error", { status: 500 });
         }
       },
-      GET: async ({ context }) => {
-        const db = (context as any).cloudflare?.env?.DB;
+      GET: async ({ request, context }) => {
+        const env = getEnv(request, context);
+        const db = env?.DB;
         if (!db) {
           return Response.json([]);
         }

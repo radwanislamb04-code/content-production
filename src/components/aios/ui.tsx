@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Loader2, AlertTriangle, Check, Copy } from "lucide-react";
 
-const FOCUS_RING =
+export const FOCUS_RING =
   "outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app";
 
 export function Spinner({ size = 15 }: { size?: number }) {

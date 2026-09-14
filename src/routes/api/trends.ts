@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { readSetting, SETTINGS_KEYS } from "../../lib/settings";
+import { getEnv } from "../../lib/settings";
 
 type TrendItem = { title: string; metric: string; source: string };
 
@@ -9,7 +10,7 @@ export const Route = createFileRoute("/api/trends")({
   server: {
     handlers: {
       GET: async ({ request, context }) => {
-        const env = (request as any)?.runtime?.cloudflare?.env ?? (context as any).cloudflare?.env;
+        const env = getEnv(request, context);
         const kv = env?.KV;
         const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi);
         const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube);

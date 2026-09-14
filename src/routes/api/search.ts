@@ -63,7 +63,16 @@ function oneLine(text: unknown, max = 90): string {
         (v) => typeof v === "string" && v.trim().length > 12,
       );
       const chosen = preferred ?? generic;
-      if (chosen) value = String(chosen);
+      if (chosen) {
+        value = String(chosen);
+      } else {
+        // Nothing text-like inside (e.g. `{ shots: [...] }`) — strip the JSON
+        // scaffolding so the row shows content instead of punctuation soup.
+        value = value
+          .replace(/[[\]{}"]/g, " ")
+          .replace(/\b[a-z_]{2,}\s*:/gi, " ")
+          .replace(/,/g, " · ");
+      }
     } catch {
       /* not JSON after all — use it as-is */
     }

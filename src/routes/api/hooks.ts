@@ -25,6 +25,12 @@ type Hook = {
   script_created: number;
 };
 
+/** Instagram sometimes reports -1 for a hidden like count — treat it as 0. */
+function clamp(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+}
+
 function str(v: unknown, max = 400): string {
   return String(v ?? "")
     .replace(/\s+/g, " ")
@@ -67,7 +73,7 @@ export const Route = createFileRoute("/api/hooks")({
           ),
           safe(
             `SELECT caption, likes, comments, url, posted_at FROM post_performance
-              WHERE is_own_account = 1 ORDER BY COALESCE(likes,0) + COALESCE(comments,0) DESC, posted_at DESC LIMIT 40`,
+              WHERE is_own_account = 1 ORDER BY MAX(COALESCE(likes,0),0) + MAX(COALESCE(comments,0),0) DESC, posted_at DESC LIMIT 40`,
           ),
           safe("SELECT MAX(scraped_at) AS scraped_at FROM post_performance"),
         ]);
@@ -110,9 +116,9 @@ export const Route = createFileRoute("/api/hooks")({
         const published = own.map((p) => ({
           hook: firstLine(p.caption),
           caption: str(p.caption, 200),
-          likes: Number(p.likes) || 0,
-          comments: Number(p.comments) || 0,
-          engagement: (Number(p.likes) || 0) + (Number(p.comments) || 0),
+          likes: clamp(p.likes),
+          comments: clamp(p.comments),
+          engagement: clamp(p.likes) + clamp(p.comments),
           url: p.url ?? "",
           posted_at: p.posted_at ?? "",
         }));

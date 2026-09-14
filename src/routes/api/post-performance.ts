@@ -43,9 +43,9 @@ export const Route = createFileRoute("/api/post-performance")({
           const agg = await db
             .prepare(
               `SELECT handle, is_own_account, COUNT(*) AS posts,
-                      SUM(COALESCE(likes,0)) AS likes, SUM(COALESCE(comments,0)) AS comments,
-                      CAST(ROUND(AVG(COALESCE(likes,0))) AS INTEGER) AS avg_likes,
-                      CAST(ROUND(AVG(COALESCE(comments,0))) AS INTEGER) AS avg_comments
+                      SUM(MAX(COALESCE(likes,0),0)) AS likes, SUM(MAX(COALESCE(comments,0),0)) AS comments,
+                      CAST(ROUND(AVG(MAX(COALESCE(likes,0),0))) AS INTEGER) AS avg_likes,
+                      CAST(ROUND(AVG(MAX(COALESCE(comments,0),0))) AS INTEGER) AS avg_comments
                  FROM post_performance ${where}
                 GROUP BY handle, is_own_account
                 ORDER BY posts DESC, likes DESC`,
@@ -57,7 +57,7 @@ export const Route = createFileRoute("/api/post-performance")({
             .prepare(
               `SELECT handle, is_own_account, caption, likes, comments, url, posted_at
                  FROM post_performance ${where}
-                ORDER BY COALESCE(likes,0) DESC
+                ORDER BY MAX(COALESCE(likes,0),0) DESC
                 LIMIT 5`,
             )
             .bind(...args)
@@ -68,7 +68,7 @@ export const Route = createFileRoute("/api/post-performance")({
             .prepare(
               `SELECT CAST(strftime('%H', posted_at) AS INTEGER) AS hour,
                       COUNT(*) AS posts,
-                      CAST(ROUND(AVG(COALESCE(likes,0))) AS INTEGER) AS avg_likes
+                      CAST(ROUND(AVG(MAX(COALESCE(likes,0),0))) AS INTEGER) AS avg_likes
                  FROM post_performance ${ownWhere}
                 GROUP BY hour
                 ORDER BY avg_likes DESC, posts DESC
@@ -110,8 +110,8 @@ export const Route = createFileRoute("/api/post-performance")({
             handle: r.handle,
             is_own: Number(r.is_own_account) === 1,
             caption: (r.caption ?? "").slice(0, 160),
-            likes: Number(r.likes) || 0,
-            comments: Number(r.comments) || 0,
+            likes: clamp(r.likes),
+            comments: clamp(r.comments),
             url: r.url ?? "",
             posted_at: r.posted_at ?? "",
           }));
@@ -192,6 +192,13 @@ function buildObservations(d: {
   }
 
   return out.slice(0, 5);
+}
+
+/* Some Instagram actors report -1 for a hidden like count. Treat it as 0 so a
+   future actor swap cannot inject negatives into the totals. */
+function clamp(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
 }
 
 function fmt(n: number): string {

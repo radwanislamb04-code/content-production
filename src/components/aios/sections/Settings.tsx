@@ -566,10 +566,33 @@ function TelegramFields({
   const [chatId, setChatId] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [finding, setFinding] = useState(false);
 
   useEffect(() => {
     if (snapshot?.telegram.chatId) setChatId(snapshot.telegram.chatId);
   }, [snapshot?.telegram.chatId]);
+
+  /** Ask the bot which chats messaged it, and save the id we find. */
+  const findChatId = async () => {
+    setFinding(true);
+    try {
+      const res = await fetch("/api/telegram-chat-id", { method: "POST" });
+      const json = await res.json();
+      if (!json?.ok) {
+        toast.error(json?.error ?? "Could not find the chat id");
+        return;
+      }
+      setChatId(String(json.chat_id));
+      await settings.reload();
+      toast.success(
+        `Chat id saved: ${json.chat_id}${json.name ? ` (${json.name})` : ""}`,
+      );
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not find the chat id");
+    } finally {
+      setFinding(false);
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -630,13 +653,14 @@ function TelegramFields({
         }
       />
       <div className="rounded-md border border-line bg-surface p-3 text-[12px] leading-relaxed text-mute">
-        Want the chat ID? Send any message to your bot, then open{" "}
-        <span className="text-fg2">
-          https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates
-        </span>{" "}
-        and copy <span className="text-fg2">result[0].message.chat.id</span>.
+        Save the bot token, then send your bot any message in Telegram and press{" "}
+        <span className="text-fg2">Find my chat ID</span> — it reads the bot's
+        updates and stores the id for you (no need to open getUpdates by hand).
       </div>
       <div className="flex flex-wrap justify-end gap-2 pt-1">
+        <OutlineBtn onClick={findChatId} disabled={finding || saving}>
+          {finding ? "Searching…" : "Find my chat ID"}
+        </OutlineBtn>
         <OutlineBtn onClick={sendTest} disabled={testing || !snapshot?.telegram.ready}>
           <Send size={13} /> {testing ? "Sending…" : "Send test message"}
         </OutlineBtn>

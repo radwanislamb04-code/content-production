@@ -1,18 +1,80 @@
-import { useEffect, useRef, useState } from "react";
-import { Search, Bell, X, Menu } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle2,
+  Info,
+  Menu,
+  Search,
+  X,
+} from "lucide-react";
 
 type SearchResult = { id: string; title: string; module: string; date: string };
+
+type NotificationItem = {
+  id: string;
+  ts: number;
+  module: string;
+  action: string;
+  detail: string;
+  level: "error" | "success" | "info";
+  href: string;
+};
+
+const LAST_SEEN_KEY = "contentos.notifications.lastSeen";
 
 export function TopNav({
   title,
   onMenu,
-  hasUnread = true,
 }: {
   title: string;
   onMenu?: () => void;
+  /** Deprecated: the unread badge is computed from the activity feed now. */
   hasUnread?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [unread, setUnread] = useState(0);
+  const navigate = useNavigate();
+
+  // One event source, two places: the same `activity` rows that feed Telegram
+  // delivery also feed this bell.
+  const loadNotifications = useCallback(async () => {
+    let since = 0;
+    try {
+      since = Number(localStorage.getItem(LAST_SEEN_KEY) ?? 0) || 0;
+    } catch {
+      since = 0;
+    }
+    try {
+      const res = await fetch(`/api/notifications?limit=20&since=${since}`);
+      const json = await res.json();
+      setItems(Array.isArray(json?.items) ? json.items : []);
+      setUnread(Number(json?.unread) || 0);
+    } catch {
+      /* leave the badge as-is if the feed is unreachable */
+    }
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+    const timer = setInterval(loadNotifications, 60_000);
+    return () => clearInterval(timer);
+  }, [loadNotifications]);
+
+  const toggleBell = useCallback(() => {
+    if (!bellOpen) {
+      setUnread(0);
+      try {
+        localStorage.setItem(LAST_SEEN_KEY, String(Date.now()));
+      } catch {
+        /* ignore */
+      }
+    }
+    setBellOpen(!bellOpen);
+  }, [bellOpen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -20,6 +82,7 @@ export function TopNav({
         e.preventDefault();
         setOpen(true);
       }
+      if (e.key === "Escape") setBellOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -68,16 +131,78 @@ export function TopNav({
             </button>
             <div className="relative">
               <button
+                onClick={toggleBell}
                 aria-label="Notifications"
+                aria-expanded={bellOpen}
                 className="grid h-11 w-11 place-items-center rounded-md text-fg2 transition-colors hover:bg-cardx hover:text-fg sm:h-9 sm:w-9"
               >
                 <Bell size={16} />
               </button>
-              {hasUnread && (
+              {unread > 0 && (
                 <span className="pointer-events-none absolute right-2.5 top-2.5 h-2 w-2 sm:right-1.5 sm:top-1.5">
                   <span className="absolute inset-0 rounded-full bg-lime aios-ripple" />
                   <span className="absolute inset-0 rounded-full bg-lime shadow-[0_0_6px_#52FF2E]" />
                 </span>
+              )}
+
+              {bellOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setBellOpen(false)}
+                  />
+                  <div className="absolute right-0 top-11 z-40 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-xl border border-line bg-cardx shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+                    <div className="border-b border-line px-4 py-2.5 text-[11px] uppercase tracking-wide text-mute">
+                      {items.length === 0
+                        ? "Notifications"
+                        : `${items.length} recent event(s)`}
+                    </div>
+                    <div className="max-h-[60vh] overflow-y-auto aios-scroll">
+                      {items.length === 0 ? (
+                        <p className="px-4 py-6 text-center text-sm text-mute">
+                          Nothing yet — pipeline runs and briefs show up here.
+                        </p>
+                      ) : (
+                        items.map((n) => (
+                          <button
+                            key={n.id}
+                            onClick={() => {
+                              setBellOpen(false);
+                              if (n.href) navigate({ to: n.href } as any);
+                            }}
+                            className="flex w-full items-start gap-3 border-b border-line px-4 py-3 text-left last:border-0 hover:bg-cardhi"
+                          >
+                            {n.level === "error" ? (
+                              <AlertTriangle
+                                size={14}
+                                className="mt-0.5 shrink-0 text-err"
+                              />
+                            ) : n.level === "success" ? (
+                              <CheckCircle2
+                                size={14}
+                                className="mt-0.5 shrink-0 text-lime"
+                              />
+                            ) : (
+                              <Info size={14} className="mt-0.5 shrink-0 text-mute" />
+                            )}
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm text-fg">
+                                {n.detail || n.action}
+                              </span>
+                              <span className="mt-0.5 block text-[11px] text-mute">
+                                {n.module} · {n.action} ·{" "}
+                                {new Date(n.ts).toLocaleTimeString(undefined, {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-lime bg-surface text-xs font-semibold text-fg">

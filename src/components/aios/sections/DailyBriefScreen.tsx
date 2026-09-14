@@ -1,145 +1,312 @@
-import { useState } from "react";
-import {
-  CopyButton,
-  EmptyState,
-  PrimaryBtn,
-  Skeleton,
-  Table,
-  Tabs,
-} from "../ui";
-import { ChevronRight, Sun } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, Check, Copy, Loader2, RefreshCw, Send } from "lucide-react";
+import { Card, OutlineBtn, PrimaryBtn } from "../ui";
 
-/** Section titles — edit here to change the brief structure. */
-export const BRIEF_SECTIONS = [
-  "Today's Picks",
-  "Trending Now",
-  "Competitor Watch",
-  "Newsletter Digest",
-  "Hook Ideas",
-  "Action Items",
-] as const;
+/**
+ * Daily Brief — reads the real brief from `workspace` (`brief_YYYY-MM-DD`),
+ * written by the pipeline at 08:00 and 20:00 Asia/Dhaka. Nothing on this page
+ * is a mock: if no brief exists yet, it says so and offers to build one.
+ */
 
-type PastBrief = { date: string; preview: string };
+type Brief = {
+  date: string;
+  generated_at: number;
+  markdown: string;
+  context?: {
+    trends?: { title: string; metric: string }[];
+    youtube?: { title: string; metric: string }[];
+    viral?: any[];
+    picks?: any[];
+  };
+};
 
-const PAST_BRIEFS: PastBrief[] = [];
+type BriefResponse = {
+  ok: boolean;
+  date: string;
+  today: string;
+  brief: Brief | null;
+  history: { date: string; updated_at: number }[];
+  error?: string;
+};
 
-function SectionCard({
-  index,
-  title,
-  body,
-}: {
-  index: number;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="rounded-xl border border-line bg-cardx p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[rgba(82,255,46,0.3)] bg-[rgba(82,255,46,0.1)] text-xs font-bold text-lime">
-            {index}
-          </span>
-          <h2 className="truncate text-sm font-semibold text-fg">{title}</h2>
-        </div>
-        <CopyButton value={body} label="Copy" />
-      </div>
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-fg2">
-        {body}
-      </p>
-    </div>
-  );
+const HEADINGS = [
+  "TODAY'S PICKS",
+  "TRENDING NOW",
+  "COMPETITOR WATCH",
+  "HOOK IDEAS",
+  "ACTION ITEMS",
+];
+
+/** Split the AI's plain-text brief into its named sections. */
+function parseBrief(markdown: string) {
+  const sections: { title: string; items: string[] }[] = [];
+  const intro: string[] = [];
+  let current: { title: string; items: string[] } | null = null;
+
+  for (const raw of String(markdown ?? "").split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    const bare = line.replace(/[*#:]+$/g, "").trim().toUpperCase();
+    const hit = HEADINGS.find((h) => bare === h || bare === `${h}:`);
+    if (hit) {
+      current = { title: hit, items: [] };
+      sections.push(current);
+      continue;
+    }
+    const clean = line.replace(/^[-•*]\s*/, "").trim();
+    if (current) current.items.push(clean);
+    else if (clean) intro.push(clean);
+  }
+  return { intro, sections };
+}
+
+function clock(ts: number): string {
+  try {
+    return new Date(ts).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
 }
 
 export function DailyBriefScreen() {
-  const [tab, setTab] = useState("today");
-  const [loading] = useState(false);
-  const [brief] = useState<string[] | null>(null);
+  const [tab, setTab] = useState<"today" | "history">("today");
+  const [data, setData] = useState<BriefResponse | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const dateLabel = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const load = useCallback(async (date?: string | null) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(date ? `/api/brief?date=${date}` : "/api/brief");
+      const json = (await res.json()) as BriefResponse;
+      if (!json?.ok) setError(json?.error ?? "Could not load the brief");
+      else setData(json);
+    } catch (err: any) {
+      setError(err?.message ?? "Could not load the brief");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const fullBrief = (brief ?? [])
-    .map((body, i) => `${i + 1}. ${BRIEF_SECTIONS[i]}\n${body}`)
-    .join("\n\n");
+  useEffect(() => {
+    load(null);
+  }, [load]);
+
+  const generate = useCallback(async () => {
+    setBusy("generate");
+    setError(null);
+    try {
+      const res = await fetch("/api/brief", { method: "POST" });
+      const json = await res.json();
+      if (!json?.ok) setError(json?.error ?? "Brief generation failed");
+      await load(null);
+    } catch (err: any) {
+      setError(err?.message ?? "Brief generation failed");
+    } finally {
+      setBusy(null);
+    }
+  }, [load]);
+
+  const send = useCallback(async () => {
+    setBusy("send");
+    setError(null);
+    try {
+      const res = await fetch("/api/run-pipeline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ steps: ["send"] }),
+      });
+      const json = await res.json();
+      const step = (json?.steps ?? []).find((s: any) => s.step === "send");
+      if (!step?.ok) setError(step?.detail ?? json?.error ?? "Could not send to Telegram");
+    } catch (err: any) {
+      setError(err?.message ?? "Could not send to Telegram");
+    } finally {
+      setBusy(null);
+    }
+  }, []);
+
+  const copy = useCallback(async () => {
+    const text = data?.brief?.markdown ?? "";
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setError("Could not copy — select the text manually.");
+    }
+  }, [data]);
+
+  const brief = data?.brief ?? null;
+  const parsed = brief ? parseBrief(brief.markdown) : null;
 
   return (
-    <div className="mx-auto w-full max-w-[900px] space-y-5 pb-10">
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-        <div className="min-w-0">
-          <h1 className="text-[clamp(1.25rem,5vw,1.6rem)] font-bold uppercase tracking-wide text-fg">
-            Enzorico Daily Content Brief
-          </h1>
-          <p className="mt-1 text-sm text-fg2">{dateLabel}</p>
-          <p className="text-xs text-mute">Generated 9:00 AM</p>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Daily Brief</h1>
+          <p className="mt-0.5 text-sm text-muted">
+            Built automatically at 08:00 and 20:00 (Asia/Dhaka) and sent to
+            Telegram.
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-          <CopyButton value={fullBrief} label="Copy entire brief" />
-          <PrimaryBtn>Generate now</PrimaryBtn>
+        <div className="flex items-center gap-2">
+          <OutlineBtn onClick={() => load(selected)} disabled={loading}>
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Refresh
+          </OutlineBtn>
+          <OutlineBtn onClick={copy} disabled={!brief}>
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? "Copied" : "Copy"}
+          </OutlineBtn>
+          <OutlineBtn onClick={send} disabled={!brief || busy !== null}>
+            {busy === "send" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            Send to Telegram
+          </OutlineBtn>
+          <PrimaryBtn onClick={generate} disabled={busy !== null}>
+            {busy === "generate" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : null}
+            {busy === "generate" ? "Generating…" : "Generate now"}
+          </PrimaryBtn>
         </div>
       </div>
 
-      <Tabs
-        tabs={[
-          { id: "today", label: "Today" },
-          { id: "history", label: "History" },
-        ]}
-        active={tab}
-        onChange={setTab}
-      />
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-border">
+        {(["today", "history"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm capitalize transition-colors ${
+              tab === t
+                ? "border-lime text-fg"
+                : "border-transparent text-muted hover:text-fg"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
 
-      {tab === "today" ? (
-        loading ? (
-          <div className="space-y-4">
-            {BRIEF_SECTIONS.map((t) => (
-              <div key={t} className="rounded-xl border border-line bg-cardx p-5">
-                <Skeleton width="40%" height={16} />
-                <div className="mt-4 space-y-2">
-                  <Skeleton height={12} />
-                  <Skeleton height={12} />
-                  <Skeleton width="70%" height={12} />
-                </div>
+      {error && (
+        <Card className="flex items-start gap-2 p-4">
+          <AlertTriangle className="mt-0.5 h-4 w-4 text-err" />
+          <span className="text-sm text-err">{error}</span>
+        </Card>
+      )}
+
+      {tab === "today" && (
+        <>
+          {loading && !brief ? (
+            <Card className="p-6 text-center text-sm text-muted">Loading…</Card>
+          ) : !brief ? (
+            <Card className="p-6 text-center">
+              <p className="text-sm font-medium">No brief yet</p>
+              <p className="mt-1 text-sm text-muted">
+                The next one arrives automatically at 08:00 or 20:00
+                (Asia/Dhaka) — or press <em>Generate now</em> to build it right
+                away.
+              </p>
+            </Card>
+          ) : (
+            <>
+              <Card className="px-4 py-3 text-xs text-muted">
+                {brief.date} · generated {clock(brief.generated_at)}
+              </Card>
+
+              {parsed?.intro.length ? (
+                <Card className="p-4 text-sm">{parsed.intro.join(" ")}</Card>
+              ) : null}
+
+              <div className="grid gap-3 lg:grid-cols-2">
+                {(parsed?.sections ?? []).map((s) => (
+                  <Card key={s.title} className="p-4">
+                    <div className="mb-2 text-xs uppercase tracking-wide text-muted">
+                      {s.title}
+                    </div>
+                    {s.items.length === 0 ? (
+                      <p className="text-sm text-muted">No data yet.</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {s.items.map((item, i) => (
+                          <li key={i} className="flex gap-2 text-sm">
+                            <span className="text-muted">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </Card>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : brief ? (
-          <div className="space-y-4">
-            {BRIEF_SECTIONS.map((title, i) => (
-              <SectionCard
-                key={title}
-                index={i + 1}
-                title={title}
-                body={brief[i] ?? ""}
-              />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={<Sun size={20} />}
-            title="No brief yet"
-            description="Your first brief will arrive automatically at 9:00 AM."
-            action={<PrimaryBtn>Generate now</PrimaryBtn>}
-          />
-        )
-      ) : (
-        <Table<PastBrief>
-          columns={[
-            { key: "date", header: "Date", width: 180 },
-            { key: "preview", header: "Preview" },
-            {
-              key: "open",
-              header: "",
-              width: 48,
-              align: "right",
-              render: () => <ChevronRight size={16} className="text-mute" />,
-            },
-          ]}
-          rows={PAST_BRIEFS}
-          empty={<EmptyState title="No past briefs yet." />}
-        />
+            </>
+          )}
+        </>
+      )}
+
+      {tab === "history" && (
+        <Card className="overflow-hidden">
+          {(data?.history ?? []).length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted">
+              No briefs have been generated yet.
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <tbody>
+                {(data?.history ?? []).map((h) => (
+                  <tr
+                    key={h.date}
+                    className="cursor-pointer border-b border-border last:border-0 hover:bg-cardhi"
+                    onClick={() => {
+                      setSelected(h.date);
+                      setTab("today");
+                      load(h.date);
+                    }}
+                  >
+                    <td className="px-4 py-2.5">{h.date}</td>
+                    <td className="px-4 py-2.5 text-right text-muted">
+                      {clock(h.updated_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      )}
+
+      {selected && tab === "today" && (
+        <div className="text-xs text-muted">
+          Viewing {selected}{" "}
+          <button
+            className="underline"
+            onClick={() => {
+              setSelected(null);
+              load(null);
+            }}
+          >
+            back to today
+          </button>
+        </div>
       )}
     </div>
   );

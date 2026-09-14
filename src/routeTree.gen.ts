@@ -33,11 +33,14 @@ import { Route as AppThumbnailStudioRouteImport } from './routes/_app.thumbnail-
 import { Route as AppVideoAnalyzerRouteImport } from './routes/_app.video-analyzer'
 import { Route as AppVideoPromptRouteImport } from './routes/_app.video-prompt'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
+import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
 import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
+import { Route as ApiNotificationsRouteImport } from './routes/api/notifications'
+import { Route as ApiPostPerformanceRouteImport } from './routes/api/post-performance'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiRunPipelineRouteImport } from './routes/api/run-pipeline'
@@ -46,6 +49,7 @@ import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiSettingsRouteImport } from './routes/api/settings'
 import { Route as ApiSettingsImagegenRouteImport } from './routes/api/settings-imagegen'
+import { Route as ApiTelegramChatIdRouteImport } from './routes/api/telegram-chat-id'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
 import { Route as ApiTelegramTestRouteImport } from './routes/api/telegram-test'
 import { Route as ApiThumbnailPromptRouteImport } from './routes/api/thumbnail-prompt'
@@ -177,6 +181,11 @@ const ApiActivityRoute = ApiActivityRouteImport.update({
   path: '/api/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBriefRoute = ApiBriefRouteImport.update({
+  id: '/api/brief',
+  path: '/api/brief',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCharactersRoute = ApiCharactersRouteImport.update({
   id: '/api/characters',
   path: '/api/characters',
@@ -200,6 +209,16 @@ const ApiHookScriptWriterRoute = ApiHookScriptWriterRouteImport.update({
 const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
   id: '/api/ideator-generate',
   path: '/api/ideator-generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiNotificationsRoute = ApiNotificationsRouteImport.update({
+  id: '/api/notifications',
+  path: '/api/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPostPerformanceRoute = ApiPostPerformanceRouteImport.update({
+  id: '/api/post-performance',
+  path: '/api/post-performance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiProjectsRoute = ApiProjectsRouteImport.update({
@@ -240,6 +259,11 @@ const ApiSettingsRoute = ApiSettingsRouteImport.update({
 const ApiSettingsImagegenRoute = ApiSettingsImagegenRouteImport.update({
   id: '/api/settings-imagegen',
   path: '/api/settings-imagegen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTelegramChatIdRoute = ApiTelegramChatIdRouteImport.update({
+  id: '/api/telegram-chat-id',
+  path: '/api/telegram-chat-id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
@@ -323,11 +347,14 @@ export interface FileRoutesByFullPath {
   '/video-analyzer': typeof AppVideoAnalyzerRoute
   '/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/notifications': typeof ApiNotificationsRoute
+  '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/run-pipeline': typeof ApiRunPipelineRoute
@@ -336,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/api/search': typeof ApiSearchRoute
   '/api/settings': typeof ApiSettingsRoute
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
+  '/api/telegram-chat-id': typeof ApiTelegramChatIdRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
@@ -371,11 +399,14 @@ export interface FileRoutesByTo {
   '/video-analyzer': typeof AppVideoAnalyzerRoute
   '/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/notifications': typeof ApiNotificationsRoute
+  '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/run-pipeline': typeof ApiRunPipelineRoute
@@ -384,6 +415,7 @@ export interface FileRoutesByTo {
   '/api/search': typeof ApiSearchRoute
   '/api/settings': typeof ApiSettingsRoute
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
+  '/api/telegram-chat-id': typeof ApiTelegramChatIdRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
@@ -422,11 +454,14 @@ export interface FileRoutesById {
   '/_app/video-analyzer': typeof AppVideoAnalyzerRoute
   '/_app/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/notifications': typeof ApiNotificationsRoute
+  '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/resources': typeof ApiResourcesRoute
   '/api/run-pipeline': typeof ApiRunPipelineRoute
@@ -435,6 +470,7 @@ export interface FileRoutesById {
   '/api/search': typeof ApiSearchRoute
   '/api/settings': typeof ApiSettingsRoute
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
+  '/api/telegram-chat-id': typeof ApiTelegramChatIdRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
@@ -474,11 +510,14 @@ export interface FileRouteTypes {
     | '/video-analyzer'
     | '/video-prompt'
     | '/api/activity'
+    | '/api/brief'
     | '/api/characters'
     | '/api/embed-check'
     | '/api/generate-image'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
+    | '/api/notifications'
+    | '/api/post-performance'
     | '/api/projects'
     | '/api/resources'
     | '/api/run-pipeline'
@@ -487,6 +526,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/settings'
     | '/api/settings-imagegen'
+    | '/api/telegram-chat-id'
     | '/api/telegram-cron'
     | '/api/telegram-test'
     | '/api/thumbnail-prompt'
@@ -522,11 +562,14 @@ export interface FileRouteTypes {
     | '/video-analyzer'
     | '/video-prompt'
     | '/api/activity'
+    | '/api/brief'
     | '/api/characters'
     | '/api/embed-check'
     | '/api/generate-image'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
+    | '/api/notifications'
+    | '/api/post-performance'
     | '/api/projects'
     | '/api/resources'
     | '/api/run-pipeline'
@@ -535,6 +578,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/settings'
     | '/api/settings-imagegen'
+    | '/api/telegram-chat-id'
     | '/api/telegram-cron'
     | '/api/telegram-test'
     | '/api/thumbnail-prompt'
@@ -572,11 +616,14 @@ export interface FileRouteTypes {
     | '/_app/video-analyzer'
     | '/_app/video-prompt'
     | '/api/activity'
+    | '/api/brief'
     | '/api/characters'
     | '/api/embed-check'
     | '/api/generate-image'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
+    | '/api/notifications'
+    | '/api/post-performance'
     | '/api/projects'
     | '/api/resources'
     | '/api/run-pipeline'
@@ -585,6 +632,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/api/settings'
     | '/api/settings-imagegen'
+    | '/api/telegram-chat-id'
     | '/api/telegram-cron'
     | '/api/telegram-test'
     | '/api/thumbnail-prompt'
@@ -602,11 +650,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ApiActivityRoute: typeof ApiActivityRoute
+  ApiBriefRoute: typeof ApiBriefRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
+  ApiNotificationsRoute: typeof ApiNotificationsRoute
+  ApiPostPerformanceRoute: typeof ApiPostPerformanceRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiResourcesRoute: typeof ApiResourcesRoute
   ApiRunPipelineRoute: typeof ApiRunPipelineRoute
@@ -615,6 +666,7 @@ export interface RootRouteChildren {
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSettingsRoute: typeof ApiSettingsRoute
   ApiSettingsImagegenRoute: typeof ApiSettingsImagegenRoute
+  ApiTelegramChatIdRoute: typeof ApiTelegramChatIdRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
   ApiTelegramTestRoute: typeof ApiTelegramTestRoute
   ApiThumbnailPromptRoute: typeof ApiThumbnailPromptRoute
@@ -797,6 +849,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/brief': {
+      id: '/api/brief'
+      path: '/api/brief'
+      fullPath: '/api/brief'
+      preLoaderRoute: typeof ApiBriefRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/characters': {
       id: '/api/characters'
       path: '/api/characters'
@@ -830,6 +889,20 @@ declare module '@tanstack/react-router' {
       path: '/api/ideator-generate'
       fullPath: '/api/ideator-generate'
       preLoaderRoute: typeof ApiIdeatorGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/notifications': {
+      id: '/api/notifications'
+      path: '/api/notifications'
+      fullPath: '/api/notifications'
+      preLoaderRoute: typeof ApiNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/post-performance': {
+      id: '/api/post-performance'
+      path: '/api/post-performance'
+      fullPath: '/api/post-performance'
+      preLoaderRoute: typeof ApiPostPerformanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/projects': {
@@ -886,6 +959,13 @@ declare module '@tanstack/react-router' {
       path: '/api/settings-imagegen'
       fullPath: '/api/settings-imagegen'
       preLoaderRoute: typeof ApiSettingsImagegenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/telegram-chat-id': {
+      id: '/api/telegram-chat-id'
+      path: '/api/telegram-chat-id'
+      fullPath: '/api/telegram-chat-id'
+      preLoaderRoute: typeof ApiTelegramChatIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/telegram-cron': {
@@ -1035,11 +1115,14 @@ const ApiLibraryTypeRouteWithChildren = ApiLibraryTypeRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ApiActivityRoute: ApiActivityRoute,
+  ApiBriefRoute: ApiBriefRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiEmbedCheckRoute: ApiEmbedCheckRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
+  ApiNotificationsRoute: ApiNotificationsRoute,
+  ApiPostPerformanceRoute: ApiPostPerformanceRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiResourcesRoute: ApiResourcesRoute,
   ApiRunPipelineRoute: ApiRunPipelineRoute,
@@ -1048,6 +1131,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSearchRoute: ApiSearchRoute,
   ApiSettingsRoute: ApiSettingsRoute,
   ApiSettingsImagegenRoute: ApiSettingsImagegenRoute,
+  ApiTelegramChatIdRoute: ApiTelegramChatIdRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
   ApiTelegramTestRoute: ApiTelegramTestRoute,
   ApiThumbnailPromptRoute: ApiThumbnailPromptRoute,

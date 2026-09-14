@@ -20,6 +20,9 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Database dumps — real user data, never commit (`npm run db:backup`).
+backups/
+
 # Secrets — never commit these.
 # NOTE: .dev.vars alone is NOT enough. Before this change `.env` and
 # `keys.txt` were NOT ignored, so a single stray file would have landed raw

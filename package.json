@@ -14,7 +14,7 @@
     "cf:dev": "wrangler dev",
     "db:migrate:local": "wrangler d1 migrations apply content-os-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply content-os-db --remote",
-    "db:backup": "wrangler d1 export content-os-db --remote --output=backups/content-os-db.sql"
+    "db:backup": "npx wrangler d1 export content-os-db --remote --output=backups/content-os-db.sql"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",

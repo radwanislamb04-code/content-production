@@ -47,6 +47,10 @@ export const SETTINGS_KEYS = {
   instagramHandle: "settings:instagram:handle",
   instagramCompetitors: "settings:instagram:competitors",
 
+  // Content strategy — drives the planner and the brief.
+  contentPillars: "settings:content:pillars",
+  contentPostingTimes: "settings:content:posting-times",
+
   // Image generation — already live before this module existed.
   imagegenKey: "settings:imagegen:vyceai",
   imagegenModel: "settings:imagegen:default-model",
@@ -233,6 +237,47 @@ export function anthropicMessagesUrl(baseUrl: string): string {
   if (/\/messages$/.test(base)) return base;
   if (/\/v\d+(beta)?$/i.test(base)) return `${base}/messages`;
   return `${base}/v1/messages`;
+}
+
+// ------------------------------------------------------- content strategy
+
+/** Rotated by the planner when the user has not set their own. */
+export const DEFAULT_PILLARS = ["AI tips", "productivity", "behind the scenes"];
+
+export async function readPillars(env: any): Promise<string[]> {
+  const raw = await readJsonSetting<string[]>(
+    env,
+    SETTINGS_KEYS.contentPillars,
+    [],
+  );
+  const clean = (Array.isArray(raw) ? raw : [])
+    .map((p) => String(p ?? "").trim())
+    .filter(Boolean);
+  return clean.length ? clean : DEFAULT_PILLARS;
+}
+
+/** Posting cadence in Asia/Dhaka — Reels 9 PM, Stories 12 PM, Carousels 6 PM. */
+export const DEFAULT_POSTING_TIMES = {
+  reel: "21:00",
+  story: "12:00",
+  carousel: "18:00",
+};
+
+export type PostingTimes = typeof DEFAULT_POSTING_TIMES;
+
+export async function readPostingTimes(env: any): Promise<PostingTimes> {
+  const raw = await readJsonSetting<Partial<PostingTimes>>(
+    env,
+    SETTINGS_KEYS.contentPostingTimes,
+    {},
+  );
+  const pick = (value: unknown, fallback: string) =>
+    /^\d{2}:\d{2}$/.test(String(value ?? "")) ? String(value) : fallback;
+  return {
+    reel: pick(raw?.reel, DEFAULT_POSTING_TIMES.reel),
+    story: pick(raw?.story, DEFAULT_POSTING_TIMES.story),
+    carousel: pick(raw?.carousel, DEFAULT_POSTING_TIMES.carousel),
+  };
 }
 
 /**

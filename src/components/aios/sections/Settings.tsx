@@ -48,6 +48,10 @@ type Snapshot = {
   apify: { slots: ApifySlotView[] };
   telegram: { botToken: Masked; chatId: string | null; ready: boolean };
   instagram: { handle: string | null; competitors: string[] };
+  content: {
+    pillars: string[];
+    postingTimes: { reel: string; story: string; carousel: string };
+  };
 };
 
 /* -------------------------------------------------------------- data layer */
@@ -139,9 +143,8 @@ export function Settings() {
         {tab === "Instagram" && <InstagramTab settings={settings} />}
         {tab === "Telegram" && <TelegramTab settings={settings} />}
         {tab === "Characters" && <Characters />}
-        {(tab === "Schedule" || tab === "Appearance") && (
-          <Placeholder label={tab} />
-        )}
+        {tab === "Schedule" && <ScheduleTab settings={settings} />}
+        {tab === "Appearance" && <Placeholder label="Appearance" />}
       </Card>
     </div>
   );
@@ -958,6 +961,95 @@ function SlotCard({
         <div className="mt-1 text-[11px] text-mute">
           $0.00 / ${slot.cap.toFixed(2)} — spend tracking not implemented yet
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Schedule — the content strategy the planner reads: pillars to rotate and the
+ * posting cadence (Asia/Dhaka). Both live in KV, so changing them takes effect
+ * on the next plan/brief with no redeploy.
+ */
+function ScheduleTab({
+  settings,
+}: {
+  settings: ReturnType<typeof useSettings>;
+}) {
+  const { snapshot } = settings;
+  const [pillars, setPillars] = useState("");
+  const [times, setTimes] = useState({
+    reel: "21:00",
+    story: "12:00",
+    carousel: "18:00",
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!snapshot?.content) return;
+    setPillars((snapshot.content.pillars ?? []).join(", "));
+    setTimes({
+      reel: snapshot.content.postingTimes?.reel ?? "21:00",
+      story: snapshot.content.postingTimes?.story ?? "12:00",
+      carousel: snapshot.content.postingTimes?.carousel ?? "18:00",
+    });
+  }, [snapshot?.content]);
+
+  const save = async () => {
+    setSaving(true);
+    const list = pillars
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    await settings.save({ content: { pillars: list, postingTimes: times } }, "Schedule");
+    setSaving(false);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <div className="text-sm font-medium">Content pillars</div>
+        <p className="mt-0.5 text-xs text-mute">
+          The planner rotates through these, one per post. Comma-separated.
+        </p>
+        <input
+          value={pillars}
+          onChange={(e) => setPillars(e.target.value)}
+          placeholder="AI tips, productivity, behind the scenes"
+          className="mt-2 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg"
+        />
+      </div>
+
+      <div>
+        <div className="text-sm font-medium">Posting times (Asia/Dhaka)</div>
+        <p className="mt-0.5 text-xs text-mute">
+          Used whenever the planner lays out a month.
+        </p>
+        <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              ["reel", "Reels"],
+              ["story", "Stories"],
+              ["carousel", "Carousels"],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="block">
+              <span className="text-xs text-mute">{label}</span>
+              <input
+                type="time"
+                value={times[key]}
+                onChange={(e) => setTimes({ ...times, [key]: e.target.value })}
+                className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <OutlineBtn onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save schedule"}
+        </OutlineBtn>
       </div>
     </div>
   );

@@ -7,6 +7,8 @@ import {
   mask,
   maskApifySlots,
   readJsonSetting,
+  readPillars,
+  readPostingTimes,
   readSetting,
   writeSetting,
   writeSettings,
@@ -87,13 +89,27 @@ const postSchema = z.object({
       clearBotToken: z.boolean().optional(),
     })
     .optional(),
-  instagram: z
-    .object({
-      handle: z.string().trim().max(200).optional(),
-      competitors: z.array(z.string().trim().max(200)).max(50).optional(),
-    })
-    .optional(),
-});
+   instagram: z
+     .object({
+       handle: z.string().trim().max(200).optional(),
+       competitors: z.array(z.string().trim().max(200)).max(50).optional(),
+     })
+     .optional(),
+   content: z
+     .object({
+       /** Content pillars the planner rotates through. */
+       pillars: z.array(z.string().trim().max(80)).max(12).optional(),
+       /** Posting cadence in Asia/Dhaka, "HH:MM". */
+       postingTimes: z
+         .object({
+           reel: z.string().trim().max(5).optional(),
+           story: z.string().trim().max(5).optional(),
+           carousel: z.string().trim().max(5).optional(),
+         })
+         .optional(),
+     })
+     .optional(),
+ });
 
 /* ------------------------------------------------------------------ helpers */
 
@@ -128,6 +144,8 @@ async function snapshot(env: any) {
     chatId,
     igHandle,
     igCompetitors,
+    pillars,
+    postingTimes,
   ] = await Promise.all([
     readSetting(env, SETTINGS_KEYS.aiBaseUrl),
     readSetting(env, SETTINGS_KEYS.aiKey),
@@ -141,6 +159,8 @@ async function snapshot(env: any) {
     readSetting(env, SETTINGS_KEYS.telegramChatId),
     readSetting(env, SETTINGS_KEYS.instagramHandle),
     readJsonSetting<string[]>(env, SETTINGS_KEYS.instagramCompetitors, []),
+    readPillars(env),
+    readPostingTimes(env),
   ]);
 
   return {
@@ -166,6 +186,10 @@ async function snapshot(env: any) {
     instagram: {
       handle: igHandle ?? null,
       competitors: igCompetitors,
+    },
+    content: {
+      pillars,
+      postingTimes,
     },
   };
 }
@@ -286,6 +310,40 @@ export const Route = createFileRoute("/api/settings")({
                 env,
                 SETTINGS_KEYS.instagramCompetitors,
                 JSON.stringify(cleaned),
+              );
+            }
+          }
+
+          /* --- Content strategy (pillars + posting times) --- */
+          if (body.content) {
+            if (body.content.pillars !== undefined) {
+              const cleaned = body.content.pillars
+                .map((p) => p.trim())
+                .filter(Boolean);
+              await writeSetting(
+                env,
+                SETTINGS_KEYS.contentPillars,
+                JSON.stringify(cleaned),
+              );
+            }
+            if (body.content.postingTimes !== undefined) {
+              const t = body.content.postingTimes;
+              const valid = (v?: string) =>
+                typeof v === "string" && /^\d{2}:\d{2}$/.test(v.trim())
+                  ? v.trim()
+                  : undefined;
+              const merged = {
+                ...(await readPostingTimes(env)),
+                ...Object.fromEntries(
+                  Object.entries({ reel: valid(t.reel), story: valid(t.story), carousel: valid(t.carousel) }).filter(
+                    ([, v]) => v !== undefined,
+                  ),
+                ),
+              };
+              await writeSetting(
+                env,
+                SETTINGS_KEYS.contentPostingTimes,
+                JSON.stringify(merged),
               );
             }
           }

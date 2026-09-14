@@ -37,6 +37,7 @@ import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
 import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
+import { Route as ApiGeneratePlanRouteImport } from './routes/api/generate-plan'
 import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
 import { Route as ApiNotificationsRouteImport } from './routes/api/notifications'
@@ -58,6 +59,7 @@ import { Route as ApiTrendsRouteImport } from './routes/api/trends'
 import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
 import { Route as ApiVideoGenPromptRouteImport } from './routes/api/video-gen-prompt'
 import { Route as ApiVisualStoryboardRouteImport } from './routes/api/visual-storyboard'
+import { Route as ApiWorkspaceRouteImport } from './routes/api/workspace'
 import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
 import { Route as ApiLibraryTypeIdRouteImport } from './routes/api/library.$type.$id'
@@ -201,6 +203,11 @@ const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   path: '/api/generate-image',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGeneratePlanRoute = ApiGeneratePlanRouteImport.update({
+  id: '/api/generate-plan',
+  path: '/api/generate-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHookScriptWriterRoute = ApiHookScriptWriterRouteImport.update({
   id: '/api/hook-script-writer',
   path: '/api/hook-script-writer',
@@ -306,6 +313,11 @@ const ApiVisualStoryboardRoute = ApiVisualStoryboardRouteImport.update({
   path: '/api/visual-storyboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWorkspaceRoute = ApiWorkspaceRouteImport.update({
+  id: '/api/workspace',
+  path: '/api/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
   id: '/api/library/$type',
   path: '/api/library/$type',
@@ -313,9 +325,9 @@ const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
 } as any)
 const ApiWorkspaceSelected_ideaRoute =
   ApiWorkspaceSelected_ideaRouteImport.update({
-    id: '/api/workspace/selected_idea',
-    path: '/api/workspace/selected_idea',
-    getParentRoute: () => rootRouteImport,
+    id: '/selected_idea',
+    path: '/selected_idea',
+    getParentRoute: () => ApiWorkspaceRoute,
   } as any)
 const ApiLibraryTypeIdRoute = ApiLibraryTypeIdRouteImport.update({
   id: '/$id',
@@ -351,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/generate-plan': typeof ApiGeneratePlanRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/notifications': typeof ApiNotificationsRoute
@@ -372,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
+  '/api/workspace': typeof ApiWorkspaceRouteWithChildren
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
@@ -403,6 +417,7 @@ export interface FileRoutesByTo {
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/generate-plan': typeof ApiGeneratePlanRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/notifications': typeof ApiNotificationsRoute
@@ -424,6 +439,7 @@ export interface FileRoutesByTo {
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
+  '/api/workspace': typeof ApiWorkspaceRouteWithChildren
   '/': typeof AppIndexRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -458,6 +474,7 @@ export interface FileRoutesById {
   '/api/characters': typeof ApiCharactersRoute
   '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/generate-plan': typeof ApiGeneratePlanRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
   '/api/notifications': typeof ApiNotificationsRoute
@@ -479,6 +496,7 @@ export interface FileRoutesById {
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
+  '/api/workspace': typeof ApiWorkspaceRouteWithChildren
   '/_app/': typeof AppIndexRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -514,6 +532,7 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/embed-check'
     | '/api/generate-image'
+    | '/api/generate-plan'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/notifications'
@@ -535,6 +554,7 @@ export interface FileRouteTypes {
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
+    | '/api/workspace'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
@@ -566,6 +586,7 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/embed-check'
     | '/api/generate-image'
+    | '/api/generate-plan'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/notifications'
@@ -587,6 +608,7 @@ export interface FileRouteTypes {
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
+    | '/api/workspace'
     | '/'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
@@ -620,6 +642,7 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/embed-check'
     | '/api/generate-image'
+    | '/api/generate-plan'
     | '/api/hook-script-writer'
     | '/api/ideator-generate'
     | '/api/notifications'
@@ -641,6 +664,7 @@ export interface FileRouteTypes {
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
+    | '/api/workspace'
     | '/_app/'
     | '/api/library/$type'
     | '/api/workspace/selected_idea'
@@ -654,6 +678,7 @@ export interface RootRouteChildren {
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
+  ApiGeneratePlanRoute: typeof ApiGeneratePlanRoute
   ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
   ApiNotificationsRoute: typeof ApiNotificationsRoute
@@ -675,8 +700,8 @@ export interface RootRouteChildren {
   ApiVideoAnalyzerRoute: typeof ApiVideoAnalyzerRoute
   ApiVideoGenPromptRoute: typeof ApiVideoGenPromptRoute
   ApiVisualStoryboardRoute: typeof ApiVisualStoryboardRoute
+  ApiWorkspaceRoute: typeof ApiWorkspaceRouteWithChildren
   ApiLibraryTypeRoute: typeof ApiLibraryTypeRouteWithChildren
-  ApiWorkspaceSelected_ideaRoute: typeof ApiWorkspaceSelected_ideaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -877,6 +902,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerateImageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate-plan': {
+      id: '/api/generate-plan'
+      path: '/api/generate-plan'
+      fullPath: '/api/generate-plan'
+      preLoaderRoute: typeof ApiGeneratePlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/hook-script-writer': {
       id: '/api/hook-script-writer'
       path: '/api/hook-script-writer'
@@ -1024,6 +1056,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVisualStoryboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/workspace': {
+      id: '/api/workspace'
+      path: '/api/workspace'
+      fullPath: '/api/workspace'
+      preLoaderRoute: typeof ApiWorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/library/$type': {
       id: '/api/library/$type'
       path: '/api/library/$type'
@@ -1033,10 +1072,10 @@ declare module '@tanstack/react-router' {
     }
     '/api/workspace/selected_idea': {
       id: '/api/workspace/selected_idea'
-      path: '/api/workspace/selected_idea'
+      path: '/selected_idea'
       fullPath: '/api/workspace/selected_idea'
       preLoaderRoute: typeof ApiWorkspaceSelected_ideaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ApiWorkspaceRoute
     }
     '/api/library/$type/$id': {
       id: '/api/library/$type/$id'
@@ -1100,6 +1139,18 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiWorkspaceRouteChildren {
+  ApiWorkspaceSelected_ideaRoute: typeof ApiWorkspaceSelected_ideaRoute
+}
+
+const ApiWorkspaceRouteChildren: ApiWorkspaceRouteChildren = {
+  ApiWorkspaceSelected_ideaRoute: ApiWorkspaceSelected_ideaRoute,
+}
+
+const ApiWorkspaceRouteWithChildren = ApiWorkspaceRoute._addFileChildren(
+  ApiWorkspaceRouteChildren,
+)
+
 interface ApiLibraryTypeRouteChildren {
   ApiLibraryTypeIdRoute: typeof ApiLibraryTypeIdRoute
 }
@@ -1119,6 +1170,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCharactersRoute: ApiCharactersRoute,
   ApiEmbedCheckRoute: ApiEmbedCheckRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
+  ApiGeneratePlanRoute: ApiGeneratePlanRoute,
   ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
   ApiNotificationsRoute: ApiNotificationsRoute,
@@ -1140,8 +1192,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVideoAnalyzerRoute: ApiVideoAnalyzerRoute,
   ApiVideoGenPromptRoute: ApiVideoGenPromptRoute,
   ApiVisualStoryboardRoute: ApiVisualStoryboardRoute,
+  ApiWorkspaceRoute: ApiWorkspaceRouteWithChildren,
   ApiLibraryTypeRoute: ApiLibraryTypeRouteWithChildren,
-  ApiWorkspaceSelected_ideaRoute: ApiWorkspaceSelected_ideaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

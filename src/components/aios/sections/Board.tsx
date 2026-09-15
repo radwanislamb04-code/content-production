@@ -33,6 +33,9 @@ type CardRow = {
   dueDate: string | null;
   checklist: { text: string; done: boolean }[];
   position: number;
+  comments: { id: string; body: string; createdAt: number }[];
+  links: { id: string; libraryId: string; title: string; type: string }[];
+  attachments: { id: string; name: string; size: number; type: string | null }[];
 };
 
 type ListRow = {
@@ -59,7 +62,7 @@ export function BoardScreen() {
   const [addingList, setAddingList] = useState(false);
   const [newList, setNewList] = useState("");
   const [draft, setDraft] = useState<Record<string, string>>({});
-  const [open, setOpen] = useState<CardRow | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const apply = useCallback((res: any) => {
     if (res?.ok) {
@@ -137,6 +140,11 @@ export function BoardScreen() {
       position: (target.cards[target.cards.length - 1]?.position ?? 0) + 500,
     });
   };
+
+  const openCard =
+    (data?.lists ?? [])
+      .flatMap((l) => l.cards)
+      .find((c) => c.id === openId) ?? null;
 
   if (loading) {
     return (
@@ -287,10 +295,10 @@ export function BoardScreen() {
                         ev.preventDefault();
                         void moveByKeyboard(c, list, -1);
                       } else if (ev.key === "Enter") {
-                        setOpen(c);
+                        setOpenId(c.id);
                       }
                     }}
-                    onClick={() => setOpen(c)}
+                    onClick={() => setOpenId(c.id)}
                     className={`cursor-grab rounded-lg border bg-cardx p-2.5 transition hover:border-lime active:cursor-grabbing ${
                       overCardId === c.id ? "border-lime ring-1 ring-lime" : "border-line"
                     } ${dragging?.card.id === c.id ? "opacity-40" : ""}`}
@@ -382,22 +390,30 @@ export function BoardScreen() {
       </div>
 
       <CardDetail
-        card={open}
+        card={openCard}
         labels={data?.labels ?? []}
-        onClose={() => setOpen(null)}
+        onClose={() => setOpenId(null)}
+        act={act}
+        reload={load}
         onSave={async (patch) => {
-          if (!open) return;
-          await act({ action: "update_card", cardId: open.id, ...patch });
-          setOpen(null);
+          if (!openCard) return;
+          await act({ action: "update_card", cardId: openCard.id, ...patch });
+          setOpenId(null);
         }}
         onDelete={async () => {
-          if (!open) return;
-          await act({ action: "delete_card", cardId: open.id });
-          setOpen(null);
+          if (!openCard) return;
+          await act({ action: "delete_card", cardId: openCard.id });
+          setOpenId(null);
         }}
       />
     </div>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function CardDetail({
@@ -406,13 +422,53 @@ function CardDetail({
   onClose,
   onSave,
   onDelete,
+  act,
+  reload,
 }: {
   card: CardRow | null;
   labels: string[];
   onClose: () => void;
   onSave: (patch: Record<string, unknown>) => Promise<void>;
   onDelete: () => Promise<void>;
+  act: (payload: Record<string, unknown>) => Promise<void>;
+  reload: () => Promise<void>;
 }) {
+  const [comment, setComment] = useState("");
+  const [linking, setLinking] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<
+    { id: string; type: string; title: string }[]
+  >([]);
+  const [uploading, setUploading] = useState(false);
+
+  // The picker searches the user's own library (the search route already returns
+  // the latest items when the query is empty).
+  useEffect(() => {
+    if (!linking) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      fetch(`/api/search${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`)
+        .then((r) => r.json())
+        .then((rows: any) => {
+          if (cancelled) return;
+          setResults(
+            Array.isArray(rows)
+              ? rows
+                  .filter((r) => r.id && r.title)
+                  .map((r) => ({ id: r.id, type: r.type ?? "", title: r.title }))
+                  .slice(0, 12)
+              : [],
+          );
+        })
+        .catch(() => {
+          /* the picker simply stays empty */
+        });
+    }, 220);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [linking, query]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
@@ -535,6 +591,179 @@ function CardDetail({
             className="mt-2 h-8 w-full rounded-md border border-line bg-surface px-2 text-[13px] text-fg outline-none placeholder:text-mute focus:border-lime"
           />
         </div>
+      </div>
+
+      {/* ---- linked Content OS items ---- */}
+      <div className="mt-3">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-xs text-mute">Linked content</span>
+          <button
+            onClick={() => setLinking((v) => !v)}
+            className="text-[11px] text-lime hover:underline"
+          >
+            {linking ? "Close" : "Link content"}
+          </button>
+        </div>
+        {card.links.length === 0 && !linking && (
+          <div className="text-[11px] text-mute">
+            Not linked to an idea, script or storyboard yet.
+          </div>
+        )}
+        <div className="flex flex-wrap gap-1.5">
+          {card.links.map((l) => (
+            <span
+              key={l.id}
+              className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[11px] text-fg2"
+            >
+              <span className="max-w-[200px] truncate">{l.title}</span>
+              {l.type && <span className="text-mute">· {l.type}</span>}
+              <button
+                aria-label={`Unlink ${l.title}`}
+                onClick={() => void act({ action: "unlink_item", linkId: l.id })}
+                className="text-mute hover:text-err"
+              >
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
+        {linking && (
+          <div className="mt-2 rounded-md border border-line bg-surface p-2">
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search your library…"
+              className="h-8 w-full rounded-md border border-line bg-cardx px-2 text-[13px] text-fg outline-none placeholder:text-mute focus:border-lime"
+            />
+            <div className="mt-1 max-h-[150px] overflow-auto">
+              {results.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    void act({ action: "link_item", cardId: card.id, libraryId: r.id });
+                    setLinking(false);
+                    setQuery("");
+                  }}
+                  className="flex w-full items-center gap-2 rounded px-1.5 py-1.5 text-left hover:bg-cardhi"
+                >
+                  <span className="min-w-0 flex-1 truncate text-[12px] text-fg">
+                    {r.title}
+                  </span>
+                  <span className="shrink-0 text-[10px] text-mute">{r.type}</span>
+                </button>
+              ))}
+              {!results.length && (
+                <div className="px-1.5 py-2 text-[11px] text-mute">
+                  {query.trim() ? "Nothing matched." : "Your latest items appear here."}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ---- attachments (R2) ---- */}
+      <div className="mt-3">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-xs text-mute">Attachments</span>
+          <label className="cursor-pointer text-[11px] text-lime hover:underline">
+            {uploading ? "Uploading…" : "Add file"}
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*,application/pdf,text/*,video/mp4"
+              onChange={async (ev) => {
+                const file = ev.target.files?.[0];
+                ev.target.value = "";
+                if (!file) return;
+                setUploading(true);
+                try {
+                  const fd = new FormData();
+                  fd.append("cardId", card.id);
+                  fd.append("file", file);
+                  const res = await fetch("/api/board-attach", { method: "POST", body: fd });
+                  const json = await res.json().catch(() => null);
+                  if (!res.ok || !json?.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
+                  await reload();
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Upload failed");
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
+          </label>
+        </div>
+        {card.attachments.length === 0 ? (
+          <div className="text-[11px] text-mute">
+            Images, PDF, video or text — up to 5 MB each.
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {card.attachments.map((f) => (
+              <div key={f.id} className="flex items-center gap-2 text-[12px]">
+                <a
+                  href={`/api/board-attach?id=${encodeURIComponent(f.id)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="min-w-0 flex-1 truncate text-lime hover:underline"
+                >
+                  {f.name}
+                </a>
+                <span className="shrink-0 text-[10px] text-mute">
+                  {formatBytes(f.size)}
+                </span>
+                <button
+                  aria-label={`Remove ${f.name}`}
+                  onClick={() => void act({ action: "delete_attachment", attachmentId: f.id })}
+                  className="text-mute hover:text-err"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ---- comments ---- */}
+      <div className="mt-3">
+        <div className="mb-1 text-xs text-mute">
+          Comments {card.comments.length > 0 && `(${card.comments.length})`}
+        </div>
+        {card.comments.length > 0 && (
+          <div className="mb-2 space-y-1.5">
+            {card.comments.map((c) => (
+              <div key={c.id} className="flex items-start gap-2 rounded-md border border-line bg-surface p-2">
+                <span className="min-w-0 flex-1 whitespace-pre-wrap text-[12px] text-fg">
+                  {c.body}
+                </span>
+                <span className="shrink-0 text-[10px] text-mute">
+                  {new Date(c.createdAt).toLocaleDateString()}
+                </span>
+                <button
+                  aria-label="Delete comment"
+                  onClick={() => void act({ action: "delete_comment", commentId: c.id })}
+                  className="shrink-0 text-mute hover:text-err"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <input
+          value={comment}
+          placeholder="Write a note — Enter to save"
+          onChange={(e) => setComment(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" || !comment.trim()) return;
+            void act({ action: "add_comment", cardId: card.id, body: comment.trim() });
+            setComment("");
+          }}
+          className="h-8 w-full rounded-md border border-line bg-surface px-2 text-[13px] text-fg outline-none placeholder:text-mute focus:border-lime"
+        />
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2">

@@ -37,6 +37,7 @@ import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiApifyUsageRouteImport } from './routes/api/apify-usage'
 import { Route as ApiAppearanceRouteImport } from './routes/api/appearance'
 import { Route as ApiBoardRouteImport } from './routes/api/board'
+import { Route as ApiBoardAttachRouteImport } from './routes/api/board-attach'
 import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
 import { Route as ApiFrameCheckRouteImport } from './routes/api/frame-check'
@@ -213,6 +214,11 @@ const ApiAppearanceRoute = ApiAppearanceRouteImport.update({
 const ApiBoardRoute = ApiBoardRouteImport.update({
   id: '/api/board',
   path: '/api/board',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBoardAttachRoute = ApiBoardAttachRouteImport.update({
+  id: '/api/board-attach',
+  path: '/api/board-attach',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBriefRoute = ApiBriefRouteImport.update({
@@ -435,6 +441,7 @@ export interface FileRoutesByFullPath {
   '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
   '/api/board': typeof ApiBoardRoute
+  '/api/board-attach': typeof ApiBoardAttachRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/frame-check': typeof ApiFrameCheckRoute
@@ -501,6 +508,7 @@ export interface FileRoutesByTo {
   '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
   '/api/board': typeof ApiBoardRoute
+  '/api/board-attach': typeof ApiBoardAttachRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/frame-check': typeof ApiFrameCheckRoute
@@ -570,6 +578,7 @@ export interface FileRoutesById {
   '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
   '/api/board': typeof ApiBoardRoute
+  '/api/board-attach': typeof ApiBoardAttachRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/frame-check': typeof ApiFrameCheckRoute
@@ -640,6 +649,7 @@ export interface FileRouteTypes {
     | '/api/apify-usage'
     | '/api/appearance'
     | '/api/board'
+    | '/api/board-attach'
     | '/api/brief'
     | '/api/characters'
     | '/api/frame-check'
@@ -706,6 +716,7 @@ export interface FileRouteTypes {
     | '/api/apify-usage'
     | '/api/appearance'
     | '/api/board'
+    | '/api/board-attach'
     | '/api/brief'
     | '/api/characters'
     | '/api/frame-check'
@@ -774,6 +785,7 @@ export interface FileRouteTypes {
     | '/api/apify-usage'
     | '/api/appearance'
     | '/api/board'
+    | '/api/board-attach'
     | '/api/brief'
     | '/api/characters'
     | '/api/frame-check'
@@ -821,6 +833,7 @@ export interface RootRouteChildren {
   ApiApifyUsageRoute: typeof ApiApifyUsageRoute
   ApiAppearanceRoute: typeof ApiAppearanceRoute
   ApiBoardRoute: typeof ApiBoardRoute
+  ApiBoardAttachRoute: typeof ApiBoardAttachRoute
   ApiBriefRoute: typeof ApiBriefRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiFrameCheckRoute: typeof ApiFrameCheckRoute
@@ -1054,6 +1067,13 @@ declare module '@tanstack/react-router' {
       path: '/api/board'
       fullPath: '/api/board'
       preLoaderRoute: typeof ApiBoardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/board-attach': {
+      id: '/api/board-attach'
+      path: '/api/board-attach'
+      fullPath: '/api/board-attach'
+      preLoaderRoute: typeof ApiBoardAttachRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/brief': {
@@ -1421,6 +1441,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiApifyUsageRoute: ApiApifyUsageRoute,
   ApiAppearanceRoute: ApiAppearanceRoute,
   ApiBoardRoute: ApiBoardRoute,
+  ApiBoardAttachRoute: ApiBoardAttachRoute,
   ApiBriefRoute: ApiBriefRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiFrameCheckRoute: ApiFrameCheckRoute,

@@ -18,9 +18,23 @@
  * simulator can prove that behaviour without waiting a week.
  */
 
-import { dhakaDate } from "./telegram-hook";
+import { createTask, dhakaDate } from "./telegram-hook";
 
-export const WINDOW_MS = 7 * 86_400_000;
+/**
+ * Meta's three clocks — they are NOT interchangeable:
+ *
+ *   a public reply to a comment  : no limit at all
+ *   a private reply to a comment : once per COMMENT, within 7 days of the comment
+ *   an automated direct message  : 24 hours from the person's last message
+ *   a human writing by hand      : 7 days (the Human Agent tag; automation may not)
+ *
+ * A comment made four months after a post still arrives as a comment event, so it
+ * still gets its reply — the clock that matters runs from the COMMENT, not the
+ * post. That is why an automation here never "expires".
+ */
+export const DM_WINDOW_MS = 24 * 3_600_000;
+export const COMMENT_REPLY_WINDOW_MS = 7 * 86_400_000;
+export const HUMAN_WINDOW_MS = 7 * 86_400_000;
 
 export type Automation = {
   id: string;
@@ -68,6 +82,11 @@ export type EngineInput = {
   /** A comment on a post, or a DM. */
   kind: "comment" | "dm";
   postId?: string | null;
+  /**
+   * The comment's own id. Meta keys the "one private reply per comment" rule by
+   * it, so without it a comment can only be answered through the conversation.
+   */
+  commentId?: string | null;
   contact: {
     ig_user_id: string;
     username?: string | null;
@@ -86,6 +105,10 @@ export type EngineResult = {
   keyword: string | null;
   publicReply: string | null;
   dm: string | null;
+  /** How the DM went out — a private reply is not the same permission as a DM. */
+  dmVia: "private_reply" | "conversation" | null;
+  /** True when the DM was impossible and a hand-written reply is now waiting. */
+  handoff: boolean;
   contactId: string | null;
   conversationId: string | null;
   withinWindow: boolean;
@@ -453,6 +476,54 @@ async function addMessage(
   }
 }
 
+/* ------------------------------------------------- the one-per-comment rule */
+
+/** Has this exact comment already had its private reply? (Meta keys it by comment.) */
+export async function hasCommentReply(env: any, commentId: string): Promise<boolean> {
+  try {
+    const row = await env.DB.prepare(
+      "SELECT comment_id FROM dm_comment_replies WHERE comment_id = ?",
+    )
+      .bind(commentId)
+      .first();
+    return !!row;
+  } catch {
+    // If the table is missing we must not block real replies; the engine treats a
+    // lookup failure as "not answered yet" and the INSERT below is the real guard.
+    return false;
+  }
+}
+
+export async function recordCommentReply(
+  env: any,
+  userId: string,
+  entry: {
+    commentId: string;
+    automationId?: string | null;
+    contactId?: string | null;
+    conversationId?: string | null;
+  },
+): Promise<void> {
+  try {
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO dm_comment_replies
+         (comment_id, user_id, automation_id, contact_id, conversation_id, via, replied_at)
+       VALUES (?, ?, ?, ?, ?, 'private_reply', ?)`,
+    )
+      .bind(
+        entry.commentId,
+        userId,
+        entry.automationId ?? null,
+        entry.contactId ?? null,
+        entry.conversationId ?? null,
+        Date.now(),
+      )
+      .run();
+  } catch {
+    /* see above — the send already happened; this is the bookkeeping */
+  }
+}
+
 /* ------------------------------------------------------------------ engine */
 
 /**
@@ -474,6 +545,8 @@ export async function runEngine(
     keyword: null,
     publicReply: null,
     dm: null,
+    dmVia: null,
+    handoff: false,
     contactId: null,
     conversationId: null,
     withinWindow: true,
@@ -577,20 +650,23 @@ export async function runEngine(
   }
   result.conversationId = conversationId;
 
+  // The conversational clock: 24 hours from their last message. The comment's own
+  // clock (once per comment, 7 days) is evaluated separately below, because the message
+  // goes out under a *different permission* depending on what triggered it.
   const effectiveLastInbound =
     input.assumeStaleDays !== undefined && input.assumeStaleDays !== null
       ? now - input.assumeStaleDays * 86_400_000
       : previousInbound;
 
   const withinWindow =
-    effectiveLastInbound === null || now - effectiveLastInbound <= WINDOW_MS;
+    effectiveLastInbound === null || now - effectiveLastInbound <= DM_WINDOW_MS;
   result.withinWindow = withinWindow;
   result.windowNote =
     effectiveLastInbound === null
-      ? "First contact — inside the window."
+      ? "First contact — the conversation is open."
       : withinWindow
-        ? `Inside the window (last wrote ${Math.round((now - effectiveLastInbound) / 3_600_000)}h ago).`
-        : `Outside the window (last wrote ${Math.round((now - effectiveLastInbound) / 86_400_000)} days ago) — Meta would refuse a DM.`;
+        ? `Conversation open (they last wrote ${Math.round((now - effectiveLastInbound) / 3_600_000)}h ago; the window is 24h).`
+        : `Conversation closed (they last wrote ${Math.round((now - effectiveLastInbound) / 86_400_000)} days ago) — an automated DM is not allowed. A private reply to a fresh comment still would be.`;
 
   steps.push({
     kind: "window",
@@ -676,37 +752,51 @@ export async function runEngine(
       }
     }
 
-    if (!withinWindow) {
-      result.dm = null;
+    // Which permission are we sending under? Meta has three separate clocks and
+    // using the wrong one means a rejected message, so the trace says which.
+    const commentId = input.commentId ? String(input.commentId) : null;
+    const commentAgeDays = input.assumeStaleDays ?? 0;
+    let via: "private_reply" | "conversation" | null = null;
+    let blocked = "";
+
+    if (input.kind === "comment") {
+      if (!commentId) {
+        blocked = "No comment id was recorded, so a private reply cannot be addressed.";
+      } else if (commentAgeDays * 86_400_000 > COMMENT_REPLY_WINDOW_MS) {
+        blocked = `That comment is ${commentAgeDays} days old — Meta only allows a private reply within 7 days of the comment.`;
+      } else if (await hasCommentReply(env, commentId)) {
+        blocked =
+          "This comment was already answered privately — Meta allows one private reply per comment.";
+      } else {
+        via = "private_reply";
+      }
+    }
+
+    // Falling back to the open conversation is legitimate — but only while it is
+    // open (24h). A human could still reply for 7 days; automation may not.
+    if (!via && withinWindow && previousInbound !== null) {
+      via = "conversation";
+      blocked = "";
+    } else if (!via && !blocked) {
+      blocked = "The 24-hour conversation window has closed.";
+    }
+
+    if (via && cap > 0 && sentToday >= cap) {
+      blocked = `Daily cap reached (${sentToday}/${cap} sent today).`;
+      via = null;
+    }
+
+    if (via) {
       steps.push({
-        kind: "dm_skipped",
-        label: "DM skipped",
-        detail: "Outside the 7-day window — they must message you first.",
-        ok: false,
+        kind: "dm_permission",
+        label: via === "private_reply" ? "Private reply allowed" : "Conversation open",
+        detail:
+          via === "private_reply"
+            ? "One private reply per comment, and this comment has not had one."
+            : "They wrote to you inside the last 24 hours, so a DM is allowed.",
+        ok: true,
       });
-      await addEvent(env, userId, {
-        automation_id: automation.id,
-        contact_id: contact?.id ?? null,
-        conversation_id: conversationId,
-        kind: "window_expired",
-        detail: result.windowNote,
-      });
-    } else if (cap > 0 && sentToday >= cap) {
-      result.dm = null;
-      steps.push({
-        kind: "dm_skipped",
-        label: "DM skipped",
-        detail: `Daily cap reached (${sentToday}/${cap} sent today).`,
-        ok: false,
-      });
-      await addEvent(env, userId, {
-        automation_id: automation.id,
-        contact_id: contact?.id ?? null,
-        conversation_id: conversationId,
-        kind: "cap_reached",
-        detail: `${sentToday}/${cap}`,
-      });
-    } else {
+
       let text = render(automation.dm_message, vars);
       if (automation.dm_button_label) {
         text += `\n\n👉 ${automation.dm_button_label}${
@@ -723,14 +813,28 @@ export async function runEngine(
         matched_keyword: keyword,
         status,
       });
+      if (via === "private_reply" && commentId) {
+        await recordCommentReply(env, userId, {
+          commentId,
+          automationId: automation.id,
+          contactId: contact?.id ?? null,
+          conversationId,
+        });
+      }
       result.dm = text;
-      steps.push({ kind: "dm_sent", label: "Private DM", detail: text, ok: true });
+      result.dmVia = via;
+      steps.push({
+        kind: "dm_sent",
+        label: via === "private_reply" ? "Private reply sent" : "DM sent",
+        detail: text,
+        ok: true,
+      });
       await addEvent(env, userId, {
         automation_id: automation.id,
         contact_id: contact?.id ?? null,
         conversation_id: conversationId,
         kind: "dm_sent",
-        detail: text.slice(0, 200),
+        detail: `${via}: ${text.slice(0, 160)}`,
       });
 
       if (automation.goal && contact?.id) {
@@ -760,6 +864,45 @@ export async function runEngine(
           /* a lead row is a bonus */
         }
       }
+    } else {
+      // Nothing automated can be sent — so do the one thing that still works and
+      // that every other tool leaves to you: hand it to a human, with a deadline.
+      result.handoff = true;
+      // The Inbox shows this conversation as waiting on a human — and the
+      // Analytics "handed to you" number is this status, not a guess.
+      if (conversationId) {
+        try {
+          await db
+            .prepare(
+              "UPDATE dm_conversations SET status = 'handoff', updated_at = ? WHERE id = ? AND user_id = ?",
+            )
+            .bind(now, conversationId, userId)
+            .run();
+        } catch {
+          /* the task below is the important part */
+        }
+      }
+      steps.push({ kind: "dm_skipped", label: "No DM sent", detail: blocked, ok: false });
+      await addEvent(env, userId, {
+        automation_id: automation.id,
+        contact_id: contact?.id ?? null,
+        conversation_id: conversationId,
+        kind: cap > 0 && sentToday >= cap ? "cap_reached" : "window_expired",
+        detail: blocked,
+      });
+
+      const task = await createTask(env, userId, {
+        text: `Reply to ${who} by hand — ${automation.name} could not DM them (${blocked})`,
+        source: "dm",
+        ref_key: `dmhandoff:${conversationId ?? contact?.id ?? automation.id}`,
+      });
+      steps.push({
+        kind: "handoff",
+        label: task.created ? "Hand-off task created" : "Hand-off task already waiting",
+        detail:
+          "It is in your Dashboard task queue. Inside 7 days of their message Meta lets a human reply — automation never may.",
+        ok: true,
+      });
     }
   }
 

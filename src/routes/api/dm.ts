@@ -53,8 +53,14 @@ const simulateSchema = z.object({
   username: z.string().trim().max(60).optional(),
   first_name: z.string().trim().max(60).optional(),
   post_id: z.string().trim().max(120).optional(),
-  /** Lets the same simulated person be reused, so the 7-day window can be tested. */
+  /** Lets the same simulated person be reused, so the windows can be tested. */
   ig_user_id: z.string().trim().max(60).optional(),
+  /**
+   * The comment id. Meta allows ONE private reply per comment, so the simulator
+   * derives a stable id from the text when none is given — run the same
+   * simulation twice and the second run proves the rule holds.
+   */
+  comment_id: z.string().trim().max(120).optional(),
   assume_stale_days: z.number().int().min(0).max(60).optional(),
 });
 
@@ -154,10 +160,17 @@ export const Route = createFileRoute("/api/dm")({
           }
           const data = parsed.data;
           const seeded = data.ig_user_id ?? null;
+          const derivedCommentId =
+            data.comment_id ??
+            `simc_${(data.username ?? "tester").toLowerCase().replace(/[^a-z0-9_.]/g, "")}_${data.text
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .slice(0, 40)}`;
           const result = await runEngine(env, userId, {
             text: data.text,
             kind: data.kind,
             postId: data.post_id ?? null,
+            commentId: data.kind === "comment" ? derivedCommentId : null,
             simulated: true,
             assumeStaleDays: data.assume_stale_days,
             contact: {

@@ -64,6 +64,12 @@ export const SETTINGS_KEYS = {
   instagramHandle: "settings:instagram:handle",
   instagramCompetitors: "settings:instagram:competitors",
 
+  // Meta app credentials for "Connect Instagram" (M1). App-level: one app serves
+  // every connected account, so these are read as the owner, never per user.
+  instagramAppId: "settings:instagram:app-id",
+  instagramAppSecret: "settings:instagram:app-secret",
+  instagramVerifyToken: "settings:instagram:verify-token",
+
   // Content strategy — drives the planner and the brief.
   contentPillars: "settings:content:pillars",
   contentPostingTimes: "settings:content:posting-times",

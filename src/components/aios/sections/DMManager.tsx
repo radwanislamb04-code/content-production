@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { Badge, Card, EmptyState, OutlineBtn, PrimaryBtn } from "../ui";
+import { ConnectionsCard } from "./ConnectionsCard";
 import {
   AlertTriangle,
   BarChart2,
@@ -60,6 +61,8 @@ type SimResult = {
   keyword: string | null;
   publicReply: string | null;
   dm: string | null;
+  dmVia: "private_reply" | "conversation" | null;
+  handoff: boolean;
   contactId: string | null;
   conversationId: string | null;
   withinWindow: boolean;
@@ -150,10 +153,13 @@ function when(ts?: number | null): string {
   return `${Math.round(s / 86400)}d ago`;
 }
 
-/** Days left in the 7-day window — the number that decides if a DM can be sent. */
-function windowDaysLeft(lastInboundAt?: number | null): number | null {
+/**
+ * Hours left of the 24-hour conversation window — the number that decides whether
+ * an automated DM is still allowed to an existing thread.
+ */
+function windowHoursLeft(lastInboundAt?: number | null): number | null {
   if (!lastInboundAt) return null;
-  const left = 7 - (Date.now() - lastInboundAt) / 86_400_000;
+  const left = 24 - (Date.now() - lastInboundAt) / 3_600_000;
   return Math.max(0, Math.round(left * 10) / 10);
 }
 
@@ -342,24 +348,16 @@ export function DMManager() {
             inbox they fill.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <OutlineBtn onClick={load} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </OutlineBtn>
-            <OutlineBtn
-              disabled
-              title="Stage 2 — needs a Meta app with instagram_manage_messages approved. The engine is already running; only the trigger is missing."
-            >
-              Connect Instagram (stage 2)
-            </OutlineBtn>
-          </div>
-          <span className="text-[11px] text-mute">
-            Stage 1 — Instagram is not connected yet. “Simulate” runs the real engine.
-          </span>
-        </div>
+        <OutlineBtn onClick={load} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </OutlineBtn>
       </div>
+
+      {/* Connect the account that the automations answer for. Until one is
+          connected, Simulate is how the engine is exercised — and it is the same
+          engine either way. */}
+      <ConnectionsCard />
 
       <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (
@@ -723,9 +721,24 @@ function Simulator({ automations }: { automations: Automation[] }) {
         <div className="text-sm font-semibold text-fg">Simulate a comment</div>
         <p className="text-[12px] text-mute">
           This runs the same engine a real Instagram event will run in stage 2 — the
-          rule, the public reply, the DM, the 7-day window and the daily cap are all
-          real. What it writes shows up in the Inbox, Contacts and Analytics.
+          rule, the public reply, the DM and the daily cap are all real. What it
+          writes shows up in the Inbox, Contacts and Analytics.
         </p>
+        <ul className="space-y-1 text-[11px] text-mute">
+          <li>
+            • <span className="text-fg2">public reply</span> — always allowed.
+          </li>
+          <li>
+            • <span className="text-fg2">private reply</span> — one per comment, inside 7
+            days of that comment. Send the same simulation twice: the second run is
+            refused, because it is the same comment.
+          </li>
+          <li>
+            • <span className="text-fg2">automated DM</span> — only while their own
+            message is under 24 hours old. When neither applies the bot stops and puts
+            a hand-written reply in your task queue (a human has 7 days).
+          </li>
+        </ul>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="What they wrote">
@@ -754,8 +767,8 @@ function Simulator({ automations }: { automations: Automation[] }) {
         </div>
 
         <Field
-          label="Pretend their last message was N days ago (0 = now)"
-          hint="Set 8 and the DM is refused — that is Meta's 7-day window, not a setting."
+          label="Pretend the comment / last message was N days ago (0 = now)"
+          hint="8 blocks the private reply (Meta allows it only inside 7 days of the comment); 2 also closes the 24-hour conversation. Neither is a setting of ours."
         >
           <input
             type="number"
@@ -790,8 +803,14 @@ function Simulator({ automations }: { automations: Automation[] }) {
                 {result.matched ? "matched" : "no match"}
               </Badge>
               {result.keyword && <Badge tone="info">keyword: {result.keyword}</Badge>}
+              {result.dm && (
+                <Badge tone="success">
+                  {result.dmVia === "private_reply" ? "private reply" : "DM (open window)"}
+                </Badge>
+              )}
+              {result.handoff && <Badge tone="warning">waiting for you</Badge>}
               <Badge tone={result.withinWindow ? "neutral" : "danger"}>
-                {result.withinWindow ? "inside window" : "outside window"}
+                {result.withinWindow ? "24h window open" : "24h window closed"}
               </Badge>
             </div>
 
@@ -888,7 +907,7 @@ function InboxView() {
         ) : (
           <div className="space-y-1">
             {conversations.map((c) => {
-              const left = windowDaysLeft(c.last_inbound_at);
+              const left = windowHoursLeft(c.last_inbound_at);
               return (
                 <button
                   key={c.id}
@@ -910,10 +929,12 @@ function InboxView() {
                   <div className="truncate text-[11px] text-mute">{c.last_text ?? "—"}</div>
                   <div className="mt-1 flex items-center gap-1">
                     {c.status !== "open" && <Badge tone="warning">{c.status}</Badge>}
-                    {left !== null && left <= 1 && (
+                    {left !== null && left <= 6 && (
                       <span className="text-[10px] text-warn">
                         <Clock size={9} className="mr-0.5 inline" />
-                        window closes in {left}d
+                        {left > 0
+                          ? `24h window closes in ${left}h`
+                          : "24h window closed — a human can still reply for 7 days"}
                       </span>
                     )}
                   </div>

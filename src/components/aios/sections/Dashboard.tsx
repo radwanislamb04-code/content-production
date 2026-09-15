@@ -517,7 +517,7 @@ function TelegramTasks() {
         <input
           value={draft}
           maxLength={300}
-          placeholder="Add a task — the bot will send it at 08:00 / 20:00"
+          placeholder="Add a task…"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") void addTask();
@@ -540,11 +540,13 @@ function TelegramTasks() {
           automatic run.
         </div>
       ) : (
-        <div className="mt-3 space-y-2">
+        // Scrolls instead of growing: the queue can hold any number of tasks and
+        // the Dashboard column belongs to the whole page, not to this list.
+        <div className="aios-scroll mt-3 max-h-[300px] space-y-1.5 overflow-y-auto pr-1">
           {tasks.map((t) => (
             <div
               key={t.id}
-              className="flex items-start gap-2 rounded-md border border-line bg-surface p-2.5 text-sm"
+              className="flex items-start gap-2 rounded-md border border-line bg-surface p-2 text-[13px]"
             >
               <button
                 type="button"
@@ -560,13 +562,21 @@ function TelegramTasks() {
                 {t.done ? <Check size={12} /> : null}
               </button>
 
+              {/* Two lines, then ellipsis. A long task title used to push the
+                  card down half a screen. */}
               <span
-                className={`min-w-0 flex-1 ${t.done ? "text-mute line-through" : "text-fg"}`}
+                className={`min-w-0 flex-1 leading-snug ${t.done ? "text-mute line-through" : "text-fg"}`}
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
               >
                 {t.text}
               </span>
 
-              {t.time && <span className="shrink-0 text-xs text-mute">{t.time}</span>}
+              {t.time && <span className="shrink-0 text-[11px] text-mute">{t.time}</span>}
 
               {t.routed_to ? (
                 <span

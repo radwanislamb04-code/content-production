@@ -194,7 +194,26 @@ export function BoardScreen() {
         </Card>
       )}
 
-      <div className="flex items-start gap-4 overflow-x-auto pb-4">
+      <div
+        // A file dropped anywhere on the board must never navigate the browser to
+        // it; if it missed a card we say where to drop instead.
+        onDragOver={(ev) => {
+          if (!hasFiles(ev.dataTransfer)) return;
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = "copy";
+        }}
+        onDrop={(ev) => {
+          if (!hasFiles(ev.dataTransfer)) return;
+          ev.preventDefault();
+          if (!ev.defaultPrevented || ev.dataTransfer.files?.length) {
+            // Where the drop landed is not a card (cards call stopPropagation).
+            if (ev.defaultPrevented && !(ev.target as HTMLElement).closest?.("[data-card]")) {
+              toast("Drop the file straight onto a card to attach it");
+            }
+          }
+        }}
+        className="flex items-start gap-4 overflow-x-auto pb-4"
+      >
         {(data?.lists ?? []).map((list, li) => (
           <div
             key={list.id}
@@ -202,12 +221,22 @@ export function BoardScreen() {
               overList === list.id && !overCardId ? "border-lime" : "border-line"
             }`}
             onDragOver={(ev) => {
+              if (hasFiles(ev.dataTransfer)) {
+                ev.preventDefault();
+                ev.dataTransfer.dropEffect = "copy";
+                return;
+              }
               if (!dragging) return;
               ev.preventDefault();
               ev.dataTransfer.dropEffect = "move";
               setOverList(list.id);
             }}
             onDrop={(ev) => {
+              if (hasFiles(ev.dataTransfer)) {
+                ev.preventDefault();
+                toast("Drop the file straight onto a card to attach it");
+                return;
+              }
               if (!dragging) return;
               ev.preventDefault();
               void drop(list, list.cards.length);
@@ -291,7 +320,7 @@ export function BoardScreen() {
                     }}
                     onDragOver={(ev) => {
                       // A file dragged in from the desktop is an upload, not a card move.
-                      if (ev.dataTransfer.types.includes("Files")) {
+                      if (hasFiles(ev.dataTransfer)) {
                         ev.preventDefault();
                         ev.dataTransfer.dropEffect = "copy";
                         return;
@@ -303,7 +332,7 @@ export function BoardScreen() {
                       setOverCardId(c.id);
                     }}
                     onDrop={(ev) => {
-                      if (ev.dataTransfer.types.includes("Files")) {
+                      if (hasFiles(ev.dataTransfer)) {
                         ev.preventDefault();
                         const file = ev.dataTransfer.files?.[0];
                         if (file) void uploadFile(c.id, file);
@@ -326,6 +355,7 @@ export function BoardScreen() {
                         setOpenId(c.id);
                       }
                     }}
+                    data-card="1"
                     onClick={() => setOpenId(c.id)}
                     className={`cursor-grab rounded-lg border bg-cardx p-2.5 transition hover:border-lime active:cursor-grabbing ${
                       overCardId === c.id ? "border-lime ring-1 ring-lime" : "border-line"
@@ -436,6 +466,33 @@ export function BoardScreen() {
       />
     </div>
   );
+}
+
+/**
+ * Is this drag carrying files from the desktop?
+ *
+ * `dataTransfer.types` is a DOMStringList in some browsers, where `.includes` does
+ * not exist — and a handler that throws never reaches preventDefault, so the browser
+ * navigates to the dropped file instead of uploading it. Wrapped so it can only
+ * ever answer yes or no.
+ */
+function hasFiles(dt: DataTransfer | null): boolean {
+  if (!dt) return false;
+  try {
+    if (Array.from(dt.types as unknown as string[]).includes("Files")) return true;
+  } catch {
+    /* fall through to the items check */
+  }
+  try {
+    if (dt.items) {
+      for (const item of Array.from(dt.items)) {
+        if (item.kind === "file") return true;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
 }
 
 function formatBytes(bytes: number): string {
@@ -717,14 +774,14 @@ function CardDetail({
           dropping ? "border-lime bg-lime/5" : "border-line"
         }`}
         onDragOver={(ev) => {
-          if (!ev.dataTransfer.types.includes("Files")) return;
+          if (!hasFiles(ev.dataTransfer)) return;
           ev.preventDefault();
           ev.dataTransfer.dropEffect = "copy";
           setDropping(true);
         }}
         onDragLeave={() => setDropping(false)}
         onDrop={(ev) => {
-          if (!ev.dataTransfer.types.includes("Files")) return;
+          if (!hasFiles(ev.dataTransfer)) return;
           ev.preventDefault();
           setDropping(false);
           const file = ev.dataTransfer.files?.[0];

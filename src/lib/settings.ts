@@ -24,6 +24,23 @@
  * inline a string literal in a route, or the Settings UI and the consumer will
  * silently disagree (that is exactly how the Telegram keys drifted apart).
  */
+import { OWNER_ID } from "./owner";
+
+/**
+ * Where one user's setting lives in KV.
+ *
+ * The owner's eleven keys predate multi-user and stay unprefixed, so nothing can
+ * be lost in the move; every other user gets their own namespace. Resolving the
+ * key through this one function keeps the rule in a single place.
+ */
+export function settingsKey(userId: string, key: string): string {
+  // NOTE: SETTINGS_KEYS values already carry the `settings:` prefix (e.g.
+  // "settings:ai:key"), so the owner's key must be used exactly as written —
+  // prefixing it again produced `settings:settings:ai:key` and every key
+  // silently stopped resolving.
+  return userId === OWNER_ID ? key : `user:${userId}:${key}`;
+}
+
 export const SETTINGS_KEYS = {
   // AI Brain — Anthropic-compatible endpoint used by every AI route.
   aiBaseUrl: "settings:ai:base-url",
@@ -140,18 +157,22 @@ export async function readSetting(
   env: any,
   key: SettingKey | string,
   envVarName?: string,
+  userId: string = OWNER_ID,
 ): Promise<string | null> {
   const kv = getKv(env);
   if (kv) {
     try {
-      const value = await kv.get(key);
+      const value = await kv.get(settingsKey(userId, key));
       if (typeof value === "string" && value.trim() !== "") return value.trim();
     } catch {
       /* fall through to env */
     }
   }
 
-  const name = envVarName ?? SETTINGS_ENV_VARS[key];
+  // Environment variables are the maintainer's own credentials, so they are only
+  // ever handed to the owner — a second user must bring their own key.
+  const name =
+    userId === OWNER_ID ? (envVarName ?? SETTINGS_ENV_VARS[key]) : undefined;
   if (name) {
     const fromEnv = env?.[name];
     if (typeof fromEnv === "string" && fromEnv.trim() !== "") {
@@ -167,8 +188,9 @@ export async function readJsonSetting<T>(
   env: any,
   key: SettingKey | string,
   fallback: T,
+  userId: string = OWNER_ID,
 ): Promise<T> {
-  const raw = await readSetting(env, key);
+  const raw = await readSetting(env, key, undefined, userId);
   if (!raw) return fallback;
   try {
     return JSON.parse(raw) as T;
@@ -183,12 +205,14 @@ export async function readJsonSetting<T>(
  */
 export async function readTelegramConfig(
   env: any,
+  userId: string = OWNER_ID,
 ): Promise<{ botToken: string | null; chatId: string | null }> {
   const kv = getKv(env);
   const read = async (primary: string, legacy: string) => {
-    const value = await readSetting(env, primary);
+    const value = await readSetting(env, primary, undefined, userId);
     if (value) return value;
-    if (kv) {
+    // The legacy key belongs to the owner; another user must not inherit it.
+    if (kv && userId === OWNER_ID) {
       try {
         const old = await kv.get(legacy);
         if (typeof old === "string" && old.trim() !== "") return old.trim();
@@ -213,10 +237,11 @@ export async function readTelegramConfig(
 /** The AI endpoint every AI route talks to, plus whether it is configured. */
 export async function readAiConfig(
   env: any,
+  userId: string = OWNER_ID,
 ): Promise<{ baseUrl: string | null; apiKey: string | null }> {
   const [baseUrl, apiKey] = await Promise.all([
-    readSetting(env, SETTINGS_KEYS.aiBaseUrl),
-    readSetting(env, SETTINGS_KEYS.aiKey),
+    readSetting(env, SETTINGS_KEYS.aiBaseUrl, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.aiKey, undefined, userId),
   ]);
   return { baseUrl, apiKey };
 }
@@ -244,11 +269,15 @@ export function anthropicMessagesUrl(baseUrl: string): string {
 /** Rotated by the planner when the user has not set their own. */
 export const DEFAULT_PILLARS = ["AI tips", "productivity", "behind the scenes"];
 
-export async function readPillars(env: any): Promise<string[]> {
+export async function readPillars(
+  env: any,
+  userId: string = OWNER_ID,
+): Promise<string[]> {
   const raw = await readJsonSetting<string[]>(
     env,
     SETTINGS_KEYS.contentPillars,
     [],
+    userId,
   );
   const clean = (Array.isArray(raw) ? raw : [])
     .map((p) => String(p ?? "").trim())
@@ -265,11 +294,15 @@ export const DEFAULT_POSTING_TIMES = {
 
 export type PostingTimes = typeof DEFAULT_POSTING_TIMES;
 
-export async function readPostingTimes(env: any): Promise<PostingTimes> {
+export async function readPostingTimes(
+  env: any,
+  userId: string = OWNER_ID,
+): Promise<PostingTimes> {
   const raw = await readJsonSetting<Partial<PostingTimes>>(
     env,
     SETTINGS_KEYS.contentPostingTimes,
     {},
+    userId,
   );
   const pick = (value: unknown, fallback: string) =>
     /^\d{2}:\d{2}$/.test(String(value ?? "")) ? String(value) : fallback;
@@ -288,17 +321,25 @@ export async function readPostingTimes(env: any): Promise<PostingTimes> {
 export async function readApifyToken(
   env: any,
   job?: string,
+  userId: string = OWNER_ID,
 ): Promise<string | null> {
   const stored = await readJsonSetting<ApifySlot[]>(
     env,
     SETTINGS_KEYS.apifySlots,
     [],
+    userId,
   );
   const usable = stored.filter((s) => typeof s?.token === "string" && s.token.trim());
   const forJob = job ? usable.find((s) => s.job === job) : undefined;
   const chosen = forJob ?? usable[0];
   if (chosen) return chosen.token.trim();
-  return readSetting(env, SETTINGS_KEYS.apifySlots);
+  // Maintainer's env token — owner only, like every other env fallback. (This
+  // used to return the raw JSON of the slots, which could never be a valid token.)
+  const fromEnv = env?.APIFY_API_TOKEN;
+  if (userId === OWNER_ID && typeof fromEnv === "string" && fromEnv.trim()) {
+    return fromEnv.trim();
+  }
+  return null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -310,23 +351,26 @@ export async function writeSetting(
   env: any,
   key: SettingKey | string,
   value: string | null | undefined,
+  userId: string = OWNER_ID,
 ): Promise<void> {
   const kv = getKv(env);
   if (!kv) throw new Error("KV namespace is not bound.");
+  const namespaced = settingsKey(userId, key);
   if (value === null || value === undefined || value.trim() === "") {
-    await kv.delete(key);
+    await kv.delete(namespaced);
     return;
   }
-  await kv.put(key, value.trim());
+  await kv.put(namespaced, value.trim());
 }
 
 /** Bulk write, used by the POST handler. */
 export async function writeSettings(
   env: any,
   entries: Record<string, string | null | undefined>,
+  userId: string = OWNER_ID,
 ): Promise<void> {
   for (const [key, value] of Object.entries(entries)) {
-    await writeSetting(env, key, value);
+    await writeSetting(env, key, value, userId);
   }
 }
 

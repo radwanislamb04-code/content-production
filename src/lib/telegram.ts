@@ -1,3 +1,4 @@
+import { OWNER_ID } from "./owner";
 import { readTelegramConfig } from "./settings";
 
 /**
@@ -25,8 +26,9 @@ export async function sendTelegram(
   env: any,
   text: string,
   opts: { disableNotification?: boolean } = {},
+  userId: string = OWNER_ID,
 ): Promise<TelegramResult> {
-  const { botToken, chatId } = await readTelegramConfig(env);
+  const { botToken, chatId } = await readTelegramConfig(env, userId);
   if (!botToken || !chatId) {
     return {
       ok: false,

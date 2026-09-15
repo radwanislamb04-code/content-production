@@ -43,6 +43,7 @@ import { Route as ApiGeneratePlanRouteImport } from './routes/api/generate-plan'
 import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
 import { Route as ApiHooksRouteImport } from './routes/api/hooks'
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
+import { Route as ApiMeRouteImport } from './routes/api/me'
 import { Route as ApiNotificationsRouteImport } from './routes/api/notifications'
 import { Route as ApiPillarsRouteImport } from './routes/api/pillars'
 import { Route as ApiPostPerformanceRouteImport } from './routes/api/post-performance'
@@ -241,6 +242,11 @@ const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
   path: '/api/ideator-generate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeRoute = ApiMeRouteImport.update({
+  id: '/api/me',
+  path: '/api/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiNotificationsRoute = ApiNotificationsRouteImport.update({
   id: '/api/notifications',
   path: '/api/notifications',
@@ -417,6 +423,7 @@ export interface FileRoutesByFullPath {
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/me': typeof ApiMeRoute
   '/api/notifications': typeof ApiNotificationsRoute
   '/api/pillars': typeof ApiPillarsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
@@ -479,6 +486,7 @@ export interface FileRoutesByTo {
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/me': typeof ApiMeRoute
   '/api/notifications': typeof ApiNotificationsRoute
   '/api/pillars': typeof ApiPillarsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
@@ -544,6 +552,7 @@ export interface FileRoutesById {
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/me': typeof ApiMeRoute
   '/api/notifications': typeof ApiNotificationsRoute
   '/api/pillars': typeof ApiPillarsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
@@ -610,6 +619,7 @@ export interface FileRouteTypes {
     | '/api/hook-script-writer'
     | '/api/hooks'
     | '/api/ideator-generate'
+    | '/api/me'
     | '/api/notifications'
     | '/api/pillars'
     | '/api/post-performance'
@@ -672,6 +682,7 @@ export interface FileRouteTypes {
     | '/api/hook-script-writer'
     | '/api/hooks'
     | '/api/ideator-generate'
+    | '/api/me'
     | '/api/notifications'
     | '/api/pillars'
     | '/api/post-performance'
@@ -736,6 +747,7 @@ export interface FileRouteTypes {
     | '/api/hook-script-writer'
     | '/api/hooks'
     | '/api/ideator-generate'
+    | '/api/me'
     | '/api/notifications'
     | '/api/pillars'
     | '/api/post-performance'
@@ -780,6 +792,7 @@ export interface RootRouteChildren {
   ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
   ApiHooksRoute: typeof ApiHooksRoute
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
+  ApiMeRoute: typeof ApiMeRoute
   ApiNotificationsRoute: typeof ApiNotificationsRoute
   ApiPillarsRoute: typeof ApiPillarsRoute
   ApiPostPerformanceRoute: typeof ApiPostPerformanceRoute
@@ -1045,6 +1058,13 @@ declare module '@tanstack/react-router' {
       path: '/api/ideator-generate'
       fullPath: '/api/ideator-generate'
       preLoaderRoute: typeof ApiIdeatorGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me': {
+      id: '/api/me'
+      path: '/api/me'
+      fullPath: '/api/me'
+      preLoaderRoute: typeof ApiMeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/notifications': {
@@ -1347,6 +1367,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,
   ApiHooksRoute: ApiHooksRoute,
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
+  ApiMeRoute: ApiMeRoute,
   ApiNotificationsRoute: ApiNotificationsRoute,
   ApiPillarsRoute: ApiPillarsRoute,
   ApiPostPerformanceRoute: ApiPostPerformanceRoute,

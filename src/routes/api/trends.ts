@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readSetting, SETTINGS_KEYS } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
@@ -12,8 +13,8 @@ export const Route = createFileRoute("/api/trends")({
       GET: async ({ request, context }) => {
         const env = getEnv(request, context);
         const kv = env?.KV;
-        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi);
-        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube);
+        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi, await currentUserId(request, context));
+        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube, await currentUserId(request, context));
 
         const url = new URL(request.url);
         const platform = url.searchParams.get("platform") ?? "google";

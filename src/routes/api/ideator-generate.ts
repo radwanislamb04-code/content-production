@@ -1,4 +1,4 @@
-import { OWNER_ID } from "../../lib/users";
+import { OWNER_ID, currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
@@ -114,7 +114,7 @@ export const Route = createFileRoute("/api/ideator-generate")({
     handlers: {
       POST: async ({ request, context }) => {
         const env = getEnv(request, context);
-        const { apiKey, baseUrl } = await readAiConfig(env);
+        const { apiKey, baseUrl } = await readAiConfig(env, await currentUserId(request, context));
         const db = env?.DB;
 
         if (!apiKey || !baseUrl) {

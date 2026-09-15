@@ -1,3 +1,4 @@
+import { OWNER_ID } from "./owner";
 import { anthropicMessagesUrl, readAiConfig } from "./settings";
 
 /**
@@ -13,6 +14,8 @@ export type AiOptions = {
   model?: string;
   /** Ask the model for JSON; the caller still parses defensively. */
   system?: string;
+  /** Whose AI keys to spend — the owner unless a signed-in user asked. */
+  userId?: string;
 };
 
 /** Returns the model's text. Throws with a readable message on failure. */
@@ -21,7 +24,7 @@ export async function callAi(
   prompt: string,
   opts: AiOptions = {},
 ): Promise<string> {
-  const { baseUrl, apiKey } = await readAiConfig(env);
+  const { baseUrl, apiKey } = await readAiConfig(env, opts.userId ?? OWNER_ID);
   if (!apiKey || !baseUrl) {
     throw new Error(
       "AI Brain is not configured — add the base URL and API key in Settings → API Keys.",

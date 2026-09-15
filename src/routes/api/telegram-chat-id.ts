@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   getEnv,
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/api/telegram-chat-id")({
     handlers: {
       POST: async ({ request, context }) => {
         const env = getEnv(request, context);
-        const { botToken } = await readTelegramConfig(env);
+        const { botToken } = await readTelegramConfig(env, await currentUserId(request, context));
 
         if (!botToken) {
           return Response.json(
@@ -87,7 +88,7 @@ export const Route = createFileRoute("/api/telegram-chat-id")({
         const entries = [...chats.entries()];
         const [chatId, info] = entries.find(([, c]) => c.type === "private") ?? entries[0];
 
-        await writeSetting(env, SETTINGS_KEYS.telegramChatId, String(chatId));
+        await writeSetting(env, SETTINGS_KEYS.telegramChatId, String(chatId), await currentUserId(request, context));
 
         return Response.json({
           ok: true,

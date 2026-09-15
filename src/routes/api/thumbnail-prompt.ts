@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { putWorkspaceFor } from "../../lib/workspace";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
@@ -56,7 +57,8 @@ export const Route = createFileRoute("/api/thumbnail-prompt")({
 
         let text: string;
         try {
-          text = await callAi(env, prompt, { maxTokens: 900 });
+          text = await callAi(env, prompt, {
+            userId: await currentUserId(request, context), maxTokens: 900 });
         } catch (err: any) {
           return Response.json(
             { ok: false, error: err?.message ?? String(err) },

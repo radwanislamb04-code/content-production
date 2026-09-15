@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { logActivityFor } from "../../lib/activity";
 import { getWorkspaceFor, putWorkspaceFor } from "../../lib/workspace";
 import { createFileRoute } from "@tanstack/react-router";
@@ -55,8 +56,8 @@ export const Route = createFileRoute("/api/generate-plan")({
         const { month, notes } = parsed.data;
 
         const [pillars, times] = await Promise.all([
-          readPillars(env),
-          readPostingTimes(env),
+          readPillars(env, await currentUserId(request, context)),
+          readPostingTimes(env, await currentUserId(request, context)),
         ]);
 
         const prompt = buildPrompt({ month, pillars, times, notes });
@@ -73,7 +74,10 @@ export const Route = createFileRoute("/api/generate-plan")({
               attempt === 1
                 ? prompt
                 : `${prompt}\n\nIMPORTANT: reply with the JSON object only — no prose, no code fences.`,
-              { maxTokens: 2400 },
+              {
+                maxTokens: 2400,
+                userId: await currentUserId(request, context),
+              },
             );
           } catch (err: any) {
             return Response.json(

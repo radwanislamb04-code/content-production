@@ -1,4 +1,4 @@
-import { OWNER_ID } from "../../lib/users";
+import { OWNER_ID, currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv, readTelegramConfig } from "../../lib/settings";
 
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/api/telegram-test")({
     handlers: {
       POST: async ({ request, context }) => {
         const env = getEnv(request, context);
-        const { botToken, chatId } = await readTelegramConfig(env);
+        const { botToken, chatId } = await readTelegramConfig(env, await currentUserId(request, context));
 
         if (!botToken || !chatId) {
           return Response.json(

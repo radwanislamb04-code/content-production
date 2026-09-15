@@ -1,4 +1,4 @@
-import { OWNER_ID } from "../../lib/users";
+import { OWNER_ID, currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { readTelegramConfig } from "../../lib/settings";
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/api/telegram-cron")({
       let botToken: string;
       let chatId: string;
       try {
-        const cfg = await readTelegramConfig(env);
+        const cfg = await readTelegramConfig(env, await currentUserId(request, context));
         botToken = cfg.botToken ?? "";
         chatId = cfg.chatId ?? "";
       } catch {

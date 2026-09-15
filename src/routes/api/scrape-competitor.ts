@@ -1,4 +1,4 @@
-import { OWNER_ID } from "../../lib/users";
+import { OWNER_ID, currentUserId } from "../../lib/users";
 ﻿import { createFileRoute } from "@tanstack/react-router";
 
 import { logActivity } from "../../lib/activity";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         const kv = env?.KV;
         // Apify token comes from Settings → Apify slots (job: "Instagram
         // competitor"), falling back to the APIFY_API_TOKEN env var.
-        const apifyApiToken = await readApifyToken(env, "Instagram competitor");
+        const apifyApiToken = await readApifyToken(env, "Instagram competitor", await currentUserId(request, context));
 
         // Refuse to run on a token whose monthly allowance is spent. Apify is
         // authoritative; failing loudly is cheaper than a surprise charge.

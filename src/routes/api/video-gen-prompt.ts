@@ -232,7 +232,7 @@ export const Route = createFileRoute("/api/video-gen-prompt")({
     handlers: {
       POST: async ({ request, context }) => {
         const env = getEnv(request, context);
-        const { apiKey, baseUrl } = await readAiConfig(env);
+        const { apiKey, baseUrl } = await readAiConfig(env, await currentUserId(request, context));
         const db = env?.DB;
 
         if (!apiKey || !baseUrl) {

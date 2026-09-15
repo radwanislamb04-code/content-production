@@ -83,7 +83,10 @@ export const Route = createFileRoute("/api/score-content")({
               attempt === 1
                 ? prompt
                 : `${prompt}\n\nIMPORTANT: reply with the JSON object only — no prose, no code fences.`,
-              { maxTokens: 1200 },
+              {
+                maxTokens: 1200,
+                userId: await currentUserId(request, context),
+              },
             );
           } catch (err: any) {
             return Response.json(

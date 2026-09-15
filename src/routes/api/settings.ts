@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import {
@@ -130,7 +131,7 @@ function mergeApifySlots(
 }
 
 /** The full masked snapshot returned by both GET and POST. */
-async function snapshot(env: any) {
+async function snapshot(env: any, userId: string) {
   const [
     aiBaseUrl,
     aiKey,
@@ -147,20 +148,20 @@ async function snapshot(env: any) {
     pillars,
     postingTimes,
   ] = await Promise.all([
-    readSetting(env, SETTINGS_KEYS.aiBaseUrl),
-    readSetting(env, SETTINGS_KEYS.aiKey),
-    readSetting(env, SETTINGS_KEYS.youtube),
-    readSetting(env, SETTINGS_KEYS.serpapi),
-    readSetting(env, SETTINGS_KEYS.redditId),
-    readSetting(env, SETTINGS_KEYS.redditSecret),
-    readSetting(env, SETTINGS_KEYS.producthunt),
+    readSetting(env, SETTINGS_KEYS.aiBaseUrl, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.aiKey, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.youtube, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.serpapi, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.redditId, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.redditSecret, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.producthunt, undefined, userId),
     readJsonSetting<ApifySlot[]>(env, SETTINGS_KEYS.apifySlots, []),
-    readSetting(env, SETTINGS_KEYS.telegramBotToken),
-    readSetting(env, SETTINGS_KEYS.telegramChatId),
-    readSetting(env, SETTINGS_KEYS.instagramHandle),
+    readSetting(env, SETTINGS_KEYS.telegramBotToken, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.telegramChatId, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.instagramHandle, undefined, userId),
     readJsonSetting<string[]>(env, SETTINGS_KEYS.instagramCompetitors, []),
-    readPillars(env),
-    readPostingTimes(env),
+    readPillars(env, userId),
+    readPostingTimes(env, userId),
   ]);
 
   return {
@@ -201,17 +202,19 @@ export const Route = createFileRoute("/api/settings")({
     handlers: {
       GET: async ({ request, context }) => {
         const env = getEnv(request, context);
+        const uid = await currentUserId(request, context);
         if (!getKv(env)) {
           return Response.json(
             { ok: false, error: "KV namespace is not bound." },
             { status: 500 },
           );
         }
-        return Response.json({ ok: true, ...(await snapshot(env)) });
+        return Response.json({ ok: true, ...(await snapshot(env, uid)) });
       },
 
       POST: async ({ request, context }) => {
         const env = getEnv(request, context);
+        const uid = await currentUserId(request, context);
         if (!getKv(env)) {
           return Response.json(
             { ok: false, error: "KV namespace is not bound." },
@@ -242,7 +245,7 @@ export const Route = createFileRoute("/api/settings")({
             } else if (body.ai.apiKey !== undefined && body.ai.apiKey !== "") {
               entries[SETTINGS_KEYS.aiKey] = body.ai.apiKey;
             }
-            await writeSettings(env, entries);
+            await writeSettings(env, entries, uid);
           }
 
           /* --- Data sources --- */
@@ -257,7 +260,7 @@ export const Route = createFileRoute("/api/settings")({
             for (const key of body.data.clear ?? []) {
               entries[DATA_KEY_TO_SETTING[key]] = null;
             }
-            await writeSettings(env, entries);
+            await writeSettings(env, entries, uid);
           }
 
           /* --- Apify slots --- */
@@ -266,13 +269,14 @@ export const Route = createFileRoute("/api/settings")({
               env,
               SETTINGS_KEYS.apifySlots,
               [],
+              uid,
             );
             const merged = mergeApifySlots(body.apify.slots, stored);
             await writeSetting(
               env,
               SETTINGS_KEYS.apifySlots,
               JSON.stringify(merged),
-            );
+             uid);
           }
 
           /* --- Telegram --- */
@@ -290,7 +294,7 @@ export const Route = createFileRoute("/api/settings")({
               entries[SETTINGS_KEYS.telegramChatId] =
                 body.telegram.chatId === "" ? null : body.telegram.chatId;
             }
-            await writeSettings(env, entries);
+            await writeSettings(env, entries, uid);
           }
 
           /* --- Instagram --- */
@@ -300,7 +304,7 @@ export const Route = createFileRoute("/api/settings")({
                 env,
                 SETTINGS_KEYS.instagramHandle,
                 body.instagram.handle,
-              );
+               uid);
             }
             if (body.instagram.competitors !== undefined) {
               const cleaned = body.instagram.competitors
@@ -310,7 +314,7 @@ export const Route = createFileRoute("/api/settings")({
                 env,
                 SETTINGS_KEYS.instagramCompetitors,
                 JSON.stringify(cleaned),
-              );
+               uid);
             }
           }
 
@@ -324,7 +328,7 @@ export const Route = createFileRoute("/api/settings")({
                 env,
                 SETTINGS_KEYS.contentPillars,
                 JSON.stringify(cleaned),
-              );
+               uid);
             }
             if (body.content.postingTimes !== undefined) {
               const t = body.content.postingTimes;
@@ -333,7 +337,7 @@ export const Route = createFileRoute("/api/settings")({
                   ? v.trim()
                   : undefined;
               const merged = {
-                ...(await readPostingTimes(env)),
+                ...(await readPostingTimes(env, uid)),
                 ...Object.fromEntries(
                   Object.entries({ reel: valid(t.reel), story: valid(t.story), carousel: valid(t.carousel) }).filter(
                     ([, v]) => v !== undefined,
@@ -344,7 +348,7 @@ export const Route = createFileRoute("/api/settings")({
                 env,
                 SETTINGS_KEYS.contentPostingTimes,
                 JSON.stringify(merged),
-              );
+               uid);
             }
           }
         } catch (err: any) {
@@ -354,7 +358,7 @@ export const Route = createFileRoute("/api/settings")({
           );
         }
 
-        return Response.json({ ok: true, ...(await snapshot(env)) });
+        return Response.json({ ok: true, ...(await snapshot(env, uid)) });
       },
     },
   },

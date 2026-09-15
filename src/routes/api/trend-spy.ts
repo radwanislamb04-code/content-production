@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { fetchYouTubeTrends, fetchGoogleTrends } from "./trends";
 import {
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/api/trend-spy")({
     handlers: {
       POST: async ({ request, context }) => {
         const env = getEnv(request, context);
-        const { apiKey, baseUrl } = await readAiConfig(env);
+        const { apiKey, baseUrl } = await readAiConfig(env, await currentUserId(request, context));
         const kv = env?.KV;
 
         if (!apiKey || !baseUrl) {
@@ -68,8 +69,8 @@ export const Route = createFileRoute("/api/trend-spy")({
         // --- Fetch raw trend data by calling trends.ts logic directly ---
         // Pass category through so YouTube uses search.list (q=category) instead of chart=mostPopular
         let rawTrends: TrendItem[] = [];
-        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube);
-        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi);
+        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube, await currentUserId(request, context));
+        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi, await currentUserId(request, context));
 
         try {
           const youtubeResults = await fetchYouTubeTrends(youtubeApiKey, category);

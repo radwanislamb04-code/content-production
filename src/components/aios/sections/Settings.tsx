@@ -26,6 +26,25 @@ const JOBS = [
 
 type Masked = { configured: boolean; last4: string | null };
 
+/** Live credit per Apify token, from /api/apify-usage. */
+type ApifyUsageRow = {
+  id: string;
+  label: string;
+  job: string;
+  tokenSuffix: string;
+  cap: number | null;
+  state: "ok" | "warn" | "blocked" | "no-token" | "error";
+  account: string | null;
+  plan: string | null;
+  allowanceUsd: number | null;
+  spentUsd: number | null;
+  remainingUsd: number | null;
+  usedPercent: number | null;
+  cycle: { startAt?: string | null; endAt?: string | null } | null;
+  subLimits: { label: string; used: number; limit: number; unit: string }[];
+  error?: string;
+};
+
 type ApifySlotView = {
   id: number;
   label: string;
@@ -174,6 +193,29 @@ function ApiKeys({ settings }: { settings: ReturnType<typeof useSettings> }) {
   // Apify
   const [slots, setSlots] = useState<ApifySlotView[]>([]);
   const [savingApify, setSavingApify] = useState(false);
+
+  // Remaining credit per token — read straight from Apify (cached 10 min server
+  // side), so a token can be swapped before it runs dry rather than after.
+  const [apifyUsage, setApifyUsage] = useState<ApifyUsageRow[]>([]);
+  const [apifyUsageLoading, setApifyUsageLoading] = useState(false);
+
+  const loadApifyUsage = async (fresh = false) => {
+    setApifyUsageLoading(true);
+    try {
+      const res = await fetch(`/api/apify-usage${fresh ? "?fresh=1" : ""}`);
+      const json = await res.json();
+      if (json?.ok) setApifyUsage(json.slots ?? []);
+    } catch {
+      /* keep whatever we showed before */
+    } finally {
+      setApifyUsageLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadApifyUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Image generation (its own route, pre-existing behaviour)
   const IG_ALLOWED_MODELS = [
@@ -432,6 +474,7 @@ function ApiKeys({ settings }: { settings: ReturnType<typeof useSettings> }) {
             <SlotCard
               key={slot.id}
               slot={slot}
+              usage={apifyUsage.find((u) => u.id === String(slot.id))}
               onChange={(next) =>
                 setSlots((prev) => prev.map((s, j) => (j === i ? next : s)))
               }
@@ -443,9 +486,18 @@ function ApiKeys({ settings }: { settings: ReturnType<typeof useSettings> }) {
           <OutlineBtn onClick={addSlot}>
             <Plus size={14} /> Add slot
           </OutlineBtn>
-          <OutlineBtn onClick={saveApify} disabled={savingApify}>
-            {savingApify ? "Saving…" : "Save Apify slots"}
-          </OutlineBtn>
+          <div className="flex items-center gap-2">
+            <OutlineBtn
+              onClick={() => void loadApifyUsage(true)}
+              disabled={apifyUsageLoading}
+            >
+              <RefreshCw size={14} />
+              {apifyUsageLoading ? "Checking credit…" : "Refresh credit"}
+            </OutlineBtn>
+            <OutlineBtn onClick={saveApify} disabled={savingApify}>
+              {savingApify ? "Saving…" : "Save Apify slots"}
+            </OutlineBtn>
+          </div>
         </div>
       </FieldGroup>
 
@@ -874,10 +926,12 @@ function SecretRow({
 
 function SlotCard({
   slot,
+  usage,
   onChange,
   onRemove,
 }: {
   slot: ApifySlotView;
+  usage?: ApifyUsageRow;
   onChange: (next: ApifySlotView) => void;
   onRemove: () => void;
 }) {
@@ -958,10 +1012,65 @@ function SlotCard({
         </div>
       </div>
       <div className="mt-3">
-        <Progress value={0} />
-        <div className="mt-1 text-[11px] text-mute">
-          $0.00 / ${slot.cap.toFixed(2)} — spend tracking not implemented yet
-        </div>
+        {!usage || usage.state === "no-token" ? (
+          <div className="text-[11px] text-mute">
+            Save a token to see how much credit is left on it.
+          </div>
+        ) : usage.state === "error" ? (
+          <div className="text-[11px] text-warn">
+            {usage.error ?? "Apify did not answer for this token."}
+          </div>
+        ) : (
+          <>
+            <Progress value={usage.usedPercent ?? 0} />
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+              <span
+                className={
+                  usage.state === "blocked"
+                    ? "text-err"
+                    : usage.state === "warn"
+                      ? "text-warn"
+                      : "text-fg2"
+                }
+              >
+                ${usage.spentUsd?.toFixed(2)} of ${usage.allowanceUsd?.toFixed(2)} used
+              </span>
+              <span className="text-mute">
+                · ${usage.remainingUsd?.toFixed(2)} left · {usage.usedPercent}%
+              </span>
+              {usage.account && (
+                <span className="text-mute">
+                  · {usage.account}
+                  {usage.plan ? ` (${usage.plan})` : ""}
+                </span>
+              )}
+              {usage.cycle?.endAt && (
+                <span className="text-mute">
+                  · resets {new Date(usage.cycle.endAt).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+            {usage.state === "blocked" && (
+              <div className="mt-1 text-[11px] text-err">
+                The Apify allowance for this token is used up — scraping is
+                blocked on it. Add or switch to another token to keep going.
+              </div>
+            )}
+            {usage.state === "warn" && usage.cap !== null && (
+              <div className="mt-1 text-[11px] text-warn">
+                Past your ${usage.cap.toFixed(2)} cap for this token — switch
+                before it runs dry.
+              </div>
+            )}
+            {usage.subLimits.length > 0 && (
+              <div className="mt-1 text-[11px] text-mute">
+                {usage.subLimits
+                  .map((s) => `${s.label} ${s.used.toFixed(1)}/${s.limit} ${s.unit}`)
+                  .join(" · ")}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

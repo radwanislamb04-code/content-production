@@ -33,6 +33,7 @@ import { Route as AppThumbnailStudioRouteImport } from './routes/_app.thumbnail-
 import { Route as AppVideoAnalyzerRouteImport } from './routes/_app.video-analyzer'
 import { Route as AppVideoPromptRouteImport } from './routes/_app.video-prompt'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
+import { Route as ApiApifyUsageRouteImport } from './routes/api/apify-usage'
 import { Route as ApiAppearanceRouteImport } from './routes/api/appearance'
 import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
@@ -187,6 +188,11 @@ const AppVideoPromptRoute = AppVideoPromptRouteImport.update({
 const ApiActivityRoute = ApiActivityRouteImport.update({
   id: '/api/activity',
   path: '/api/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiApifyUsageRoute = ApiApifyUsageRouteImport.update({
+  id: '/api/apify-usage',
+  path: '/api/apify-usage',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAppearanceRoute = ApiAppearanceRouteImport.update({
@@ -395,6 +401,7 @@ export interface FileRoutesByFullPath {
   '/video-analyzer': typeof AppVideoAnalyzerRoute
   '/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
@@ -455,6 +462,7 @@ export interface FileRoutesByTo {
   '/video-analyzer': typeof AppVideoAnalyzerRoute
   '/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
@@ -518,6 +526,7 @@ export interface FileRoutesById {
   '/_app/video-analyzer': typeof AppVideoAnalyzerRoute
   '/_app/video-prompt': typeof AppVideoPromptRoute
   '/api/activity': typeof ApiActivityRoute
+  '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
@@ -582,6 +591,7 @@ export interface FileRouteTypes {
     | '/video-analyzer'
     | '/video-prompt'
     | '/api/activity'
+    | '/api/apify-usage'
     | '/api/appearance'
     | '/api/brief'
     | '/api/characters'
@@ -642,6 +652,7 @@ export interface FileRouteTypes {
     | '/video-analyzer'
     | '/video-prompt'
     | '/api/activity'
+    | '/api/apify-usage'
     | '/api/appearance'
     | '/api/brief'
     | '/api/characters'
@@ -704,6 +715,7 @@ export interface FileRouteTypes {
     | '/_app/video-analyzer'
     | '/_app/video-prompt'
     | '/api/activity'
+    | '/api/apify-usage'
     | '/api/appearance'
     | '/api/brief'
     | '/api/characters'
@@ -746,6 +758,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ApiActivityRoute: typeof ApiActivityRoute
+  ApiApifyUsageRoute: typeof ApiApifyUsageRoute
   ApiAppearanceRoute: typeof ApiAppearanceRoute
   ApiBriefRoute: typeof ApiBriefRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
@@ -949,6 +962,13 @@ declare module '@tanstack/react-router' {
       path: '/api/activity'
       fullPath: '/api/activity'
       preLoaderRoute: typeof ApiActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/apify-usage': {
+      id: '/api/apify-usage'
+      path: '/api/apify-usage'
+      fullPath: '/api/apify-usage'
+      preLoaderRoute: typeof ApiApifyUsageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/appearance': {
@@ -1297,6 +1317,7 @@ const ApiLibraryTypeRouteWithChildren = ApiLibraryTypeRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ApiActivityRoute: ApiActivityRoute,
+  ApiApifyUsageRoute: ApiApifyUsageRoute,
   ApiAppearanceRoute: ApiAppearanceRoute,
   ApiBriefRoute: ApiBriefRoute,
   ApiCharactersRoute: ApiCharactersRoute,

@@ -1,5 +1,6 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
 
+import { logActivity } from "../../lib/activity";
 import { readApifyToken } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
 
@@ -23,6 +24,37 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         // Apify token comes from Settings → Apify slots (job: "Instagram
         // competitor"), falling back to the APIFY_API_TOKEN env var.
         const apifyApiToken = await readApifyToken(env, "Instagram competitor");
+
+        // Refuse to run on a token whose monthly allowance is spent. Apify is
+        // authoritative; failing loudly is cheaper than a surprise charge.
+        if (apifyApiToken) {
+          try {
+            const limRes = await fetch(
+              "https://api.apify.com/v2/users/me/limits",
+              {
+                headers: { authorization: `Bearer ${apifyApiToken}` },
+                signal: AbortSignal.timeout(10000),
+              },
+            );
+            if (limRes.ok) {
+              const body: any = await limRes.json();
+              const lim = body?.data?.limits ?? {};
+              const cur = body?.data?.current ?? {};
+              const allowance = Number(lim.maxMonthlyUsageUsd);
+              const spent = Number(cur.monthlyUsageUsd);
+              if (Number.isFinite(allowance) && Number.isFinite(spent) && spent >= allowance) {
+                const msg = `Apify allowance used up on this token ($${spent.toFixed(2)} of $${allowance.toFixed(2)}). Add or switch to another token in Settings → Apify.`;
+                await logActivity(env, "apify", "blocked", msg);
+                return Response.json(
+                  { ok: false, error: msg, stage: "apify_blocked" },
+                  { status: 402 },
+                );
+              }
+            }
+          } catch {
+            /* if the check itself fails, carry on — never block on a network hiccup */
+          }
+        }
 
         console.log("DEBUG: db:", !!db, "kv:", !!kv, "apify:", !!apifyApiToken);
 

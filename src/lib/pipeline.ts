@@ -64,6 +64,7 @@ const ERROR_ROW = /error|not configured|missing/i;
 export async function runPipeline(
   env: any,
   requested?: string[] | null,
+  userId: string = OWNER_ID,
 ): Promise<PipelineReport> {
   const startedAt = Date.now();
   let wanted = (requested && requested.length
@@ -94,20 +95,20 @@ export async function runPipeline(
     const t0 = Date.now();
     try {
       if (id === "trends") {
-        const r = await stepTrends(env);
+        const r = await stepTrends(env, userId);
         steps.push({ step: id, ok: true, detail: r.detail, items: r.items, ms: Date.now() - t0 });
         await logActivity(env, "trends", "fetch_ok", r.detail);
       } else if (id === "scrape") {
-        const r = await stepScrape(env);
+        const r = await stepScrape(env, userId);
         steps.push({ step: id, ok: true, detail: r.detail, items: r.items, ms: Date.now() - t0 });
         await logActivity(env, "scrape-competitor", "scrape_ok", r.detail);
       } else if (id === "brief") {
-        const r = await stepBrief(env);
+        const r = await stepBrief(env, userId);
         briefKey = r.key;
         steps.push({ step: id, ok: true, detail: r.detail, ms: Date.now() - t0 });
         await logActivity(env, "brief", "generated", r.detail);
       } else if (id === "send") {
-        const r = await stepSend(env);
+        const r = await stepSend(env, userId);
         telegramSent = r.sent;
         steps.push({ step: id, ok: true, detail: r.detail, items: r.sent, ms: Date.now() - t0 });
         await logActivity(env, "telegram-sync", "sent", r.detail);
@@ -148,8 +149,8 @@ async function stepTrends(
   userId: string = OWNER_ID,
 ): Promise<{ detail: string; items: number }> {
   const [serp, yt] = await Promise.all([
-    readSetting(env, SETTINGS_KEYS.serpapi),
-    readSetting(env, SETTINGS_KEYS.youtube),
+    readSetting(env, SETTINGS_KEYS.serpapi, undefined, userId),
+    readSetting(env, SETTINGS_KEYS.youtube, undefined, userId),
   ]);
 
   const [google, youtube] = await Promise.all([
@@ -179,7 +180,10 @@ async function stepTrends(
 }
 
 /** Scrape each competitor (max 3) plus the user's own account into D1. */
-async function stepScrape(env: any): Promise<{ detail: string; items: number }> {
+async function stepScrape(
+  env: any,
+  userId: string = OWNER_ID,
+): Promise<{ detail: string; items: number }> {
   const token = await readApifyToken(env, "Instagram competitor");
   if (!token) {
     throw new Error("Apify token not configured — add it in Settings → Apify slots");
@@ -218,7 +222,7 @@ async function stepScrape(env: any): Promise<{ detail: string; items: number }> 
     try {
       await db
         .prepare("DELETE FROM post_performance WHERE handle = ? AND user_id = ?")
-        .bind(handle, OWNER_ID)
+        .bind(handle, userId)
         .run();
     } catch {
       /* table may be empty — nothing to clear */
@@ -279,7 +283,7 @@ async function stepBrief(
         .prepare(
           "SELECT handle, caption, likes, comments, url FROM post_performance WHERE is_own_account = 0 AND user_id = ? ORDER BY likes DESC LIMIT 5",
         )
-          .bind(OWNER_ID)
+          .bind(userId)
         .all();
       viral = results ?? [];
     } catch {
@@ -290,7 +294,7 @@ async function stepBrief(
         .prepare(
           "SELECT id, type, title, quality_score FROM library WHERE (status IS NULL OR status != 'archived') AND user_id = ? ORDER BY COALESCE(quality_score, 0) DESC, rowid DESC LIMIT 5",
         )
-          .bind(OWNER_ID)
+          .bind(userId)
         .all();
       picks = results ?? [];
     } catch {
@@ -301,7 +305,7 @@ async function stepBrief(
         .prepare(
           "SELECT id, text, time FROM telegram_tasks WHERE COALESCE(done, 0) = 0 AND user_id = ? ORDER BY created_at DESC LIMIT 5",
         )
-          .bind(OWNER_ID)
+          .bind(userId)
         .all();
       tasks = results ?? [];
     } catch {
@@ -343,7 +347,12 @@ async function stepSend(
   const text: string | undefined = brief?.markdown;
   if (!text) throw new Error(`No brief stored for ${dateKey} — run the "brief" step first`);
 
-  const r = await sendTelegramLong(env, `Content OS — brief for ${dateKey}\n\n${text}`);
+  const r = await sendTelegramLong(
+    env,
+    `Content OS — brief for ${dateKey}\n\n${text}`,
+    {},
+    userId,
+  );
   if (!r.ok) throw new Error(r.error ?? "Telegram send failed");
   return { detail: `brief for ${dateKey} sent in ${r.sent} message(s)`, sent: r.sent ?? 0 };
 }

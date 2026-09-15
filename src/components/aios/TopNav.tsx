@@ -1,3 +1,4 @@
+import { ProfileMenu } from "./ProfileMenu";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -212,9 +213,9 @@ export function TopNav({
                 </>
               )}
             </div>
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-lime bg-surface text-xs font-semibold text-fg">
-              EN
-            </div>
+            {/* Was a static "EN" badge (the brand's initials) that did nothing —
+                now the account control: who you are, switching, adding users. */}
+            <ProfileMenu />
           </div>
         </div>
 

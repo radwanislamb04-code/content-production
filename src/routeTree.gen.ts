@@ -64,6 +64,7 @@ import { Route as ApiTelegramTestRouteImport } from './routes/api/telegram-test'
 import { Route as ApiThumbnailPromptRouteImport } from './routes/api/thumbnail-prompt'
 import { Route as ApiTrendSpyRouteImport } from './routes/api/trend-spy'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
+import { Route as ApiUsersRouteImport } from './routes/api/users'
 import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyzer'
 import { Route as ApiVideoGenPromptRouteImport } from './routes/api/video-gen-prompt'
 import { Route as ApiVisualStoryboardRouteImport } from './routes/api/visual-storyboard'
@@ -347,6 +348,11 @@ const ApiTrendsRoute = ApiTrendsRouteImport.update({
   path: '/api/trends',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUsersRoute = ApiUsersRouteImport.update({
+  id: '/api/users',
+  path: '/api/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVideoAnalyzerRoute = ApiVideoAnalyzerRouteImport.update({
   id: '/api/video-analyzer',
   path: '/api/video-analyzer',
@@ -444,6 +450,7 @@ export interface FileRoutesByFullPath {
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
+  '/api/users': typeof ApiUsersRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
@@ -507,6 +514,7 @@ export interface FileRoutesByTo {
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
+  '/api/users': typeof ApiUsersRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
@@ -573,6 +581,7 @@ export interface FileRoutesById {
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
+  '/api/users': typeof ApiUsersRoute
   '/api/video-analyzer': typeof ApiVideoAnalyzerRoute
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
@@ -640,6 +649,7 @@ export interface FileRouteTypes {
     | '/api/thumbnail-prompt'
     | '/api/trend-spy'
     | '/api/trends'
+    | '/api/users'
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
@@ -703,6 +713,7 @@ export interface FileRouteTypes {
     | '/api/thumbnail-prompt'
     | '/api/trend-spy'
     | '/api/trends'
+    | '/api/users'
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
@@ -768,6 +779,7 @@ export interface FileRouteTypes {
     | '/api/thumbnail-prompt'
     | '/api/trend-spy'
     | '/api/trends'
+    | '/api/users'
     | '/api/video-analyzer'
     | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
@@ -813,6 +825,7 @@ export interface RootRouteChildren {
   ApiThumbnailPromptRoute: typeof ApiThumbnailPromptRoute
   ApiTrendSpyRoute: typeof ApiTrendSpyRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
+  ApiUsersRoute: typeof ApiUsersRoute
   ApiVideoAnalyzerRoute: typeof ApiVideoAnalyzerRoute
   ApiVideoGenPromptRoute: typeof ApiVideoGenPromptRoute
   ApiVisualStoryboardRoute: typeof ApiVisualStoryboardRoute
@@ -1207,6 +1220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrendsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/users': {
+      id: '/api/users'
+      path: '/api/users'
+      fullPath: '/api/users'
+      preLoaderRoute: typeof ApiUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/video-analyzer': {
       id: '/api/video-analyzer'
       path: '/api/video-analyzer'
@@ -1388,6 +1408,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiThumbnailPromptRoute: ApiThumbnailPromptRoute,
   ApiTrendSpyRoute: ApiTrendSpyRoute,
   ApiTrendsRoute: ApiTrendsRoute,
+  ApiUsersRoute: ApiUsersRoute,
   ApiVideoAnalyzerRoute: ApiVideoAnalyzerRoute,
   ApiVideoGenPromptRoute: ApiVideoGenPromptRoute,
   ApiVisualStoryboardRoute: ApiVisualStoryboardRoute,

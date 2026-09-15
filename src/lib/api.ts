@@ -1,3 +1,5 @@
+import { profileHeader } from "./profile";
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -14,6 +16,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: {
         "Content-Type": "application/json",
+        // Carries the profile chosen in the user menu, if it is not the identity.
+        ...profileHeader(),
         ...(init?.headers ?? {}),
       },
     });

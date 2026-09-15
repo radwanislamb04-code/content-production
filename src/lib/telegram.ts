@@ -66,11 +66,12 @@ export async function sendTelegramLong(
   env: any,
   text: string,
   opts: { disableNotification?: boolean } = {},
+  userId: string = OWNER_ID,
 ): Promise<TelegramResult> {
   const chunks = splitForTelegram(text, MAX_MESSAGES_PER_RUN);
   let sent = 0;
   for (const chunk of chunks) {
-    const r = await sendTelegram(env, chunk, opts);
+    const r = await sendTelegram(env, chunk, opts, userId);
     if (!r.ok) return { ok: false, error: r.error, sent };
     sent++;
   }

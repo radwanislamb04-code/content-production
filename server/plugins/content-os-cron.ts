@@ -64,25 +64,50 @@ export default function contentOsCron(nitroApp: {
       }
 
       try {
-        const report = await runPipeline(env, steps);
-        const failed = report.steps.filter((s) => !s.ok);
-        const summary = report.steps
-          .map((s) => `${s.step}:${s.ok ? "ok" : "failed"}`)
-          .join(" ");
+        // One run per active user: each has their own keys, pillars, library and
+        // Telegram bot, and none of them may spend anybody else's.
+        const rows = await env.DB.prepare(
+          "SELECT id, email FROM users WHERE status = 'active' ORDER BY created_at ASC",
+        ).all();
+        const users = (rows?.results ?? []) as { id: string; email: string }[];
 
-        await logActivity(
-          env,
-          "cron",
-          failed.length ? "cron_partial" : "cron_ok",
-          `"${cron}" → ${summary}${report.telegramSent ? ` · ${report.telegramSent} message(s) sent` : ""}`,
-        );
+        if (!users.length) {
+          await logActivity(
+            env,
+            "cron",
+            "cron_skipped",
+            `no active users to run "${cron}" for`,
+          );
+          return;
+        }
 
-        if (failed.length) {
+        const failures: string[] = [];
+        for (const user of users) {
+          const report = await runPipeline(env, steps, user.id);
+          const failed = report.steps.filter((s) => !s.ok);
+          const summary = report.steps
+            .map((s) => `${s.step}:${s.ok ? "ok" : "failed"}`)
+            .join(" ");
+
+          await logActivity(
+            env,
+            "cron",
+            failed.length ? "cron_partial" : "cron_ok",
+            `${user.email} · "${cron}" → ${summary}${report.telegramSent ? ` · ${report.telegramSent} message(s) sent` : ""}`,
+            user.id,
+          );
+
+          if (failed.length) {
+            failures.push(
+              `${user.email}: ${failed.map((f) => `${f.step}: ${f.detail}`).join(", ")}`,
+            );
+          }
+        }
+
+        if (failures.length) {
           // Surface partial failures in Workers Logs / Observability instead of
           // hiding them behind a green "completed" line.
-          throw new Error(
-            failed.map((f) => `${f.step}: ${f.detail}`).join(" | "),
-          );
+          throw new Error(failures.join(" | "));
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

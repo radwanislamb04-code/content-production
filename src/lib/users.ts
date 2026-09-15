@@ -116,6 +116,10 @@ export async function currentUserId(
   request: Request,
   context: any,
 ): Promise<string> {
+  // A switched profile wins over the signed-in identity, but only if it exists.
+  const switched = await requestedProfileId(request, context);
+  if (switched) return switched;
+
   const email =
     (request.headers.get("cf-access-authenticated-user-email") ?? "").trim() ||
     emailFromAssertion(request) ||
@@ -130,6 +134,25 @@ export async function currentUserId(
   // the case our own scripts and verifications rely on.)
   if (email) return UNINVITED_ID;
   return OWNER_ID;
+}
+
+/**
+ * The profile a request asks to act as, if that profile exists.
+ *
+ * Switching is a deliberate choice by the owner: everyone signed in may look at any
+ * profile (a personal machine). The header is only ever a *request* — the target must
+ * exist in `users`, so a made-up id resolves to nothing and the caller's own identity
+ * is used instead.
+ */
+export async function requestedProfileId(
+  request: Request,
+  context: any,
+): Promise<string | null> {
+  const wanted = (request.headers.get("x-profile-id") ?? "").trim();
+  if (!wanted) return null;
+  const env = getEnv(request, context);
+  const row = await loadById(env, wanted);
+  return row ? row.id : null;
 }
 
 /**

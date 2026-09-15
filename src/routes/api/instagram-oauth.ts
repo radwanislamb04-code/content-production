@@ -5,6 +5,7 @@ import { logActivity } from "../../lib/activity";
 import {
   appCreds,
   authUrl,
+  ensureVerifyToken,
   decryptToken,
   disconnectChannel,
   exchangeCode,
@@ -121,6 +122,8 @@ export const Route = createFileRoute("/api/instagram-oauth")({
         const userId = await currentUserId(request, context);
         const creds = await appCreds(env);
         const channels = await listChannels(env, userId);
+        // Generated rather than asked for: the owner just copies it into Meta.
+        const verifyToken = creds ? await ensureVerifyToken(env) : null;
 
         return Response.json({
           ok: true,
@@ -131,6 +134,11 @@ export const Route = createFileRoute("/api/instagram-oauth")({
             ready: !!creds,
           },
           redirectUri: redirectUri(origin),
+          webhook: {
+            url: `${origin}/api/instagram-webhook`,
+            verifyToken,
+            fields: ["comments", "messages", "message_reactions"],
+          },
           scopes: IG_SCOPES,
           channels: channels.map((c) => ({
             id: c.id,
@@ -171,6 +179,8 @@ export const Route = createFileRoute("/api/instagram-oauth")({
                 ? body.verifyToken.trim()
                 : undefined,
           });
+          // A webhook needs a verify token either way — make sure one exists.
+          await ensureVerifyToken(env);
           await logActivity(env, "instagram", "app_credentials_saved", `app ${appId.slice(0, 6)}…`, userId);
           return Response.json({ ok: true });
         }

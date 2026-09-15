@@ -40,6 +40,7 @@ type Status = {
   app: { hasAppId: boolean; hasSecret: boolean; hasVerifyToken: boolean; ready: boolean };
   redirectUri: string;
   scopes: string[];
+  webhook: { url: string; verifyToken: string | null; fields: string[] };
   channels: ChannelRow[];
 };
 
@@ -307,6 +308,45 @@ export function ConnectionsCard() {
           <div className="text-[11px] text-mute">
             Permissions requested: {(status.scopes ?? []).join(", ")}
           </div>
+
+          {/* The two values Meta's webhook screen asks for. Copy, paste, done. */}
+          {status.webhook && (
+            <div className="mt-2 space-y-2 rounded-md border border-line bg-surface p-2.5">
+              <div className="text-[11px] uppercase tracking-wide text-mute">
+                Webhook (Meta → Webhooks)
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={status.webhook.url}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="min-w-0 flex-1 truncate rounded-md border border-line bg-card px-2 py-1.5 font-mono text-[11px] text-fg2"
+                />
+                <OutlineBtn onClick={() => copy(status.webhook.url, "Webhook URL")}>
+                  <Copy size={13} />
+                </OutlineBtn>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={status.webhook.verifyToken ?? ""}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="min-w-0 flex-1 truncate rounded-md border border-line bg-card px-2 py-1.5 font-mono text-[11px] text-fg2"
+                />
+                <OutlineBtn
+                  onClick={() => copy(status.webhook.verifyToken ?? "", "Verify token")}
+                  disabled={!status.webhook.verifyToken}
+                >
+                  <Copy size={13} />
+                </OutlineBtn>
+              </div>
+              <div className="text-[11px] text-mute">
+                Subscribe these fields: {status.webhook.fields.join(", ")}. Signature
+                checks use your app secret, so Instagram's events are verified here
+                before anything is answered.
+              </div>
+            </div>
+          )}
         </div>
       )}
 

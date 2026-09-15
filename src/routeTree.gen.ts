@@ -50,6 +50,8 @@ import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
 import { Route as ApiHooksRouteImport } from './routes/api/hooks'
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
+import { Route as ApiInstagramOauthRouteImport } from './routes/api/instagram-oauth'
+import { Route as ApiInstagramWebhookRouteImport } from './routes/api/instagram-webhook'
 import { Route as ApiLibraryExportRouteImport } from './routes/api/library-export'
 import { Route as ApiLibraryImportRouteImport } from './routes/api/library-import'
 import { Route as ApiMeRouteImport } from './routes/api/me'
@@ -290,6 +292,16 @@ const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
   path: '/api/ideator-generate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInstagramOauthRoute = ApiInstagramOauthRouteImport.update({
+  id: '/api/instagram-oauth',
+  path: '/api/instagram-oauth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInstagramWebhookRoute = ApiInstagramWebhookRouteImport.update({
+  id: '/api/instagram-webhook',
+  path: '/api/instagram-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLibraryExportRoute = ApiLibraryExportRouteImport.update({
   id: '/api/library-export',
   path: '/api/library-export',
@@ -508,6 +520,8 @@ export interface FileRoutesByFullPath {
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/instagram-oauth': typeof ApiInstagramOauthRoute
+  '/api/instagram-webhook': typeof ApiInstagramWebhookRoute
   '/api/library-export': typeof ApiLibraryExportRoute
   '/api/library-import': typeof ApiLibraryImportRoute
   '/api/me': typeof ApiMeRoute
@@ -584,6 +598,8 @@ export interface FileRoutesByTo {
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/instagram-oauth': typeof ApiInstagramOauthRoute
+  '/api/instagram-webhook': typeof ApiInstagramWebhookRoute
   '/api/library-export': typeof ApiLibraryExportRoute
   '/api/library-import': typeof ApiLibraryImportRoute
   '/api/me': typeof ApiMeRoute
@@ -663,6 +679,8 @@ export interface FileRoutesById {
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/instagram-oauth': typeof ApiInstagramOauthRoute
+  '/api/instagram-webhook': typeof ApiInstagramWebhookRoute
   '/api/library-export': typeof ApiLibraryExportRoute
   '/api/library-import': typeof ApiLibraryImportRoute
   '/api/me': typeof ApiMeRoute
@@ -743,6 +761,8 @@ export interface FileRouteTypes {
     | '/api/hook-script-writer'
     | '/api/hooks'
     | '/api/ideator-generate'
+    | '/api/instagram-oauth'
+    | '/api/instagram-webhook'
     | '/api/library-export'
     | '/api/library-import'
     | '/api/me'
@@ -819,6 +839,8 @@ export interface FileRouteTypes {
     | '/api/hook-script-writer'
     | '/api/hooks'
     | '/api/ideator-generate'
+    | '/api/instagram-oauth'
+    | '/api/instagram-webhook'
     | '/api/library-export'
     | '/api/library-import'
     | '/api/me'
@@ -897,6 +919,8 @@ export interface FileRouteTypes {
     | '/api/hook-script-writer'
     | '/api/hooks'
     | '/api/ideator-generate'
+    | '/api/instagram-oauth'
+    | '/api/instagram-webhook'
     | '/api/library-export'
     | '/api/library-import'
     | '/api/me'
@@ -953,6 +977,8 @@ export interface RootRouteChildren {
   ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
   ApiHooksRoute: typeof ApiHooksRoute
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
+  ApiInstagramOauthRoute: typeof ApiInstagramOauthRoute
+  ApiInstagramWebhookRoute: typeof ApiInstagramWebhookRoute
   ApiLibraryExportRoute: typeof ApiLibraryExportRoute
   ApiLibraryImportRoute: typeof ApiLibraryImportRoute
   ApiMeRoute: typeof ApiMeRoute
@@ -1274,6 +1300,20 @@ declare module '@tanstack/react-router' {
       path: '/api/ideator-generate'
       fullPath: '/api/ideator-generate'
       preLoaderRoute: typeof ApiIdeatorGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/instagram-oauth': {
+      id: '/api/instagram-oauth'
+      path: '/api/instagram-oauth'
+      fullPath: '/api/instagram-oauth'
+      preLoaderRoute: typeof ApiInstagramOauthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/instagram-webhook': {
+      id: '/api/instagram-webhook'
+      path: '/api/instagram-webhook'
+      fullPath: '/api/instagram-webhook'
+      preLoaderRoute: typeof ApiInstagramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/library-export': {
@@ -1634,6 +1674,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,
   ApiHooksRoute: ApiHooksRoute,
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
+  ApiInstagramOauthRoute: ApiInstagramOauthRoute,
+  ApiInstagramWebhookRoute: ApiInstagramWebhookRoute,
   ApiLibraryExportRoute: ApiLibraryExportRoute,
   ApiLibraryImportRoute: ApiLibraryImportRoute,
   ApiMeRoute: ApiMeRoute,

@@ -76,6 +76,23 @@ export async function appCreds(env: any): Promise<AppCreds | null> {
   return { appId, appSecret, verifyToken: verifyToken ?? "" };
 }
 
+/**
+ * The webhook handshake needs a token Meta and we both know. Rather than making
+ * the owner invent one, we generate it and show it in the Connections card ready
+ * to paste — one less field to get wrong.
+ */
+export async function ensureVerifyToken(env: any): Promise<string> {
+  const existing = await readSetting(env, SETTINGS_KEYS.instagramVerifyToken);
+  if (existing) return existing;
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  const token = `cos_${Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")}`;
+  await writeSetting(env, SETTINGS_KEYS.instagramVerifyToken, token);
+  return token;
+}
+
 export async function saveAppCreds(
   env: any,
   creds: { appId?: string | null; appSecret?: string | null; verifyToken?: string | null },

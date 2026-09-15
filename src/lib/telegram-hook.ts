@@ -39,7 +39,7 @@ export type TaskInput = {
   text: string;
   time?: string;
   due_date?: string | null;
-  source?: "manual" | "telegram" | "calendar" | "library";
+  source?: "manual" | "telegram" | "calendar" | "library" | "dm";
   /** Stable key for auto-queued rows — a second queue of the same source is a no-op. */
   ref_key?: string | null;
 };

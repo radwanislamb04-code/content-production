@@ -76,6 +76,20 @@ export type Step = {
   ok: boolean;
 };
 
+/**
+ * How a message reaches Instagram. The simulator passes nothing (so every row is
+ * stored as `simulated`); the webhook passes a function backed by the connected
+ * account's token. Keeping it a parameter is what makes "the simulator runs the
+ * real engine" true rather than a slogan — same decision code, different wire.
+ */
+export type Delivery = (args: {
+  channel: "comment" | "dm";
+  via: "public_reply" | "private_reply" | "conversation";
+  text: string;
+  commentId?: string | null;
+  igsid?: string | null;
+}) => Promise<{ ok: boolean; error?: string }>;
+
 export type EngineInput = {
   /** What the person wrote. */
   text: string;
@@ -97,6 +111,8 @@ export type EngineInput = {
   simulated?: boolean;
   /** Pretend this person's last message was N days ago, to exercise the window. */
   assumeStaleDays?: number;
+  /** The real sender (webhook) or nothing at all (simulator). */
+  deliver?: Delivery | null;
 };
 
 export type EngineResult = {
@@ -713,6 +729,18 @@ export async function runEngine(
   // Public reply — comments only, and capped by the same daily counter as the DM.
   if (input.kind === "comment" && automation.public_reply) {
     const text = render(automation.public_reply, vars);
+    let replyStatus = status;
+    let replyError: string | null = null;
+    if (input.deliver) {
+      const sent = await input.deliver({
+        channel: "comment",
+        via: "public_reply",
+        text,
+        commentId: input.commentId ?? null,
+      });
+      replyStatus = sent.ok ? "sent" : "failed";
+      replyError = sent.ok ? null : (sent.error ?? "Instagram refused the reply");
+    }
     await addMessage(env, userId, {
       conversation_id: conversationId,
       contact_id: contact?.id ?? null,
@@ -721,16 +749,21 @@ export async function runEngine(
       channel: "comment",
       text,
       matched_keyword: keyword,
-      status,
+      status: replyStatus,
     });
     result.publicReply = text;
-    steps.push({ kind: "public_reply", label: "Public reply", detail: text, ok: true });
+    steps.push({
+      kind: "public_reply",
+      label: replyError ? "Public reply failed" : "Public reply",
+      detail: replyError ? `${text} — Instagram said: ${replyError}` : text,
+      ok: !replyError,
+    });
     await addEvent(env, userId, {
       automation_id: automation.id,
       contact_id: contact?.id ?? null,
       conversation_id: conversationId,
-      kind: "reply_sent",
-      detail: text.slice(0, 200),
+      kind: replyError ? "reply_failed" : "reply_sent",
+      detail: (replyError ?? text).slice(0, 200),
     });
   }
 
@@ -803,6 +836,21 @@ export async function runEngine(
           automation.dm_button_url ? `: ${automation.dm_button_url}` : ""
         }`;
       }
+
+      let dmStatus = status;
+      let dmError: string | null = null;
+      if (input.deliver) {
+        const sent = await input.deliver({
+          channel: "dm",
+          via,
+          text,
+          commentId: commentId,
+          igsid: input.contact.ig_user_id,
+        });
+        dmStatus = sent.ok ? "sent" : "failed";
+        dmError = sent.ok ? null : (sent.error ?? "Instagram refused the message");
+      }
+
       await addMessage(env, userId, {
         conversation_id: conversationId,
         contact_id: contact?.id ?? null,
@@ -811,7 +859,7 @@ export async function runEngine(
         channel: "dm",
         text,
         matched_keyword: keyword,
-        status,
+        status: dmStatus,
       });
       if (via === "private_reply" && commentId) {
         await recordCommentReply(env, userId, {
@@ -825,16 +873,22 @@ export async function runEngine(
       result.dmVia = via;
       steps.push({
         kind: "dm_sent",
-        label: via === "private_reply" ? "Private reply sent" : "DM sent",
-        detail: text,
-        ok: true,
+        label: dmError
+          ? via === "private_reply"
+            ? "Private reply failed"
+            : "DM failed"
+          : via === "private_reply"
+            ? "Private reply sent"
+            : "DM sent",
+        detail: dmError ? `${text} — Instagram said: ${dmError}` : text,
+        ok: !dmError,
       });
       await addEvent(env, userId, {
         automation_id: automation.id,
         contact_id: contact?.id ?? null,
         conversation_id: conversationId,
-        kind: "dm_sent",
-        detail: `${via}: ${text.slice(0, 160)}`,
+        kind: dmError ? "dm_failed" : "dm_sent",
+        detail: `${via}: ${(dmError ?? text).slice(0, 160)}`,
       });
 
       if (automation.goal && contact?.id) {

@@ -106,6 +106,40 @@ const BLOCK = /<(script|style|noscript|svg|nav|header|footer|aside|form|iframe|t
  * first version of this reader happily rendered "body,html{height:100%…}" as if
  * it were the page text.
  */
+/**
+ * Pages that render with JavaScript often ship the real text as structured data
+ * or inside <noscript>. Pull both out before giving up.
+ */
+function extractJsonLd(html: string): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(
+    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+  )) {
+    try {
+      const data = JSON.parse(m[1].trim());
+      const stack: any[] = Array.isArray(data) ? [...data] : [data];
+      while (stack.length) {
+        const node = stack.pop();
+        if (!node || typeof node !== "object") continue;
+        if (Array.isArray(node)) {
+          stack.push(...node);
+          continue;
+        }
+        for (const key of ["articleBody", "description", "headline", "name"]) {
+          const v = node[key];
+          if (typeof v === "string" && v.trim().length >= 120) out.push(v.trim());
+        }
+        for (const v of Object.values(node)) {
+          if (v && typeof v === "object") stack.push(v);
+        }
+      }
+    } catch {
+      /* malformed JSON-LD — ignore */
+    }
+  }
+  return out;
+}
+
 function looksLikeProse(text: string): boolean {
   if (text.length < 200) return false;
   if (/^\s*(body|html|:root|\*|[.#][\w-]+)\s*[,{]/.test(text)) return false;
@@ -211,6 +245,14 @@ export const Route = createFileRoute("/api/reader")({
           .replace(/<style[\s\S]*$/i, " ")
           .replace(/<script[\s\S]*$/i, " ");
 
+        // Structured data and <noscript> alternatives.
+        const ldText = extractJsonLd(html);
+        const noscriptText = Array.from(
+          html.matchAll(/<noscript[^>]*>([\s\S]*?)<\/noscript>/gi),
+        )
+          .map((m) => toText(m[1]))
+          .filter((t) => t.length >= 120);
+
         const headings = Array.from(
           body.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi),
         )
@@ -227,7 +269,12 @@ export const Route = createFileRoute("/api/reader")({
         // Some pages put everything in bare <div>s — fall back to the whole text.
         if (paragraphs.length < 3) {
           const flat = toText(body);
-          if (looksLikeProse(flat)) paragraphs = [flat.slice(0, 6000)];
+          if (looksLikeProse(flat) && flat.length > 1200) {
+            paragraphs = [flat.slice(0, 6000)];
+          } else {
+            const extra = [...noscriptText, ...ldText].filter(Boolean);
+            if (extra.length) paragraphs = extra.slice(0, 20);
+          }
         }
 
         const seen = new Set<string>();
@@ -255,13 +302,16 @@ export const Route = createFileRoute("/api/reader")({
           capped.push(p);
         }
 
-        if (capped.length === 0) {
-          // Almost always a JavaScript-rendered app — say so instead of
-          // pretending we read it.
+        // A "successful" read of 28 characters is worse than an honest failure
+        // (Phlanx returned 28, the FB marketplace page 54).
+        const totalChars = capped.join("").length;
+        if (capped.length === 0 || totalChars < 400) {
           return Response.json({
             ok: false,
             error:
-              "This page has no text in its HTML — its content is drawn by JavaScript, which this reader cannot run.",
+              capped.length === 0
+                ? "This page has no text in its HTML — its content is drawn by JavaScript, which this reader cannot run."
+                : `Only ${totalChars} characters of text were found on the page, which is not enough to read here.`,
             title,
             finalUrl,
             status,

@@ -340,6 +340,8 @@ function SiteViewer({ site, onClose }: { site: Site; onClose: () => void }) {
   const [mode, setMode] = useState<"page" | "reader">("page");
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [frameReason, setFrameReason] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
   const [nonce, setNonce] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -348,15 +350,46 @@ function SiteViewer({ site, onClose }: { site: Site; onClose: () => void }) {
   const [reading, setReading] = useState(false);
   const [reader, setReader] = useState<ReaderPayload | null>(null);
 
+  /**
+   * Ask the server whether this site forbids framing BEFORE mounting the iframe.
+   * A blocked frame still fires `load` (with the browser's error page inside it),
+   * so without this check the user just saw Chrome's "refused to connect" or
+   * Google's own 403 page instead of our explanation.
+   */
   useEffect(() => {
     if (mode !== "page") return;
-    setLoaded(false);
+    let cancelled = false;
+    setChecking(true);
     setFailed(false);
+    setLoaded(false);
+    setFrameReason(null);
+    fetch(`/api/frame-check?url=${encodeURIComponent(site.url)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        if (d && d.framed === false) {
+          setFrameReason(d.reason ?? null);
+          setFailed(true);
+        }
+      })
+      .catch(() => {
+        /* unknown — still try the frame */
+      })
+      .finally(() => {
+        if (!cancelled) setChecking(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [nonce, mode, site.url]);
+
+  useEffect(() => {
+    if (mode !== "page" || checking || failed) return;
     timer.current = setTimeout(() => setFailed(true), 10000);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [nonce, mode]);
+  }, [nonce, mode, checking, failed]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -437,7 +470,7 @@ function SiteViewer({ site, onClose }: { site: Site; onClose: () => void }) {
           </button>
           <button
             aria-label="Open in new tab"
-            title="Last resort"
+            title="Opens in a new tab — only needed for sites that block in-app viewing"
             onClick={() => window.open(site.url, "_blank", "noopener,noreferrer")}
             className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-mute transition-colors hover:text-lime"
           >
@@ -465,14 +498,17 @@ function SiteViewer({ site, onClose }: { site: Site; onClose: () => void }) {
               <div className="max-w-[560px] text-center">
                 <Globe size={22} className="mx-auto text-mute" />
                 <p className="mt-3 text-sm font-semibold text-fg">
-                  {site.name} refused to load inside the app
+                  {frameReason
+                    ? `${site.name} does not allow being shown inside another page`
+                    : `${site.name} did not load inside the app`}
                 </p>
                 <p className="mt-1 text-xs text-mute">
-                  It replies with X-Frame-Options or a CSP frame-ancestors rule
-                  that forbids being shown in another page, and browsers enforce
-                  that. Reader view fetches the page server-side instead and shows
-                  its text here — useful for articles and docs, but a dashboard
-                  that draws itself with JavaScript will still say so.
+                  {frameReason
+                    ? `The site replies with “${frameReason}”, and browsers enforce that — no in-app view can display it.`
+                    : "It may need more time, or it may quietly block embedded views."}{" "}
+                  Reader view fetches the page server-side and shows its text here
+                  instead: useful for articles and docs, but a dashboard drawn with
+                  JavaScript will say so honestly.
                 </p>
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                   <PrimaryBtn onClick={() => loadReader(site.url)}>
@@ -493,26 +529,30 @@ function SiteViewer({ site, onClose }: { site: Site; onClose: () => void }) {
             </div>
           ) : (
             <>
-              {!loaded && (
+              {(!loaded || checking) && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-surface">
                   <Loader2 size={22} className="aios-spin-slow text-lime" />
-                  <span className="text-xs text-mute">Loading page…</span>
+                  <span className="text-xs text-mute">
+                    {checking ? "Checking whether it allows an in-app view…" : "Loading page…"}
+                  </span>
                 </div>
               )}
-              <iframe
-                key={nonce}
-                src={site.url}
-                title={site.name}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-presentation"
-                onLoad={() => {
-                  if (timer.current) clearTimeout(timer.current);
-                  setLoaded(true);
-                }}
-                onError={() => setFailed(true)}
-                className="h-full w-full border-0 bg-surface"
-              />
+              {!checking && (
+                <iframe
+                  key={nonce}
+                  src={site.url}
+                  title={site.name}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-presentation"
+                  onLoad={() => {
+                    if (timer.current) clearTimeout(timer.current);
+                    setLoaded(true);
+                  }}
+                  onError={() => setFailed(true)}
+                  className="h-full w-full border-0 bg-surface"
+                />
+              )}
             </>
           )}
         </div>

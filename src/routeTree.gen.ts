@@ -18,6 +18,7 @@ import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppCharactersRouteImport } from './routes/_app.characters'
 import { Route as AppContentScoreRouteImport } from './routes/_app.content-score'
 import { Route as AppDailyBriefRouteImport } from './routes/_app.daily-brief'
+import { Route as AppDmRouteImport } from './routes/_app.dm'
 import { Route as AppHookScoreboardRouteImport } from './routes/_app.hook-scoreboard'
 import { Route as AppIdeatorRouteImport } from './routes/_app.ideator'
 import { Route as AppLibraryRouteImport } from './routes/_app.library'
@@ -41,6 +42,7 @@ import { Route as ApiBoardRouteImport } from './routes/api/board'
 import { Route as ApiBoardAttachRouteImport } from './routes/api/board-attach'
 import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
+import { Route as ApiDmRouteImport } from './routes/api/dm'
 import { Route as ApiFrameCheckRouteImport } from './routes/api/frame-check'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiGeneratePlanRouteImport } from './routes/api/generate-plan'
@@ -126,6 +128,11 @@ const AppContentScoreRoute = AppContentScoreRouteImport.update({
 const AppDailyBriefRoute = AppDailyBriefRouteImport.update({
   id: '/daily-brief',
   path: '/daily-brief',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDmRoute = AppDmRouteImport.update({
+  id: '/dm',
+  path: '/dm',
   getParentRoute: () => AppRoute,
 } as any)
 const AppHookScoreboardRoute = AppHookScoreboardRouteImport.update({
@@ -241,6 +248,11 @@ const ApiBriefRoute = ApiBriefRouteImport.update({
 const ApiCharactersRoute = ApiCharactersRouteImport.update({
   id: '/api/characters',
   path: '/api/characters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDmRoute = ApiDmRouteImport.update({
+  id: '/api/dm',
+  path: '/api/dm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiFrameCheckRoute = ApiFrameCheckRouteImport.update({
@@ -464,6 +476,7 @@ export interface FileRoutesByFullPath {
   '/characters': typeof AppCharactersRoute
   '/content-score': typeof AppContentScoreRoute
   '/daily-brief': typeof AppDailyBriefRoute
+  '/dm': typeof AppDmRoute
   '/hook-scoreboard': typeof AppHookScoreboardRoute
   '/ideator': typeof AppIdeatorRoute
   '/library': typeof AppLibraryRoute
@@ -487,6 +500,7 @@ export interface FileRoutesByFullPath {
   '/api/board-attach': typeof ApiBoardAttachRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
+  '/api/dm': typeof ApiDmRoute
   '/api/frame-check': typeof ApiFrameCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
@@ -538,6 +552,7 @@ export interface FileRoutesByTo {
   '/characters': typeof AppCharactersRoute
   '/content-score': typeof AppContentScoreRoute
   '/daily-brief': typeof AppDailyBriefRoute
+  '/dm': typeof AppDmRoute
   '/hook-scoreboard': typeof AppHookScoreboardRoute
   '/ideator': typeof AppIdeatorRoute
   '/library': typeof AppLibraryRoute
@@ -561,6 +576,7 @@ export interface FileRoutesByTo {
   '/api/board-attach': typeof ApiBoardAttachRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
+  '/api/dm': typeof ApiDmRoute
   '/api/frame-check': typeof ApiFrameCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
@@ -615,6 +631,7 @@ export interface FileRoutesById {
   '/_app/characters': typeof AppCharactersRoute
   '/_app/content-score': typeof AppContentScoreRoute
   '/_app/daily-brief': typeof AppDailyBriefRoute
+  '/_app/dm': typeof AppDmRoute
   '/_app/hook-scoreboard': typeof AppHookScoreboardRoute
   '/_app/ideator': typeof AppIdeatorRoute
   '/_app/library': typeof AppLibraryRoute
@@ -638,6 +655,7 @@ export interface FileRoutesById {
   '/api/board-attach': typeof ApiBoardAttachRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
+  '/api/dm': typeof ApiDmRoute
   '/api/frame-check': typeof ApiFrameCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
@@ -693,6 +711,7 @@ export interface FileRouteTypes {
     | '/characters'
     | '/content-score'
     | '/daily-brief'
+    | '/dm'
     | '/hook-scoreboard'
     | '/ideator'
     | '/library'
@@ -716,6 +735,7 @@ export interface FileRouteTypes {
     | '/api/board-attach'
     | '/api/brief'
     | '/api/characters'
+    | '/api/dm'
     | '/api/frame-check'
     | '/api/generate-image'
     | '/api/generate-plan'
@@ -767,6 +787,7 @@ export interface FileRouteTypes {
     | '/characters'
     | '/content-score'
     | '/daily-brief'
+    | '/dm'
     | '/hook-scoreboard'
     | '/ideator'
     | '/library'
@@ -790,6 +811,7 @@ export interface FileRouteTypes {
     | '/api/board-attach'
     | '/api/brief'
     | '/api/characters'
+    | '/api/dm'
     | '/api/frame-check'
     | '/api/generate-image'
     | '/api/generate-plan'
@@ -843,6 +865,7 @@ export interface FileRouteTypes {
     | '/_app/characters'
     | '/_app/content-score'
     | '/_app/daily-brief'
+    | '/_app/dm'
     | '/_app/hook-scoreboard'
     | '/_app/ideator'
     | '/_app/library'
@@ -866,6 +889,7 @@ export interface FileRouteTypes {
     | '/api/board-attach'
     | '/api/brief'
     | '/api/characters'
+    | '/api/dm'
     | '/api/frame-check'
     | '/api/generate-image'
     | '/api/generate-plan'
@@ -921,6 +945,7 @@ export interface RootRouteChildren {
   ApiBoardAttachRoute: typeof ApiBoardAttachRoute
   ApiBriefRoute: typeof ApiBriefRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
+  ApiDmRoute: typeof ApiDmRoute
   ApiFrameCheckRoute: typeof ApiFrameCheckRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiGeneratePlanRoute: typeof ApiGeneratePlanRoute
@@ -1025,6 +1050,13 @@ declare module '@tanstack/react-router' {
       path: '/daily-brief'
       fullPath: '/daily-brief'
       preLoaderRoute: typeof AppDailyBriefRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dm': {
+      id: '/_app/dm'
+      path: '/dm'
+      fullPath: '/dm'
+      preLoaderRoute: typeof AppDmRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/hook-scoreboard': {
@@ -1186,6 +1218,13 @@ declare module '@tanstack/react-router' {
       path: '/api/characters'
       fullPath: '/api/characters'
       preLoaderRoute: typeof ApiCharactersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/dm': {
+      id: '/api/dm'
+      path: '/api/dm'
+      fullPath: '/api/dm'
+      preLoaderRoute: typeof ApiDmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/frame-check': {
@@ -1493,6 +1532,7 @@ interface AppRouteChildren {
   AppCharactersRoute: typeof AppCharactersRoute
   AppContentScoreRoute: typeof AppContentScoreRoute
   AppDailyBriefRoute: typeof AppDailyBriefRoute
+  AppDmRoute: typeof AppDmRoute
   AppHookScoreboardRoute: typeof AppHookScoreboardRoute
   AppIdeatorRoute: typeof AppIdeatorRoute
   AppLibraryRoute: typeof AppLibraryRoute
@@ -1519,6 +1559,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCharactersRoute: AppCharactersRoute,
   AppContentScoreRoute: AppContentScoreRoute,
   AppDailyBriefRoute: AppDailyBriefRoute,
+  AppDmRoute: AppDmRoute,
   AppHookScoreboardRoute: AppHookScoreboardRoute,
   AppIdeatorRoute: AppIdeatorRoute,
   AppLibraryRoute: AppLibraryRoute,
@@ -1585,6 +1626,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBoardAttachRoute: ApiBoardAttachRoute,
   ApiBriefRoute: ApiBriefRoute,
   ApiCharactersRoute: ApiCharactersRoute,
+  ApiDmRoute: ApiDmRoute,
   ApiFrameCheckRoute: ApiFrameCheckRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiGeneratePlanRoute: ApiGeneratePlanRoute,

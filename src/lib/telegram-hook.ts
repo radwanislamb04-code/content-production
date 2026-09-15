@@ -270,6 +270,11 @@ export type WebhookStatus = {
     pendingUpdates: number;
     lastErrorDate: number | null;
     lastErrorMessage: string | null;
+    /**
+     * What Telegram is allowed to deliver. A missing "callback_query" here means
+     * button taps are being dropped before they ever reach this Worker.
+     */
+    allowedUpdates: string[] | null;
   } | null;
   error?: string;
 };
@@ -322,6 +327,9 @@ export async function webhookStatus(
       pendingUpdates: Number(info.info?.pending_update_count ?? 0),
       lastErrorDate: info.info?.last_error_date ?? null,
       lastErrorMessage: info.info?.last_error_message ?? null,
+      allowedUpdates: Array.isArray(info.info?.allowed_updates)
+        ? (info.info.allowed_updates as string[])
+        : null,
     },
   };
 }
@@ -360,7 +368,10 @@ export async function registerWebhook(
       body: JSON.stringify({
         url,
         secret_token: row.secret,
-        allowed_updates: ["message", "edited_message"],
+        // `callback_query` is what a button tap arrives as. Without it Telegram
+        // accepts the webhook and then silently drops every tap — which is exactly
+        // what happened: the buttons appeared, nothing happened when pressed.
+        allowed_updates: ["message", "edited_message", "callback_query"],
         drop_pending_updates: false,
       }),
     });

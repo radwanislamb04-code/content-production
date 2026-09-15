@@ -21,6 +21,7 @@ import {
   Layers,
   Database,
   Bot,
+  MessageSquare,
   Settings as SettingsIcon,
 } from "lucide-react";
 
@@ -95,6 +96,7 @@ export const NAV_GROUPS: NavGroup[] = [
 
 /** Always-visible links pinned to the bottom of the sidebar. */
 export const BOTTOM_LINKS: NavEntry[] = [
+  { path: "/dm", label: "DM Manager", Icon: MessageSquare },
   { path: "/sources", label: "Sources", Icon: Database },
   { path: "/autopilot", label: "AutoPilot", Icon: Bot },
   { path: "/settings", label: "Settings", Icon: SettingsIcon },

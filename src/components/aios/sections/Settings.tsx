@@ -757,6 +757,7 @@ type WebhookStatus = {
     pendingUpdates: number;
     lastErrorDate: number | null;
     lastErrorMessage: string | null;
+    allowedUpdates: string[] | null;
   } | null;
   error?: string;
 };
@@ -874,6 +875,19 @@ function TelegramWebhookCard() {
             {status?.telegram?.lastErrorMessage
               ? `${status.telegram.lastErrorMessage} (${when(status.telegram.lastErrorDate)})`
               : "none"}
+          </span>
+          <span className="sm:col-span-2">
+            Telegram delivers:{" "}
+            {status?.telegram?.allowedUpdates?.length
+              ? status.telegram.allowedUpdates.join(", ")
+              : "—"}
+            {status?.telegram?.allowedUpdates &&
+            !status.telegram.allowedUpdates.includes("callback_query") ? (
+              <span className="text-err">
+                {" "}
+                — button taps are being dropped; press “Turn on” to fix it.
+              </span>
+            ) : null}
           </span>
         </div>
 

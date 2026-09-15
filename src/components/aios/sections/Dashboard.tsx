@@ -12,6 +12,8 @@ import {
   PenLine,
   LayoutPanelLeft,
   Calendar,
+  Check,
+  Trash2,
   Video,
   Film,
   ArrowRight,
@@ -51,6 +53,19 @@ type TgTask = {
   time?: string | null;
   done?: number | boolean | null;
   created_at?: number;
+  source?: string | null;
+  due_date?: string | null;
+  /** Where a Telegram message was filed: board | calendar | library | remind | task */
+  routed_to?: string | null;
+};
+
+/** The label for a filed message — "→ Board" reads better than "routed_to: board". */
+const ROUTE_LABEL: Record<string, string> = {
+  board: "Board",
+  calendar: "Calendar",
+  library: "Ideas",
+  remind: "Briefing",
+  task: "Task",
 };
 
 
@@ -449,6 +464,48 @@ function TelegramTasks() {
     }
   };
 
+  /**
+   * Tick it off, or put it back. Optimistic on purpose — the queue is the thing
+   * you look at while working, and a spinner on a checkbox is worse than a rollback
+   * if the write fails.
+   */
+  const setDone = async (id: string, done: boolean) => {
+    setErr(null);
+    setData((prev) => (prev ?? []).map((t) => (t.id === id ? { ...t, done } : t)));
+    try {
+      const res = await apiFetch("/api/telegram-tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, done }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
+      if (json.task) {
+        setData((prev) => (prev ?? []).map((t) => (t.id === id ? { ...t, ...json.task } : t)));
+      }
+    } catch (e: any) {
+      setErr(e?.message ?? "Could not update the task");
+      setData((prev) => (prev ?? []).map((t) => (t.id === id ? { ...t, done: !done } : t)));
+    }
+  };
+
+  /** Delete for good. The row goes; if the write fails the row comes back. */
+  const removeTask = async (id: string) => {
+    const snapshot = tasks;
+    setErr(null);
+    setData((prev) => (prev ?? []).filter((t) => t.id !== id));
+    try {
+      const res = await apiFetch(`/api/telegram-tasks?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
+    } catch (e: any) {
+      setErr(e?.message ?? "Could not delete the task");
+      setData(snapshot);
+    }
+  };
+
   return (
     <Card className="p-5">
       <div className="mb-1 text-xs uppercase tracking-wide text-mute">
@@ -487,21 +544,61 @@ function TelegramTasks() {
           {tasks.map((t) => (
             <div
               key={t.id}
-              className="flex items-start gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
+              className="flex items-start gap-2 rounded-md border border-line bg-surface p-2.5 text-sm"
             >
-              <span className="flex-1 text-fg">{t.text}</span>
+              <button
+                type="button"
+                onClick={() => void setDone(t.id, !t.done)}
+                title={t.done ? "Put it back in the open list" : "Mark as done"}
+                aria-label={t.done ? "Put it back in the open list" : "Mark as done"}
+                className={`mt-[1px] grid h-5 w-5 shrink-0 place-items-center rounded border transition-colors ${
+                  t.done
+                    ? "border-lime bg-lime/10 text-lime"
+                    : "border-line text-mute hover:border-lime hover:text-lime"
+                }`}
+              >
+                {t.done ? <Check size={12} /> : null}
+              </button>
+
+              <span
+                className={`min-w-0 flex-1 ${t.done ? "text-mute line-through" : "text-fg"}`}
+              >
+                {t.text}
+              </span>
+
               {t.time && <span className="shrink-0 text-xs text-mute">{t.time}</span>}
-              <Pill variant={t.done ? "default" : "accent"}>
-                {t.done ? "sent" : "queued"}
-              </Pill>
+
+              {t.routed_to ? (
+                <span
+                  className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[11px] text-mute"
+                  title="You filed this from Telegram — it lives there now"
+                >
+                  → {ROUTE_LABEL[t.routed_to] ?? t.routed_to}
+                </span>
+              ) : (
+                <Pill variant={t.done ? "default" : "accent"}>
+                  {t.done ? "handled" : "queued"}
+                </Pill>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void removeTask(t.id)}
+                title="Delete this task"
+                aria-label="Delete this task"
+                className="mt-[1px] grid h-5 w-5 shrink-0 place-items-center rounded text-mute transition-colors hover:text-err"
+              >
+                <Trash2 size={12} />
+              </button>
             </div>
           ))}
         </div>
       )}
 
       <div className="mt-3 text-[11px] text-mute">
-        “sent” means the bot has delivered it; it is not a completion you can tick
-        off here.
+        Ticked = done; the bin deletes it for good. Queued tasks go out with the
+        next bot run (08:00 / 20:00), and a message you filed to the Board, the
+        calendar or Ideas leaves this list and shows where it went.
       </div>
     </Card>
   );

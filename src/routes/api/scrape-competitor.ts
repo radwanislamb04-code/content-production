@@ -1,3 +1,4 @@
+import { OWNER_ID } from "../../lib/users";
 ﻿import { createFileRoute } from "@tanstack/react-router";
 
 import { logActivity } from "../../lib/activity";
@@ -121,7 +122,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
           for (const post of posts) {
             await db
               .prepare(
-                "INSERT INTO post_performance (id, handle, is_own_account, caption, likes, comments, url, posted_at, project_id, scraped_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO post_performance (id, handle, is_own_account, caption, likes, comments, url, posted_at, project_id, scraped_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
               )
               .bind(
                 crypto.randomUUID(),
@@ -134,7 +135,8 @@ export const Route = createFileRoute("/api/scrape-competitor")({
                 post.timestamp ?? "",
                 (body as any)?.project_id ?? null,
                 Date.now(),
-              )
+              OWNER_ID,
+                )
               .run();
           }
           console.log("DEBUG: DB insert complete");

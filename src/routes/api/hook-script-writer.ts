@@ -1,3 +1,4 @@
+import { OWNER_ID, currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
@@ -296,8 +297,9 @@ export const Route = createFileRoute("/api/hook-script-writer")({
         let idea: IdeaRow | null = null;
         try {
           idea = (await db
-            .prepare("SELECT * FROM library WHERE id = ?")
-            .bind(ideaId)
+            .prepare("SELECT * FROM library WHERE id = ? AND user_id = ?")
+            .bind(ideaId,
+              await currentUserId(request, context))
             .first()) as IdeaRow | null;
         } catch (err: any) {
           return Response.json(
@@ -427,8 +429,8 @@ export const Route = createFileRoute("/api/hook-script-writer")({
         try {
           await db
             .prepare(
-              `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, created_at, updated_at, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(id) DO UPDATE SET
                  title = excluded.title,
                  content = excluded.content,
@@ -437,7 +439,8 @@ export const Route = createFileRoute("/api/hook-script-writer")({
                  source_id = excluded.source_id,
                  updated_at = excluded.updated_at`,
             )
-            .bind(scriptId, "script", "draft", contentPillar, scriptTitle, scriptContent, ideaId, now, now)
+            .bind(scriptId, "script", "draft", contentPillar, scriptTitle, scriptContent, ideaId, now, now,
+              OWNER_ID)
             .run();
         } catch (err: any) {
           return Response.json(

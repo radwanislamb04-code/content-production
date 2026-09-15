@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity";
@@ -56,8 +57,9 @@ export const Route = createFileRoute("/api/score-content")({
         let item: any;
         try {
           item = await db
-            .prepare("SELECT id, type, title, content, quality_score FROM library WHERE id = ?")
-            .bind(parsed.data.id)
+            .prepare("SELECT id, type, title, content, quality_score FROM library WHERE id = ? AND user_id = ?")
+            .bind(parsed.data.id,
+              await currentUserId(request, context))
             .first();
         } catch (err: any) {
           return Response.json({ ok: false, error: err?.message ?? String(err) }, { status: 500 });

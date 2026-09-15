@@ -1,3 +1,4 @@
+import { OWNER_ID, currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
@@ -332,8 +333,9 @@ export const Route = createFileRoute("/api/visual-storyboard")({
         let scriptRow: ScriptRow | null = null;
         try {
           scriptRow = (await db
-            .prepare("SELECT * FROM library WHERE id = ? AND type = ?")
-            .bind(scriptId, "script")
+            .prepare("SELECT * FROM library WHERE id = ? AND type = ? AND user_id = ?")
+            .bind(scriptId, "script",
+              await currentUserId(request, context))
             .first()) as ScriptRow | null;
         } catch (err: any) {
           return Response.json(
@@ -493,8 +495,8 @@ export const Route = createFileRoute("/api/visual-storyboard")({
         try {
           await db
             .prepare(
-              `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, created_at, updated_at, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             )
             .bind(
               storyboardId,
@@ -506,7 +508,8 @@ export const Route = createFileRoute("/api/visual-storyboard")({
               scriptId,
               now,
               now,
-            )
+            OWNER_ID,
+              )
             .run();
         } catch (err: any) {
           console.error("D1 insert error after streaming:", err);

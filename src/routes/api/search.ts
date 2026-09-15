@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
 
@@ -103,28 +104,31 @@ export const Route = createFileRoute("/api/search")({
           }
         };
 
+        // Every branch is filtered to the signed-in user (resolved once).
+        const uid = await currentUserId(request, context);
+
         if (q) {
           const [library, projects, resources, briefs] = await Promise.all([
             safe(
               `SELECT id, type, title, content, created_at FROM library
-                WHERE title LIKE ? OR content LIKE ?
+                WHERE (title LIKE ? OR content LIKE ?) AND user_id = ?
                 ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 20`,
-              [like, like],
+              [like, like, uid],
             ),
             safe(
               `SELECT id, title, module, status, created_at FROM projects
-                WHERE title LIKE ? OR module LIKE ? ORDER BY created_at DESC LIMIT 10`,
-              [like, like],
+                WHERE (title LIKE ? OR module LIKE ?) AND user_id = ? ORDER BY created_at DESC LIMIT 10`,
+              [like, like, uid],
             ),
             safe(
               `SELECT id, name, url, description, category FROM resources
-                WHERE name LIKE ? OR description LIKE ? OR category LIKE ? LIMIT 10`,
-              [like, like, like],
+                WHERE (name LIKE ? OR description LIKE ? OR category LIKE ?) AND user_id = ? LIMIT 10`,
+              [like, like, like, uid],
             ),
             safe(
               `SELECT key, value, updated_at FROM workspace
-                WHERE key LIKE 'brief_%' AND value LIKE ? ORDER BY key DESC LIMIT 5`,
-              [like],
+                WHERE key LIKE 'brief_%' AND value LIKE ? AND user_id = ? ORDER BY key DESC LIMIT 5`,
+              [like, uid],
             ),
           ]);
 
@@ -173,8 +177,8 @@ export const Route = createFileRoute("/api/search")({
           // No query → the newest content, so the spotlight is useful on open.
           const recent = await safe(
             `SELECT id, type, title, content, created_at FROM library
-              ORDER BY created_at DESC LIMIT 8`,
-            [],
+              WHERE user_id = ? ORDER BY created_at DESC LIMIT 8`,
+            [uid],
           );
           for (const r of recent) {
             const meta = LIBRARY_ROUTES[r.type] ?? { label: "Library", href: "/library" };

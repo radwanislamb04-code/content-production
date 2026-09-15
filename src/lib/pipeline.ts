@@ -1,5 +1,5 @@
-import { lastActivityError, logActivity } from "./activity";
 import { OWNER_ID } from "./users";
+import { lastActivityError, logActivity } from "./activity";
 import { callAi } from "./ai";
 import {
   readApifyToken,
@@ -216,7 +216,10 @@ async function stepScrape(env: any): Promise<{ detail: string; items: number }> 
       continue;
     }
     try {
-      await db.prepare("DELETE FROM post_performance WHERE handle = ?").bind(handle).run();
+      await db
+        .prepare("DELETE FROM post_performance WHERE handle = ? AND user_id = ?")
+        .bind(handle, OWNER_ID)
+        .run();
     } catch {
       /* table may be empty — nothing to clear */
     }
@@ -225,7 +228,7 @@ async function stepScrape(env: any): Promise<{ detail: string; items: number }> 
       try {
         await db
           .prepare(
-            "INSERT INTO post_performance (id, handle, is_own_account, caption, likes, comments, url, posted_at, scraped_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO post_performance (id, handle, is_own_account, caption, likes, comments, url, posted_at, scraped_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           )
           .bind(
             crypto.randomUUID(),
@@ -237,7 +240,8 @@ async function stepScrape(env: any): Promise<{ detail: string; items: number }> 
             p.url ?? "",
             p.timestamp || null,
             Date.now(),
-          )
+          
+                OWNER_ID)
           .run();
         stored++;
       } catch {
@@ -273,8 +277,9 @@ async function stepBrief(
     try {
       const { results } = await db
         .prepare(
-          "SELECT handle, caption, likes, comments, url FROM post_performance WHERE is_own_account = 0 ORDER BY likes DESC LIMIT 5",
+          "SELECT handle, caption, likes, comments, url FROM post_performance WHERE is_own_account = 0 AND user_id = ? ORDER BY likes DESC LIMIT 5",
         )
+          .bind(OWNER_ID)
         .all();
       viral = results ?? [];
     } catch {
@@ -283,8 +288,9 @@ async function stepBrief(
     try {
       const { results } = await db
         .prepare(
-          "SELECT id, type, title, quality_score FROM library WHERE status IS NULL OR status != 'archived' ORDER BY COALESCE(quality_score, 0) DESC, rowid DESC LIMIT 5",
+          "SELECT id, type, title, quality_score FROM library WHERE (status IS NULL OR status != 'archived') AND user_id = ? ORDER BY COALESCE(quality_score, 0) DESC, rowid DESC LIMIT 5",
         )
+          .bind(OWNER_ID)
         .all();
       picks = results ?? [];
     } catch {
@@ -293,8 +299,9 @@ async function stepBrief(
     try {
       const { results } = await db
         .prepare(
-          "SELECT id, text, time FROM telegram_tasks WHERE COALESCE(done, 0) = 0 ORDER BY created_at DESC LIMIT 5",
+          "SELECT id, text, time FROM telegram_tasks WHERE COALESCE(done, 0) = 0 AND user_id = ? ORDER BY created_at DESC LIMIT 5",
         )
+          .bind(OWNER_ID)
         .all();
       tasks = results ?? [];
     } catch {

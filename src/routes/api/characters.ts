@@ -1,3 +1,4 @@
+import { OWNER_ID, currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
 
@@ -48,9 +49,10 @@ export const Route = createFileRoute("/api/characters")({
         try {
           const { results } = await db
             .prepare(
-              "SELECT * FROM library WHERE type = ? ORDER BY created_at DESC",
+              "SELECT * FROM library WHERE type = ? AND user_id = ? ORDER BY created_at DESC",
             )
-            .bind("character")
+            .bind("character",
+              await currentUserId(request, context))
             .all();
           const rows = (results ?? []) as LibraryRow[];
           const characters = rows.map((row) => ({
@@ -100,10 +102,11 @@ export const Route = createFileRoute("/api/characters")({
         try {
           await db
             .prepare(
-              `INSERT INTO library (id, type, status, title, content, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO library (id, type, status, title, content, created_at, updated_at, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             )
-            .bind(id, "character", "active", name, content, now, now)
+            .bind(id, "character", "active", name, content, now, now,
+              OWNER_ID)
             .run();
         } catch (err: any) {
           return Response.json(

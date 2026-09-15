@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readActivity } from "../../lib/activity";
 import { getEnv } from "../../lib/settings";
@@ -65,8 +66,9 @@ export const Route = createFileRoute("/api/notifications")({
         if (env?.DB) {
           try {
             const { results } = await env.DB.prepare(
-              "SELECT id, text, time, created_at FROM telegram_tasks WHERE COALESCE(done, 0) = 0 ORDER BY created_at DESC LIMIT 5",
-            ).all();
+              "SELECT id, text, time, created_at FROM telegram_tasks WHERE COALESCE(done, 0) = 0 AND user_id = ? ORDER BY created_at DESC LIMIT 5",
+            )
+                                              .bind(await currentUserId(request, context)).all();
             for (const t of (results ?? []) as any[]) {
               items.push({
                 id: `task-${t.id}`,

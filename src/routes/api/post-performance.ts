@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
 
@@ -36,8 +37,11 @@ export const Route = createFileRoute("/api/post-performance")({
         const url = new URL(request.url);
         const daysRaw = url.searchParams.get("days");
         const days = daysRaw ? Math.min(Math.max(1, Number(daysRaw)), 365) : null;
-        const where = days ? "WHERE posted_at >= date('now', ?)" : "";
-        const args: unknown[] = days ? [`-${days} days`] : [];
+        const uid = await currentUserId(request, context);
+        const where = days
+          ? "WHERE posted_at >= date('now', ?) AND user_id = ?"
+          : "WHERE user_id = ?";
+        const args: unknown[] = days ? [`-${days} days`, uid] : [uid];
 
         try {
           const agg = await db
@@ -78,7 +82,10 @@ export const Route = createFileRoute("/api/post-performance")({
             .all();
 
           const stamp = await db
-            .prepare("SELECT MAX(scraped_at) AS scraped_at FROM post_performance")
+            .prepare(
+              "SELECT MAX(scraped_at) AS scraped_at FROM post_performance WHERE user_id = ?",
+            )
+            .bind(uid)
             .first();
 
           const handles = ((agg.results ?? []) as any[]).map((r) => ({

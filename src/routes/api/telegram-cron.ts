@@ -1,3 +1,4 @@
+import { OWNER_ID } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { readTelegramConfig } from "../../lib/settings";
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/api/telegram-cron")({
         if (db) {
           await db
             .prepare(
-              "INSERT INTO activity (id, module, action, detail, created_at) VALUES (?, ?, ?, ?, ?)"
+              "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)"
             )
             .bind(
               crypto.randomUUID(),
@@ -37,7 +38,8 @@ export const Route = createFileRoute("/api/telegram-cron")({
               "error",
               "KV keys unavailable",
               Date.now()
-            )
+            ,
+              OWNER_ID)
             .run();
         }
         return Response.json({ error: "KV keys unavailable" }, { status: 500 });
@@ -47,7 +49,7 @@ export const Route = createFileRoute("/api/telegram-cron")({
         if (db) {
           await db
             .prepare(
-              "INSERT INTO activity (id, module, action, detail, created_at) VALUES (?, ?, ?, ?, ?)"
+              "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)"
             )
             .bind(
               crypto.randomUUID(),
@@ -55,7 +57,8 @@ export const Route = createFileRoute("/api/telegram-cron")({
               "error",
               "Missing telegram_bot_token or telegram_chat_id in KV",
               Date.now()
-            )
+            ,
+              OWNER_ID)
             .run();
         }
         return Response.json({ error: "Missing KV keys" }, { status: 500 });
@@ -66,9 +69,9 @@ export const Route = createFileRoute("/api/telegram-cron")({
       try {
         const { results } = await db
           .prepare(
-            `SELECT * FROM telegram_tasks WHERE done = 0 ORDER BY created_at ASC LIMIT ?`
+            `SELECT * FROM telegram_tasks WHERE done = 0 AND user_id = ? ORDER BY created_at ASC LIMIT ?`
           )
-          .bind(BATCH_LIMIT)
+          .bind(OWNER_ID, BATCH_LIMIT)
           .all();
         tasks = results ?? [];
       } catch {
@@ -78,7 +81,7 @@ export const Route = createFileRoute("/api/telegram-cron")({
       if (!tasks.length) {
         await db
           .prepare(
-            "INSERT INTO activity (id, module, action, detail, created_at) VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)"
           )
           .bind(
             crypto.randomUUID(),
@@ -86,7 +89,8 @@ export const Route = createFileRoute("/api/telegram-cron")({
             "no_tasks",
             "No pending tasks",
             Date.now()
-          )
+          ,
+            OWNER_ID)
           .run();
         return Response.json({ sent: 0, message: "No pending tasks" });
       }
@@ -115,8 +119,10 @@ export const Route = createFileRoute("/api/telegram-cron")({
 
           // Mark task as sent
           await db
-            .prepare("UPDATE telegram_tasks SET done = 1 WHERE id = ?")
-            .bind(task.id)
+            .prepare(
+              "UPDATE telegram_tasks SET done = 1 WHERE id = ? AND user_id = ?",
+            )
+            .bind(task.id, OWNER_ID)
             .run();
         } catch {
           failed.push(task.id);
@@ -126,7 +132,7 @@ export const Route = createFileRoute("/api/telegram-cron")({
       // --- Log to activity ---
       await db
         .prepare(
-          "INSERT INTO activity (id, module, action, detail, created_at) VALUES (?, ?, ?, ?, ?)"
+          "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)"
         )
         .bind(
           crypto.randomUUID(),
@@ -136,7 +142,8 @@ export const Route = createFileRoute("/api/telegram-cron")({
             failed.length ? ` | ${failed.length} failed` : ""
           }`,
           Date.now()
-        )
+        ,
+          OWNER_ID)
         .run();
 
       return Response.json({

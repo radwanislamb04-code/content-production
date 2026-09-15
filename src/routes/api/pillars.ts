@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
 
@@ -20,8 +21,9 @@ export const Route = createFileRoute("/api/pillars")({
           const { results } = await db
             .prepare(
               `SELECT COALESCE(content_pillar, 'untagged') AS pillar, COUNT(*) AS n
-                 FROM library GROUP BY pillar ORDER BY n DESC`,
+                 FROM library WHERE user_id = ? GROUP BY pillar ORDER BY n DESC`,
             )
+              .bind(await currentUserId(request, context))
             .all();
           const pillars: { pillar: string; count: number }[] = ((results ?? []) as any[]).map(
             (r) => ({

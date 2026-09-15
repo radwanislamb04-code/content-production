@@ -1,3 +1,4 @@
+import { OWNER_ID } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
@@ -215,8 +216,8 @@ export const Route = createFileRoute("/api/ideator-generate")({
             try {
               await db
                 .prepare(
-                  `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, created_at, updated_at, user_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(id) DO UPDATE SET
                      title = excluded.title,
                      content = excluded.content,
@@ -225,7 +226,8 @@ export const Route = createFileRoute("/api/ideator-generate")({
                      source_id = excluded.source_id,
                      updated_at = excluded.updated_at`,
                 )
-                .bind(idea.id, "idea", "draft", idea.content_pillar, idea.title, content, null, now, now)
+                .bind(idea.id, "idea", "draft", idea.content_pillar, idea.title, content, null, now, now,
+              OWNER_ID)
                 .run();
             } catch {
               // Skip persistence errors per-row; still return the generated ideas

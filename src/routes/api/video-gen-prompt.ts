@@ -1,3 +1,4 @@
+import { OWNER_ID, currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
@@ -281,8 +282,9 @@ export const Route = createFileRoute("/api/video-gen-prompt")({
         let storyboardRow: StoryboardRow | null = null;
         try {
           storyboardRow = (await db
-            .prepare("SELECT * FROM library WHERE id = ? AND type = 'storyboard'")
-            .bind(storyboardId)
+            .prepare("SELECT * FROM library WHERE id = ? AND type = 'storyboard' AND user_id = ?")
+            .bind(storyboardId,
+              await currentUserId(request, context))
             .first()) as StoryboardRow | null;
         } catch (err: any) {
           return Response.json(
@@ -458,8 +460,8 @@ Generate shot-by-shot video generation prompts. Incorporate model=${model}, aspe
         try {
           await db
             .prepare(
-              `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, project_id, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO library (id, type, status, content_pillar, title, content, source_id, project_id, created_at, updated_at, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             )
             .bind(
               videoPromptId,
@@ -472,7 +474,8 @@ Generate shot-by-shot video generation prompts. Incorporate model=${model}, aspe
               storyboardRow.project_id ?? null,
               now,
               now,
-            )
+            OWNER_ID,
+              )
             .run();
         } catch (err: any) {
           return Response.json(

@@ -1,3 +1,4 @@
+import { OWNER_ID } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv, readTelegramConfig } from "../../lib/settings";
 
@@ -58,7 +59,7 @@ export const Route = createFileRoute("/api/telegram-test")({
             try {
               await db
                 .prepare(
-                  "INSERT INTO activity (id, module, action, detail, created_at) VALUES (?, ?, ?, ?, ?)",
+                  "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)",
                 )
                 .bind(
                   crypto.randomUUID(),
@@ -66,7 +67,8 @@ export const Route = createFileRoute("/api/telegram-test")({
                   "sent",
                   "Test message sent from Settings",
                   Date.now(),
-                )
+                OWNER_ID,
+                  )
                 .run();
             } catch {
               /* logging is best-effort */

@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
 
@@ -58,24 +59,28 @@ export const Route = createFileRoute("/api/hooks")({
           return Response.json({ ok: false, error: "D1 is not bound" }, { status: 500 });
         }
 
-        const safe = async (sql: string) => {
+        const safe = async (sql: string, args: unknown[] = []) => {
           try {
-            const { results } = await db.prepare(sql).all();
+            const { results } = await db.prepare(sql).bind(...args).all();
             return (results ?? []) as any[];
           } catch {
             return [];
           }
         };
 
+        const uid = await currentUserId(request, context);
+
         const [scripts, own, stamp] = await Promise.all([
           safe(
-            "SELECT id, title, content, created_at FROM library WHERE type = 'script' ORDER BY created_at DESC LIMIT 60",
+            "SELECT id, title, content, created_at FROM library WHERE type = 'script' AND user_id = ? ORDER BY created_at DESC LIMIT 60",
+            [uid],
           ),
           safe(
             `SELECT caption, likes, comments, url, posted_at FROM post_performance
-              WHERE is_own_account = 1 ORDER BY MAX(COALESCE(likes,0),0) + MAX(COALESCE(comments,0),0) DESC, posted_at DESC LIMIT 40`,
+              WHERE is_own_account = 1 AND user_id = ? ORDER BY MAX(COALESCE(likes,0),0) + MAX(COALESCE(comments,0),0) DESC, posted_at DESC LIMIT 40`,
+            [uid],
           ),
-          safe("SELECT MAX(scraped_at) AS scraped_at FROM post_performance"),
+          safe("SELECT MAX(scraped_at) AS scraped_at FROM post_performance WHERE user_id = ?", [uid]),
         ]);
 
         const hooks: Hook[] = [];

@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
 import { logActivity } from "../../lib/activity";
-import { appCreds, channelForIgId, decryptToken, markChannel } from "../../lib/channels";
+import {
+  RATE_LIMIT_PER_MINUTE,
+  appCreds,
+  channelForIgId,
+  decryptToken,
+  markChannel,
+  recentSendCount,
+} from "../../lib/channels";
 import {
   privateReply,
   publicReply,
@@ -219,6 +226,23 @@ export const Route = createFileRoute("/api/instagram-webhook")({
             });
             if (!fresh) {
               results.push({ comment: commentId, duplicate: true });
+              continue;
+            }
+
+            // Spam guard: a viral reel can produce a burst in seconds, and Meta
+            // limits an app that fires too fast. Skip and record rather than
+            // getting the account limited — the comment stays unanswered and shows
+            // up as a hand-off instead of silently vanishing.
+            if ((await recentSendCount(env, channel.user_id)) >= RATE_LIMIT_PER_MINUTE) {
+              await markHandled(env, `comment:${commentId}`);
+              await claimEvent(env, `rate:comment:${commentId}`, {
+                user_id: channel.user_id,
+                ig_user_id: igUserId,
+                field: FIELD_COMMENTS,
+                kind: "rate_limited",
+                detail: text.slice(0, 120),
+              });
+              results.push({ comment: commentId, rate_limited: true });
               continue;
             }
 

@@ -15,6 +15,7 @@
  */
 
 import { readSetting, SETTINGS_KEYS, writeSetting } from "./settings";
+import { subscribeFields, subscribedApps } from "./instagram-api";
 
 export const IG_PLATFORM = "instagram";
 
@@ -526,6 +527,97 @@ export async function markChannel(
 }
 
 /* -------------------------------------------------------------- maintenance */
+
+export const WEBHOOK_FIELDS = ["comments", "messages", "message_reactions"];
+
+export type HealOutcome = {
+  checked: number;
+  fixed: number;
+  details: Array<{ channel: string; action: string; detail?: string }>;
+};
+
+/**
+ * Self-healing: a webhook subscription can be lost (a Meta-side change, a revoked
+ * permission, a failed connect). Instead of waiting for the owner to notice that
+ * nothing arrives, every cron run compares what Meta has with what we need and
+ * puts it back.
+ */
+export async function ensureSubscriptions(env: any): Promise<HealOutcome> {
+  const outcome: HealOutcome = { checked: 0, fixed: 0, details: [] };
+  let channels: Channel[] = [];
+  try {
+    const { results } = await env.DB.prepare(
+      "SELECT * FROM channels WHERE platform = ? AND status != 'paused'",
+    )
+      .bind(IG_PLATFORM)
+      .all();
+    channels = (results ?? []) as Channel[];
+  } catch {
+    return outcome;
+  }
+
+  for (const channel of channels) {
+    outcome.checked++;
+    const label = channel.username ? `@${channel.username}` : (channel.ig_user_id ?? channel.id);
+    const token = await decryptToken(env, channel.token_enc);
+    if (!token || !channel.ig_user_id) {
+      outcome.details.push({ channel: label, action: "skipped", detail: "no usable token" });
+      continue;
+    }
+
+    const current = await subscribedApps(token, channel.ig_user_id);
+    if (!current.ok) {
+      outcome.details.push({ channel: label, action: "unreadable", detail: current.error });
+      continue;
+    }
+
+    const subscribed: string[] = Array.isArray(current.data)
+      ? current.data.flatMap((app: any) => app?.subscribed_fields ?? [])
+      : [];
+    const missing = WEBHOOK_FIELDS.filter((f) => !subscribed.includes(f));
+    if (missing.length === 0) {
+      outcome.details.push({ channel: label, action: "ok" });
+      continue;
+    }
+
+    const fixed = await subscribeFields(token, channel.ig_user_id, WEBHOOK_FIELDS);
+    if (fixed.ok) {
+      outcome.fixed++;
+      outcome.details.push({
+        channel: label,
+        action: "resubscribed",
+        detail: `was missing ${missing.join(", ")}`,
+      });
+    } else {
+      outcome.details.push({ channel: label, action: "failed", detail: fixed.error });
+    }
+  }
+
+  return outcome;
+}
+
+/**
+ * The spam guard. Meta throttles an app that fires too fast, and a viral reel can
+ * produce a burst of comments in seconds — so the webhook counts what this user has
+ * already sent in the last minute and stops rather than getting the app limited.
+ * A skipped event is recorded and becomes a hand-off, never silent.
+ */
+export const RATE_WINDOW_MS = 60_000;
+export const RATE_LIMIT_PER_MINUTE = 20;
+
+export async function recentSendCount(env: any, userId: string): Promise<number> {
+  try {
+    const row = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM dm_messages
+        WHERE user_id = ? AND direction = 'out' AND status = 'sent' AND created_at >= ?`,
+    )
+      .bind(userId, Date.now() - RATE_WINDOW_MS)
+      .first();
+    return Number((row as any)?.n ?? 0);
+  } catch {
+    return 0;
+  }
+}
 
 export type RefreshOutcome = {
   checked: number;

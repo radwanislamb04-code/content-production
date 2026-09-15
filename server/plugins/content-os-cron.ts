@@ -33,6 +33,8 @@
 import { logActivity } from "../../src/lib/activity";
 import { runPipeline } from "../../src/lib/pipeline";
 import { queuePendingWork } from "../../src/lib/autoqueue";
+import { ensureSubscriptions, refreshDueChannels } from "../../src/lib/channels";
+import { sendTelegram } from "../../src/lib/telegram";
 
 // Must match `[triggers].crons` in wrangler.toml exactly. Cron expressions are
 // ALWAYS UTC; the Dhaka times above are what the user asked for.
@@ -80,6 +82,42 @@ export default function contentOsCron(nitroApp: {
             `no active users to run "${cron}" for`,
           );
           return;
+        }
+
+        // Instagram maintenance, once per run and independent of the users loop:
+        // refresh the tokens (60-day ones, so nothing is ever done by hand) and
+        // repair webhook subscriptions that went missing. Anything that cannot be
+        // fixed is reported to the owner instead of failing quietly.
+        try {
+          const refreshed = await refreshDueChannels(env);
+          const healed = await ensureSubscriptions(env);
+          if (refreshed.refreshed || healed.fixed || refreshed.failed) {
+            await logActivity(
+              env,
+              "instagram",
+              "maintenance",
+              `tokens: ${refreshed.refreshed} refreshed, ${refreshed.failed} failed of ${refreshed.checked}; subscriptions: ${healed.fixed} repaired of ${healed.checked}`,
+            );
+          }
+
+          const broken = refreshed.details.filter(
+            (d) => d.action === "expired" || d.action === "undecryptable" || d.action === "failed",
+          );
+          if (broken.length) {
+            await sendTelegram(
+              env,
+              [
+                "⚠️ An Instagram connection needs you",
+                "",
+                ...broken.map((b) => `• ${b.channel} — ${b.detail ?? b.action}`),
+                "",
+                "Open Content OS → DM Manager → Connections and press Connect again.",
+              ].join("\n"),
+              {},
+            );
+          }
+        } catch (err: any) {
+          await logActivity(env, "instagram", "maintenance_failed", String(err?.message ?? err));
         }
 
         const failures: string[] = [];

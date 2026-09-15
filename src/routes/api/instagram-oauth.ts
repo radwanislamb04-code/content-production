@@ -8,6 +8,7 @@ import {
   ensureVerifyToken,
   decryptToken,
   disconnectChannel,
+  ensureSubscriptions,
   exchangeCode,
   fetchMe,
   getChannel,
@@ -225,15 +226,17 @@ export const Route = createFileRoute("/api/instagram-oauth")({
         }
 
         if (action === "refresh-now") {
+          // Both halves of the maintenance run: the token and the subscription.
           const outcome = await refreshDueChannels(env, { force: true });
+          const healed = await ensureSubscriptions(env);
           await logActivity(
             env,
             "instagram",
             "token_refresh",
-            `checked ${outcome.checked}, refreshed ${outcome.refreshed}, failed ${outcome.failed}`,
+            `checked ${outcome.checked}, refreshed ${outcome.refreshed}, failed ${outcome.failed}; subscriptions: ${healed.fixed} repaired of ${healed.checked}`,
             userId,
           );
-          return Response.json({ ok: true, ...outcome });
+          return Response.json({ ok: true, ...outcome, subscriptions: healed });
         }
 
         if (action === "test") {

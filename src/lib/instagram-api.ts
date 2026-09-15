@@ -15,7 +15,10 @@
  * failure, and nothing here pretends a send succeeded.
  */
 
-import { GRAPH } from "./channels";
+// Defined here rather than imported from ./channels: channels imports these send
+// helpers, and a module cycle that only works by luck is worse than twelve
+// duplicated characters.
+const GRAPH = "https://graph.instagram.com";
 
 const API_VERSION = "v21.0";
 

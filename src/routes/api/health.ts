@@ -8,6 +8,7 @@ import {
 } from "../../lib/settings";
 import { currentUser, currentUserId, emailFromAssertion } from "../../lib/users";
 import { getWebhook } from "../../lib/telegram-hook";
+import { listChannels } from "../../lib/channels";
 import { usageFor, type Usage as ApifyUsage } from "./apify-usage";
 
 /**
@@ -109,6 +110,33 @@ export const Route = createFileRoute("/api/health")({
 
         // --- Telegram intake ----------------------------------------------
         const hook = await getWebhook(env, userId);
+
+        // --- Instagram channels (M3) ---------------------------------------
+        // "Connected" is not the same as "working": a token can be fine while no
+        // event ever arrives. Comparing the two is what catches a silent breakage.
+        const STALE_MS = 7 * 86_400_000;
+        const channelRows = await listChannels(env, userId);
+        let automationsEnabled = 0;
+        try {
+          const row = await env.DB.prepare(
+            "SELECT COUNT(*) AS n FROM dm_automations WHERE user_id = ? AND enabled = 1",
+          )
+            .bind(userId)
+            .first();
+          automationsEnabled = Number((row as any)?.n ?? 0);
+        } catch {
+          /* no automations yet */
+        }
+        const channels = channelRows.map((c) => ({
+          id: c.id,
+          username: c.username,
+          status: c.status,
+          expires_at: c.token_expires_at,
+          refreshed_at: c.token_refreshed_at,
+          last_event_at: c.last_event_at,
+          last_error: c.last_error,
+          stale: !!c.last_event_at && Date.now() - c.last_event_at > STALE_MS,
+        }));
 
         // --- data counts ----------------------------------------------------
         const libraryByType = await (async () => {
@@ -226,6 +254,30 @@ export const Route = createFileRoute("/api/health")({
             href: "/settings",
           });
         }
+        if (!channelRows.length) {
+          problems.push({
+            level: "info",
+            message:
+              "No Instagram account is connected — DM automations cannot run until one is.",
+            href: "/dm",
+          });
+        }
+        for (const c of channels) {
+          const who = c.username ? `@${c.username}` : "The Instagram account";
+          if (c.status === "needs_reconnect") {
+            problems.push({
+              level: "error",
+              message: `${who} needs reconnecting: ${c.last_error ?? "its token is no longer usable"}.`,
+              href: "/dm",
+            });
+          } else if (c.stale && automationsEnabled > 0) {
+            problems.push({
+              level: "warn",
+              message: `${who} has ${automationsEnabled} automation(s) on but has received nothing for over a week — the webhook subscription may have dropped.`,
+              href: "/dm",
+            });
+          }
+        }
         for (const row of failures) {
           problems.push({
             level: "warn",
@@ -258,6 +310,7 @@ export const Route = createFileRoute("/api/health")({
             apify_slots: usableSlots.length,
           },
           apify: apifySlots,
+          channels: { connected: channels, automations_enabled: automationsEnabled },
           telegram: {
             chat_id: chatId ?? hook?.chat_id ?? null,
             intake_registered: !!hook?.registered_at,

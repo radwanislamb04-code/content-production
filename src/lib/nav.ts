@@ -4,6 +4,7 @@ import {
   History,
   Calendar,
   FolderKanban,
+  KanbanSquare,
   Lightbulb,
   Video,
   PenLine,
@@ -63,6 +64,7 @@ export const NAV_GROUPS: NavGroup[] = [
     defaultOpen: false,
     items: [
       { path: "/calendar", label: "Calendar", Icon: Calendar },
+      { path: "/board", label: "Board", Icon: KanbanSquare },
       { path: "/projects", label: "Projects", Icon: FolderKanban },
       { path: "/brief-history", label: "Brief History", Icon: History },
     ],
@@ -113,6 +115,7 @@ export const SECTION_PATH = {
   storyboard: "/storyboard",
   prompt: "/video-prompt",
   planner: "/calendar",
+  board: "/board",
   analyst: "/performance",
   score: "/content-score",
   autopilot: "/autopilot",

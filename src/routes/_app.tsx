@@ -54,6 +54,8 @@ const FOCUS_RING =
 
 /** Permanent quick links shown on the right side of the second header row. */
 const QUICK_LINKS: { id: string; label: string }[] = [
+  { id: "/calendar", label: "Calendar" },
+  { id: "/board", label: "Board" },
   { id: "/templates", label: "Templates" },
   { id: "/resources", label: "Resources" },
   { id: "/performance", label: "Performance" },

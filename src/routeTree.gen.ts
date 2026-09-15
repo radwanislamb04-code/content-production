@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppAutopilotRouteImport } from './routes/_app.autopilot'
+import { Route as AppBoardRouteImport } from './routes/_app.board'
 import { Route as AppBriefHistoryRouteImport } from './routes/_app.brief-history'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppCharactersRouteImport } from './routes/_app.characters'
@@ -35,6 +36,7 @@ import { Route as AppVideoPromptRouteImport } from './routes/_app.video-prompt'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiApifyUsageRouteImport } from './routes/api/apify-usage'
 import { Route as ApiAppearanceRouteImport } from './routes/api/appearance'
+import { Route as ApiBoardRouteImport } from './routes/api/board'
 import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
 import { Route as ApiFrameCheckRouteImport } from './routes/api/frame-check'
@@ -86,6 +88,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppAutopilotRoute = AppAutopilotRouteImport.update({
   id: '/autopilot',
   path: '/autopilot',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBoardRoute = AppBoardRouteImport.update({
+  id: '/board',
+  path: '/board',
   getParentRoute: () => AppRoute,
 } as any)
 const AppBriefHistoryRoute = AppBriefHistoryRouteImport.update({
@@ -201,6 +208,11 @@ const ApiApifyUsageRoute = ApiApifyUsageRouteImport.update({
 const ApiAppearanceRoute = ApiAppearanceRouteImport.update({
   id: '/api/appearance',
   path: '/api/appearance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBoardRoute = ApiBoardRouteImport.update({
+  id: '/api/board',
+  path: '/api/board',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBriefRoute = ApiBriefRouteImport.update({
@@ -398,6 +410,7 @@ const ApiLibraryTypeIdRoute = ApiLibraryTypeIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/autopilot': typeof AppAutopilotRoute
+  '/board': typeof AppBoardRoute
   '/brief-history': typeof AppBriefHistoryRoute
   '/calendar': typeof AppCalendarRoute
   '/characters': typeof AppCharactersRoute
@@ -421,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/api/activity': typeof ApiActivityRoute
   '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
+  '/api/board': typeof ApiBoardRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/frame-check': typeof ApiFrameCheckRoute
@@ -462,6 +476,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/autopilot': typeof AppAutopilotRoute
+  '/board': typeof AppBoardRoute
   '/brief-history': typeof AppBriefHistoryRoute
   '/calendar': typeof AppCalendarRoute
   '/characters': typeof AppCharactersRoute
@@ -485,6 +500,7 @@ export interface FileRoutesByTo {
   '/api/activity': typeof ApiActivityRoute
   '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
+  '/api/board': typeof ApiBoardRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/frame-check': typeof ApiFrameCheckRoute
@@ -529,6 +545,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_app/autopilot': typeof AppAutopilotRoute
+  '/_app/board': typeof AppBoardRoute
   '/_app/brief-history': typeof AppBriefHistoryRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/characters': typeof AppCharactersRoute
@@ -552,6 +569,7 @@ export interface FileRoutesById {
   '/api/activity': typeof ApiActivityRoute
   '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
+  '/api/board': typeof ApiBoardRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/frame-check': typeof ApiFrameCheckRoute
@@ -597,6 +615,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/autopilot'
+    | '/board'
     | '/brief-history'
     | '/calendar'
     | '/characters'
@@ -620,6 +639,7 @@ export interface FileRouteTypes {
     | '/api/activity'
     | '/api/apify-usage'
     | '/api/appearance'
+    | '/api/board'
     | '/api/brief'
     | '/api/characters'
     | '/api/frame-check'
@@ -661,6 +681,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/autopilot'
+    | '/board'
     | '/brief-history'
     | '/calendar'
     | '/characters'
@@ -684,6 +705,7 @@ export interface FileRouteTypes {
     | '/api/activity'
     | '/api/apify-usage'
     | '/api/appearance'
+    | '/api/board'
     | '/api/brief'
     | '/api/characters'
     | '/api/frame-check'
@@ -727,6 +749,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_app/autopilot'
+    | '/_app/board'
     | '/_app/brief-history'
     | '/_app/calendar'
     | '/_app/characters'
@@ -750,6 +773,7 @@ export interface FileRouteTypes {
     | '/api/activity'
     | '/api/apify-usage'
     | '/api/appearance'
+    | '/api/board'
     | '/api/brief'
     | '/api/characters'
     | '/api/frame-check'
@@ -796,6 +820,7 @@ export interface RootRouteChildren {
   ApiActivityRoute: typeof ApiActivityRoute
   ApiApifyUsageRoute: typeof ApiApifyUsageRoute
   ApiAppearanceRoute: typeof ApiAppearanceRoute
+  ApiBoardRoute: typeof ApiBoardRoute
   ApiBriefRoute: typeof ApiBriefRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiFrameCheckRoute: typeof ApiFrameCheckRoute
@@ -854,6 +879,13 @@ declare module '@tanstack/react-router' {
       path: '/autopilot'
       fullPath: '/autopilot'
       preLoaderRoute: typeof AppAutopilotRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/board': {
+      id: '/_app/board'
+      path: '/board'
+      fullPath: '/board'
+      preLoaderRoute: typeof AppBoardRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/brief-history': {
@@ -1015,6 +1047,13 @@ declare module '@tanstack/react-router' {
       path: '/api/appearance'
       fullPath: '/api/appearance'
       preLoaderRoute: typeof ApiAppearanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/board': {
+      id: '/api/board'
+      path: '/api/board'
+      fullPath: '/api/board'
+      preLoaderRoute: typeof ApiBoardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/brief': {
@@ -1288,6 +1327,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAutopilotRoute: typeof AppAutopilotRoute
+  AppBoardRoute: typeof AppBoardRoute
   AppBriefHistoryRoute: typeof AppBriefHistoryRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppCharactersRoute: typeof AppCharactersRoute
@@ -1313,6 +1353,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAutopilotRoute: AppAutopilotRoute,
+  AppBoardRoute: AppBoardRoute,
   AppBriefHistoryRoute: AppBriefHistoryRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppCharactersRoute: AppCharactersRoute,
@@ -1379,6 +1420,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiActivityRoute: ApiActivityRoute,
   ApiApifyUsageRoute: ApiApifyUsageRoute,
   ApiAppearanceRoute: ApiAppearanceRoute,
+  ApiBoardRoute: ApiBoardRoute,
   ApiBriefRoute: ApiBriefRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiFrameCheckRoute: ApiFrameCheckRoute,

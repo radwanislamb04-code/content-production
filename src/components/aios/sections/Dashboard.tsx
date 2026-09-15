@@ -291,7 +291,7 @@ function ContinueWorking({ onNav }: { onNav: (id: SectionId) => void }) {
   }, []);
 
   return (
-    <Card className="bg-gradient-to-br from-[#101513] to-[#0C100E] p-5">
+    <Card className="bg-gradient-to-br from-cardfrom to-cardto p-5">
       <div className="text-xs font-semibold uppercase tracking-wide text-mute">
         Continue Working
       </div>

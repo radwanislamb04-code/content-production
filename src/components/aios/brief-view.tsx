@@ -91,14 +91,14 @@ export function BriefBody({ brief }: { brief: Brief }) {
       <div className="grid gap-3 lg:grid-cols-2">
         {parsed.sections.map((s) => (
           <Card key={s.title} className="p-4">
-            <div className="mb-2 text-xs uppercase tracking-wide text-muted">{s.title}</div>
+            <div className="mb-2 text-xs uppercase tracking-wide text-mute">{s.title}</div>
             {s.items.length === 0 ? (
-              <p className="text-sm text-muted">No data yet.</p>
+              <p className="text-sm text-mute">No data yet.</p>
             ) : (
               <ul className="space-y-1.5">
                 {s.items.map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm">
-                    <span className="text-muted">•</span>
+                    <span className="text-mute">•</span>
                     <span>{item}</span>
                   </li>
                 ))}

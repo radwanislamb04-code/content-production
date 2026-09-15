@@ -72,7 +72,7 @@ export function Sidebar({
       {open && (
         <div
           onClick={onClose}
-          className="fixed inset-0 z-30 bg-[rgba(3,5,4,0.7)] backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-scrim backdrop-blur-sm lg:hidden"
           aria-hidden="true"
         />
       )}
@@ -208,7 +208,7 @@ function NavItem({
       tabIndex={tabbable ? undefined : -1}
       aria-hidden={tabbable ? undefined : true}
       activeOptions={{ exact: path === "/" }}
-      className={`flex w-full shrink-0 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors hover:bg-[rgba(255,255,255,0.03)] hover:text-fg2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-1 focus-visible:ring-offset-app2 ${activeClasses} ${sizeClasses} ${
+      className={`flex w-full shrink-0 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors hover:bg-cardhi hover:text-fg2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-1 focus-visible:ring-offset-app2 ${activeClasses} ${sizeClasses} ${
         child ? "text-mute" : "text-fg2"
       }`}
     >

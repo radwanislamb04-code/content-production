@@ -90,7 +90,7 @@ export function BriefHistoryScreen() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Brief History</h1>
-          <p className="mt-0.5 text-sm text-muted">
+          <p className="mt-0.5 text-sm text-mute">
             Every brief the pipeline has saved — the last {rows.length || 0}{" "}
             {rows.length === 1 ? "day" : "days"}.
           </p>
@@ -119,7 +119,7 @@ export function BriefHistoryScreen() {
       )}
 
       {loading && !index ? (
-        <Card className="p-6 text-center text-sm text-muted">Loading…</Card>
+        <Card className="p-6 text-center text-sm text-mute">Loading…</Card>
       ) : rows.length === 0 ? (
         <EmptyState
           icon={<History size={22} />}
@@ -149,23 +149,23 @@ export function BriefHistoryScreen() {
 
           <div className="space-y-3">
             {busy ? (
-              <Card className="p-6 text-center text-sm text-muted">Loading…</Card>
+              <Card className="p-6 text-center text-sm text-mute">Loading…</Card>
             ) : !brief ? (
               <Card className="p-6 text-center">
                 <p className="text-sm font-medium">Nothing stored for {selected}</p>
-                <p className="mt-1 text-sm text-muted">
+                <p className="mt-1 text-sm text-mute">
                   The index lists this date but the brief itself could not be read.
                 </p>
               </Card>
             ) : (
               <>
-                <Card className="px-4 py-3 text-xs text-muted">
+                <Card className="px-4 py-3 text-xs text-mute">
                   {brief.date} · generated {clock(brief.generated_at)}
                   {selected === index?.today ? " · today" : ""}
                 </Card>
                 <BriefBody brief={brief} />
                 {brief.markdown ? null : (
-                  <Card className="p-4 text-sm text-muted">This brief has no body text.</Card>
+                  <Card className="p-4 text-sm text-mute">This brief has no body text.</Card>
                 )}
               </>
             )}

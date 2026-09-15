@@ -123,7 +123,7 @@ export function Analyst() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Performance</h1>
-          <p className="mt-0.5 text-sm text-muted">
+          <p className="mt-0.5 text-sm text-mute">
             Per-post averages from the last scrape — no engagement rate, because
             follower counts are not available.
           </p>
@@ -148,7 +148,7 @@ export function Analyst() {
       {empty && !error && (
         <Card className="p-6 text-center">
           <p className="text-sm font-medium">No performance data yet</p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-mute">
             Add your handle and competitors in Settings → Instagram, then run the
             scraper from Sources (or the AutoPilot page).
           </p>
@@ -162,12 +162,12 @@ export function Analyst() {
               const Icon = s.icon;
               return (
                 <Card key={s.label} className="p-4">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-mute">
                     <Icon className="h-3.5 w-3.5" />
                     {s.label}
                   </div>
                   <div className="mt-2 text-2xl font-semibold">{s.value}</div>
-                  <div className="mt-0.5 text-xs text-muted">{s.hint}</div>
+                  <div className="mt-0.5 text-xs text-mute">{s.hint}</div>
                 </Card>
               );
             })}
@@ -175,13 +175,13 @@ export function Analyst() {
 
           {data.observations.length > 0 && (
             <Card className="p-4">
-              <div className="mb-2 text-xs uppercase tracking-wide text-muted">
+              <div className="mb-2 text-xs uppercase tracking-wide text-mute">
                 Observations
               </div>
               <ul className="space-y-1.5">
                 {data.observations.map((o, i) => (
                   <li key={i} className="flex gap-2 text-sm">
-                    <span className="text-muted">•</span>
+                    <span className="text-mute">•</span>
                     <span>{o}</span>
                   </li>
                 ))}
@@ -190,7 +190,7 @@ export function Analyst() {
           )}
 
           <Card className="overflow-hidden">
-            <div className="border-b border-border px-4 py-3 text-xs uppercase tracking-wide text-muted">
+            <div className="border-b border-border px-4 py-3 text-xs uppercase tracking-wide text-mute">
               Top posts by likes
             </div>
             <table className="w-full text-sm">
@@ -205,7 +205,7 @@ export function Analyst() {
                         )}
                       </span>
                     </td>
-                    <td className="px-2 py-2.5 align-top text-muted">
+                    <td className="px-2 py-2.5 align-top text-mute">
                       {p.url ? (
                         <a
                           href={p.url}
@@ -222,7 +222,7 @@ export function Analyst() {
                     <td className="w-20 px-2 py-2.5 text-right align-top">
                       {fmt(p.likes)}
                     </td>
-                    <td className="w-20 px-4 py-2.5 text-right align-top text-muted">
+                    <td className="w-20 px-4 py-2.5 text-right align-top text-mute">
                       {fmt(p.comments)}
                     </td>
                   </tr>
@@ -232,12 +232,12 @@ export function Analyst() {
           </Card>
 
           <Card className="overflow-hidden">
-            <div className="border-b border-border px-4 py-3 text-xs uppercase tracking-wide text-muted">
+            <div className="border-b border-border px-4 py-3 text-xs uppercase tracking-wide text-mute">
               Accounts tracked
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-muted">
+                <tr className="text-left text-xs text-mute">
                   <th className="px-4 py-2 font-normal">Handle</th>
                   <th className="px-2 py-2 text-right font-normal">Posts</th>
                   <th className="px-2 py-2 text-right font-normal">Avg likes</th>
@@ -253,7 +253,7 @@ export function Analyst() {
                     </td>
                     <td className="px-2 py-2.5 text-right">{h.posts}</td>
                     <td className="px-2 py-2.5 text-right">{fmt(h.avg_likes)}</td>
-                    <td className="px-4 py-2.5 text-right text-muted">
+                    <td className="px-4 py-2.5 text-right text-mute">
                       {fmt(h.avg_comments)}
                     </td>
                   </tr>
@@ -264,7 +264,7 @@ export function Analyst() {
 
           {data.best_hours.length > 0 && (
             <Card className="p-4">
-              <div className="mb-2 text-xs uppercase tracking-wide text-muted">
+              <div className="mb-2 text-xs uppercase tracking-wide text-mute">
                 Your best hours (avg likes)
               </div>
               <div className="flex flex-wrap gap-3">
@@ -276,7 +276,7 @@ export function Analyst() {
                     <div className="font-medium">
                       {String(h.hour).padStart(2, "0")}:00
                     </div>
-                    <div className="text-xs text-muted">
+                    <div className="text-xs text-mute">
                       {fmt(h.avg_likes)} avg · {h.posts} post(s)
                     </div>
                   </div>

@@ -83,6 +83,10 @@
   --color-mute: var(--cos-mute);
   --color-warn: var(--cos-warn);
   --color-err: var(--cos-err);
+  --color-header: var(--cos-header);
+  --color-scrim: var(--cos-scrim);
+  --color-cardfrom: var(--cos-cardfrom);
+  --color-cardto: var(--cos-cardto);
 
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -124,22 +128,26 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);
 
   /* Content OS — light palette (Appearance → Theme: Light). */
-  --cos-app: #f6f8f6;
-  --cos-app2: #eff2ef;
-  --cos-surface: #ffffff;
-  --cos-cardx: #ffffff;
-  --cos-cardhi: #f1f4f1;
-  --cos-line: #e1e6e1;
-  --cos-line2: #cbd3cc;
+  --cos-app: #f2f5f2;
+  --cos-app2: #eef2ee;
+  --cos-surface: #fbfcfb;
+  --cos-cardx: #fbfcfb;
+  --cos-cardhi: #eef2ee;
+  --cos-line: #dde3dd;
+  --cos-line2: #c6d0c7;
   /* Deeper than the dark-mode green: the same #52FF2E is unreadable as text
      on white, and `bg-lime` buttons need contrast against --cos-app text. */
   --cos-lime: #1a940e;
   --cos-lime2: #22b013;
   --cos-fg: #0a0f0b;
   --cos-fg2: #454d46;
-  --cos-mute: #6b746c;
+  --cos-mute: #5f6862;
   --cos-warn: #9a6a05;
   --cos-err: #c02626;
+  --cos-header: rgba(255,255,255,0.85);
+  --cos-scrim: rgba(12,20,14,0.35);
+  --cos-cardfrom: #ffffff;
+  --cos-cardto: #f2f6f2;
 }
 
 /* Motion preference from Appearance — set on <html> by lib/appearance. */
@@ -198,9 +206,13 @@
   --cos-lime2: #7cff5b;
   --cos-fg: #f3f5f2;
   --cos-fg2: #a7aca7;
-  --cos-mute: #808880;
+  --cos-mute: #9aa29a;
   --cos-warn: #f6c453;
   --cos-err: #ff5d5d;
+  --cos-header: rgba(3,5,4,0.85);
+  --cos-scrim: rgba(3,5,4,0.7);
+  --cos-cardfrom: #101513;
+  --cos-cardto: #0c100e;
 }
 
 @layer base {

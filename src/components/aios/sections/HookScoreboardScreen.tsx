@@ -85,7 +85,7 @@ export function HookScoreboardScreen() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Hook Scoreboard</h1>
-          <p className="mt-0.5 text-sm text-muted">
+          <p className="mt-0.5 text-sm text-mute">
             Your written hooks, and how your published posts actually did.
           </p>
         </div>
@@ -104,12 +104,12 @@ export function HookScoreboardScreen() {
 
       {data && (
         <Card className="space-y-2 p-4">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-mute">
             <Info size={13} /> How to read this
           </div>
           <ul className="space-y-1.5">
             {data.caveats.map((c, i) => (
-              <li key={i} className="flex gap-2 text-sm text-muted">
+              <li key={i} className="flex gap-2 text-sm text-mute">
                 <span>•</span>
                 <span>{c}</span>
               </li>
@@ -119,7 +119,7 @@ export function HookScoreboardScreen() {
       )}
 
       {loading && !data ? (
-        <Card className="p-6 text-center text-sm text-muted">Loading…</Card>
+        <Card className="p-6 text-center text-sm text-mute">Loading…</Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           <section className="space-y-3">

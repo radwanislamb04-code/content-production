@@ -22,7 +22,7 @@ export function DMManager() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">DM Manager</h1>
-        <p className="mt-0.5 text-sm text-muted">Draft replies to Instagram DMs from one inbox.</p>
+        <p className="mt-0.5 text-sm text-mute">Draft replies to Instagram DMs from one inbox.</p>
       </div>
 
       <EmptyState
@@ -32,18 +32,18 @@ export function DMManager() {
       />
 
       <Card className="p-5">
-        <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wide text-muted">
+        <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wide text-mute">
           <Plug size={13} /> What it needs
         </div>
         <ul className="space-y-2">
           {NEEDED.map((n) => (
             <li key={n} className="flex gap-2 text-sm">
-              <span className="text-muted">•</span>
+              <span className="text-mute">•</span>
               <span>{n}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-xs text-muted">
+        <p className="mt-4 text-xs text-mute">
           Until then, Instagram DMs stay in the Instagram app — nothing here will pretend otherwise.
         </p>
       </Card>

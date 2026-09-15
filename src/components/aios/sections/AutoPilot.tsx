@@ -171,7 +171,7 @@ export function AutoPilot() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">AutoPilot</h1>
-          <p className="mt-0.5 text-sm text-muted">
+          <p className="mt-0.5 text-sm text-mute">
             Run the content pipeline on demand, or let the schedule do it.
           </p>
         </div>
@@ -198,7 +198,7 @@ export function AutoPilot() {
       {/* Individual steps */}
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs uppercase tracking-wide text-muted">
+          <span className="mr-1 text-xs uppercase tracking-wide text-mute">
             Run a step
           </span>
           <OutlineBtn
@@ -257,7 +257,7 @@ export function AutoPilot() {
                   : "Run finished with failures"}
             </span>
             {report?.telegramSent ? (
-              <span className="text-xs text-muted">
+              <span className="text-xs text-mute">
                 · {report.telegramSent} message(s) sent
               </span>
             ) : null}
@@ -277,11 +277,11 @@ export function AutoPilot() {
                 <span className="w-40 shrink-0 font-medium">
                   {STEP_LABELS[s.step] ?? s.step}
                 </span>
-                <span className={s.ok ? "text-muted" : "text-err"}>
+                <span className={s.ok ? "text-mute" : "text-err"}>
                   {s.detail}
                   {typeof s.items === "number" ? ` · ${s.items} item(s)` : ""}
                 </span>
-                <span className="ml-auto shrink-0 text-xs text-muted">
+                <span className="ml-auto shrink-0 text-xs text-mute">
                   {(s.ms / 1000).toFixed(1)}s
                 </span>
               </div>
@@ -296,7 +296,7 @@ export function AutoPilot() {
           const Icon = c.icon;
           return (
             <Card key={c.label} className="p-4">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-mute">
                 <Icon className="h-3.5 w-3.5" />
                 {c.label}
               </div>
@@ -305,16 +305,16 @@ export function AutoPilot() {
                   <div className="mt-2 text-lg font-semibold">
                     {ago(c.row.created_at)}
                   </div>
-                  <div className="mt-0.5 line-clamp-2 text-xs text-muted">
+                  <div className="mt-0.5 line-clamp-2 text-xs text-mute">
                     {c.row.detail || c.row.action}
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="mt-2 text-lg font-semibold text-muted">
+                  <div className="mt-2 text-lg font-semibold text-mute">
                     Never
                   </div>
-                  <div className="mt-0.5 text-xs text-muted">{c.empty}</div>
+                  <div className="mt-0.5 text-xs text-mute">{c.empty}</div>
                 </>
               )}
             </Card>
@@ -324,25 +324,25 @@ export function AutoPilot() {
 
       {/* Schedule */}
       <Card className="p-4">
-        <div className="mb-3 text-xs uppercase tracking-wide text-muted">
+        <div className="mb-3 text-xs uppercase tracking-wide text-mute">
           Schedule
         </div>
         <div className="space-y-3">
           {SCHEDULE.map((s) => (
             <div key={s.cron} className="flex items-start gap-3 text-sm">
-              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-mute" />
               <div>
                 <div className="font-medium">
                   {s.label} · {s.local}
                 </div>
-                <div className="text-xs text-muted">
+                <div className="text-xs text-mute">
                   <code>{s.cron}</code> (UTC) — {s.detail}
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-3 border-t border-border pt-3 text-xs text-muted">
+        <div className="mt-3 border-t border-border pt-3 text-xs text-mute">
           Last scheduled run:{" "}
           {lastCron ? (
             <span>
@@ -358,16 +358,16 @@ export function AutoPilot() {
       {/* Logs */}
       <Card className="p-4">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs uppercase tracking-wide text-muted">
+          <div className="text-xs uppercase tracking-wide text-mute">
             Recent activity
           </div>
-          <div className="text-xs text-muted">{feed.length} entries</div>
+          <div className="text-xs text-mute">{feed.length} entries</div>
         </div>
 
         {loading ? (
-          <div className="py-6 text-center text-sm text-muted">Loading…</div>
+          <div className="py-6 text-center text-sm text-mute">Loading…</div>
         ) : feed.length === 0 ? (
-          <div className="py-6 text-center text-sm text-muted">
+          <div className="py-6 text-center text-sm text-mute">
             Nothing logged yet — run a step above, or wait for the next
             scheduled run.
           </div>
@@ -378,16 +378,16 @@ export function AutoPilot() {
                 key={row.id}
                 className="flex items-start gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-cardhi"
               >
-                <span className="w-24 shrink-0 text-xs text-muted">
+                <span className="w-24 shrink-0 text-xs text-mute">
                   {clock(row.created_at)}
                 </span>
-                <span className="w-32 shrink-0 truncate text-xs text-muted">
+                <span className="w-32 shrink-0 truncate text-xs text-mute">
                   {row.module}
                 </span>
                 <span className="w-28 shrink-0 truncate text-xs">
                   {row.action}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-muted">
+                <span className="min-w-0 flex-1 truncate text-xs text-mute">
                   {row.detail}
                 </span>
               </div>

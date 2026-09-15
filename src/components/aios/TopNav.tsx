@@ -97,7 +97,7 @@ export function TopNav({
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-20 border-b border-line bg-[rgba(3,5,4,0.85)] backdrop-blur-md lg:left-[200px]">
+      <header className="fixed left-0 right-0 top-0 z-20 border-b border-line bg-header backdrop-blur-md lg:left-[200px]">
         <div className="grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:grid-cols-[180px_minmax(0,1fr)_180px] sm:gap-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <button
@@ -296,7 +296,7 @@ function Spotlight({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(3,5,4,0.7)] p-4 pt-[12vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-scrim p-4 pt-[12vh] backdrop-blur-sm"
       onClick={onClose}
     >
       <div

@@ -137,7 +137,7 @@ export function ContentScore() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Content Score</h1>
-          <p className="mt-0.5 text-sm text-muted">
+          <p className="mt-0.5 text-sm text-mute">
             A 1-10 verdict with a five-part breakdown, scored by the AI and saved on the item.
           </p>
         </div>
@@ -173,18 +173,18 @@ export function ContentScore() {
       )}
 
       {loading ? (
-        <Card className="p-6 text-center text-sm text-muted">Loading…</Card>
+        <Card className="p-6 text-center text-sm text-mute">Loading…</Card>
       ) : !selected ? (
         <Card className="p-6 text-center">
           <p className="text-sm font-medium">Nothing to score yet</p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-mute">
             Generate an idea or script first — it will show up here.
           </p>
         </Card>
       ) : !analysis ? (
         <Card className="p-6 text-center">
           <p className="text-sm font-medium">Not scored yet</p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-mute">
             Press <em>Score this content</em> to get a verdict, sub-scores and specific fixes for “
             {selected.title.slice(0, 60)}”.
           </p>
@@ -195,9 +195,9 @@ export function ContentScore() {
             <Card className="flex flex-col items-center justify-center p-6">
               <div className="text-5xl font-semibold tracking-tight">
                 {analysis.score.toFixed(1)}
-                <span className="text-xl text-muted">/10</span>
+                <span className="text-xl text-mute">/10</span>
               </div>
-              <div className="mt-2 text-sm text-muted">Grade {analysis.grade}</div>
+              <div className="mt-2 text-sm text-mute">Grade {analysis.grade}</div>
               <span
                 className={`mt-3 rounded-full border px-3 py-1 text-xs capitalize ${
                   ACTION_STYLES[analysis.recommended_action] ?? "border-line text-fg2"
@@ -208,7 +208,7 @@ export function ContentScore() {
             </Card>
 
             <Card className="p-5">
-              <div className="mb-3 text-xs uppercase tracking-wide text-muted">Breakdown</div>
+              <div className="mb-3 text-xs uppercase tracking-wide text-mute">Breakdown</div>
               <div className="space-y-3">
                 {SUBSCORES.map(([key, label]) => {
                   const value = Number(analysis.breakdown?.[key] ?? 0);
@@ -216,7 +216,7 @@ export function ContentScore() {
                     <div key={key}>
                       <div className="mb-1 flex items-center justify-between text-sm">
                         <span>{label}</span>
-                        <span className="text-muted">{value.toFixed(1)}</span>
+                        <span className="text-mute">{value.toFixed(1)}</span>
                       </div>
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-cardhi">
                         <div
@@ -228,7 +228,7 @@ export function ContentScore() {
                   );
                 })}
               </div>
-              {analysis.summary && <p className="mt-4 text-sm text-muted">{analysis.summary}</p>}
+              {analysis.summary && <p className="mt-4 text-sm text-mute">{analysis.summary}</p>}
             </Card>
           </div>
 
@@ -243,12 +243,12 @@ export function ContentScore() {
               <Card key={title} className="p-4">
                 <div className={`mb-2 text-xs uppercase tracking-wide ${tone}`}>{title}</div>
                 {list.length === 0 ? (
-                  <p className="text-sm text-muted">None given.</p>
+                  <p className="text-sm text-mute">None given.</p>
                 ) : (
                   <ul className="space-y-1.5">
                     {list.map((s, i) => (
                       <li key={i} className="flex gap-2 text-sm">
-                        <span className="text-muted">•</span>
+                        <span className="text-mute">•</span>
                         <span>{s}</span>
                       </li>
                     ))}
@@ -258,7 +258,7 @@ export function ContentScore() {
             ))}
           </div>
 
-          <div className="text-xs text-muted">
+          <div className="text-xs text-mute">
             Scored item: {selected.type} · {selected.title.slice(0, 70)}
           </div>
         </>

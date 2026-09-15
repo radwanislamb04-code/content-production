@@ -285,11 +285,11 @@ export function Planner() {
             </div>
 
             {loading ? (
-              <div className="p-8 text-center text-sm text-muted">Loading…</div>
+              <div className="p-8 text-center text-sm text-mute">Loading…</div>
             ) : !calendar ? (
               <div className="p-8 text-center">
                 <p className="text-sm font-medium">No plan for {monthLabel(month)} yet</p>
-                <p className="mt-1 text-sm text-muted">
+                <p className="mt-1 text-sm text-mute">
                   Press <em>Generate month plan</em> to have the planner lay it
                   out from your pillars and posting times.
                 </p>
@@ -359,26 +359,26 @@ export function Planner() {
 
       {calendar?.warnings && calendar.warnings.length > 0 && (
         <Card className="p-4">
-          <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-muted">
+          <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-mute">
             <AlertTriangle className="h-3.5 w-3.5 text-warn" />
             Plan warnings
           </div>
           <ul className="space-y-1.5">
             {calendar.warnings.map((w, i) => (
               <li key={i} className="flex gap-2 text-sm">
-                <span className="text-muted">•</span>
+                <span className="text-mute">•</span>
                 <span>{w}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-2 text-xs text-mute">
             Soft rules the model missed — edit or regenerate to fix them.
           </p>
         </Card>
       )}
 
       {calendar && (
-        <div className="text-xs text-muted">
+        <div className="text-xs text-mute">
           {calendar.entries.length} entr
           {calendar.entries.length === 1 ? "y" : "ies"} ·{" "}
           {calendar.pillars?.length

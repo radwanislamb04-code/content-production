@@ -20,7 +20,7 @@ function NotFoundComponent() {
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-mute-foreground">
           The page you're looking for doesn't exist or has been moved.
         </p>
         <div className="mt-6">
@@ -49,7 +49,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-mute-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -131,9 +131,9 @@ function RootComponent() {
           classNames: {
             toast:
               "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-            description: "group-[.toast]:text-muted-foreground",
+            description: "group-[.toast]:text-mute-foreground",
             actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-            cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+            cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-mute-foreground",
           },
         }}
       />

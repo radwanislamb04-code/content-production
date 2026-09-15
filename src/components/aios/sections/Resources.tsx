@@ -380,7 +380,7 @@ function SiteViewer({ site, onClose }: { site: Site; onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(3,5,4,0.75)] p-3 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-3 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -698,7 +698,7 @@ function SiteModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(3,5,4,0.7)] p-4 pt-[12vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-scrim p-4 pt-[12vh] backdrop-blur-sm"
       onClick={onClose}
     >
       <div

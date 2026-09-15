@@ -101,7 +101,7 @@ export function DailyBriefScreen() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Daily Brief</h1>
-          <p className="mt-0.5 text-sm text-muted">
+          <p className="mt-0.5 text-sm text-mute">
             Built automatically at 08:00 and 20:00 (Asia/Dhaka) and sent to Telegram.
           </p>
         </div>
@@ -140,7 +140,7 @@ export function DailyBriefScreen() {
             key={t}
             onClick={() => setTab(t)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm capitalize transition-colors ${
-              tab === t ? "border-lime text-fg" : "border-transparent text-muted hover:text-fg"
+              tab === t ? "border-lime text-fg" : "border-transparent text-mute hover:text-fg"
             }`}
           >
             {t}
@@ -158,18 +158,18 @@ export function DailyBriefScreen() {
       {tab === "today" && (
         <>
           {loading && !brief ? (
-            <Card className="p-6 text-center text-sm text-muted">Loading…</Card>
+            <Card className="p-6 text-center text-sm text-mute">Loading…</Card>
           ) : !brief ? (
             <Card className="p-6 text-center">
               <p className="text-sm font-medium">No brief yet</p>
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-1 text-sm text-mute">
                 The next one arrives automatically at 08:00 or 20:00 (Asia/Dhaka) — or press{" "}
                 <em>Generate now</em> to build it right away.
               </p>
             </Card>
           ) : (
             <>
-              <Card className="px-4 py-3 text-xs text-muted">
+              <Card className="px-4 py-3 text-xs text-mute">
                 {brief.date} · generated {clock(brief.generated_at)}
               </Card>
 
@@ -180,14 +180,14 @@ export function DailyBriefScreen() {
               <div className="grid gap-3 lg:grid-cols-2">
                 {(parsed?.sections ?? []).map((s) => (
                   <Card key={s.title} className="p-4">
-                    <div className="mb-2 text-xs uppercase tracking-wide text-muted">{s.title}</div>
+                    <div className="mb-2 text-xs uppercase tracking-wide text-mute">{s.title}</div>
                     {s.items.length === 0 ? (
-                      <p className="text-sm text-muted">No data yet.</p>
+                      <p className="text-sm text-mute">No data yet.</p>
                     ) : (
                       <ul className="space-y-1.5">
                         {s.items.map((item, i) => (
                           <li key={i} className="flex gap-2 text-sm">
-                            <span className="text-muted">•</span>
+                            <span className="text-mute">•</span>
                             <span>{item}</span>
                           </li>
                         ))}
@@ -204,7 +204,7 @@ export function DailyBriefScreen() {
       {tab === "history" && (
         <Card className="overflow-hidden">
           {(data?.history ?? []).length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted">
+            <div className="p-6 text-center text-sm text-mute">
               No briefs have been generated yet.
             </div>
           ) : (
@@ -221,10 +221,10 @@ export function DailyBriefScreen() {
                     }}
                   >
                     <td className="px-4 py-2.5">{h.date}</td>
-                    <td className="max-w-[420px] truncate px-4 py-2.5 text-muted">
+                    <td className="max-w-[420px] truncate px-4 py-2.5 text-mute">
                       {h.preview ?? ""}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-muted">{clock(h.updated_at)}</td>
+                    <td className="px-4 py-2.5 text-right text-mute">{clock(h.updated_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -234,7 +234,7 @@ export function DailyBriefScreen() {
       )}
 
       {selected && tab === "today" && (
-        <div className="text-xs text-muted">
+        <div className="text-xs text-mute">
           Viewing {selected}{" "}
           <button
             className="underline"

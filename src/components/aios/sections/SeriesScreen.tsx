@@ -42,7 +42,7 @@ export function SeriesScreen() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Series</h1>
-        <p className="mt-0.5 text-sm text-muted">
+        <p className="mt-0.5 text-sm text-mute">
           Group recurring content — a format you publish again and again.
         </p>
       </div>
@@ -54,13 +54,13 @@ export function SeriesScreen() {
       />
 
       <Card className="p-5">
-        <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wide text-muted">
+        <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wide text-mute">
           <Plug size={13} /> What it needs
         </div>
         <ul className="space-y-2">
           {NEEDED.map((n) => (
             <li key={n} className="flex gap-2 text-sm">
-              <span className="text-muted">•</span>
+              <span className="text-mute">•</span>
               <span>{n}</span>
             </li>
           ))}
@@ -68,21 +68,21 @@ export function SeriesScreen() {
       </Card>
 
       <Card className="p-5">
-        <div className="mb-1 text-xs uppercase tracking-wide text-muted">What exists today</div>
-        <p className="mb-4 text-sm text-muted">
+        <div className="mb-1 text-xs uppercase tracking-wide text-mute">What exists today</div>
+        <p className="mb-4 text-sm text-mute">
           Your library by content pillar — a real breakdown from {data?.total ?? 0} stored items.
           These are topics, not series.
         </p>
 
         {(data?.pillars?.length ?? 0) === 0 ? (
-          <p className="text-sm text-muted">No library items yet.</p>
+          <p className="text-sm text-mute">No library items yet.</p>
         ) : (
           <div className="space-y-3">
             {data!.pillars.map((p) => (
               <div key={p.pillar}>
                 <div className="mb-1 flex items-center justify-between text-sm">
                   <span className="capitalize">{p.pillar}</span>
-                  <span className="text-muted">{p.count}</span>
+                  <span className="text-mute">{p.count}</span>
                 </div>
                 <Progress value={Math.round((p.count / max) * 100)} />
               </div>

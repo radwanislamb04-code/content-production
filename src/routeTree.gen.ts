@@ -58,6 +58,7 @@ import { Route as ApiSettingsRouteImport } from './routes/api/settings'
 import { Route as ApiSettingsImagegenRouteImport } from './routes/api/settings-imagegen'
 import { Route as ApiTelegramChatIdRouteImport } from './routes/api/telegram-chat-id'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
+import { Route as ApiTelegramTasksRouteImport } from './routes/api/telegram-tasks'
 import { Route as ApiTelegramTestRouteImport } from './routes/api/telegram-test'
 import { Route as ApiThumbnailPromptRouteImport } from './routes/api/thumbnail-prompt'
 import { Route as ApiTrendSpyRouteImport } from './routes/api/trend-spy'
@@ -315,6 +316,11 @@ const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
   path: '/api/telegram-cron',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTelegramTasksRoute = ApiTelegramTasksRouteImport.update({
+  id: '/api/telegram-tasks',
+  path: '/api/telegram-tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTelegramTestRoute = ApiTelegramTestRouteImport.update({
   id: '/api/telegram-test',
   path: '/api/telegram-test',
@@ -426,6 +432,7 @@ export interface FileRoutesByFullPath {
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-chat-id': typeof ApiTelegramChatIdRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/telegram-tasks': typeof ApiTelegramTasksRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
@@ -487,6 +494,7 @@ export interface FileRoutesByTo {
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-chat-id': typeof ApiTelegramChatIdRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/telegram-tasks': typeof ApiTelegramTasksRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
@@ -551,6 +559,7 @@ export interface FileRoutesById {
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-chat-id': typeof ApiTelegramChatIdRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/telegram-tasks': typeof ApiTelegramTasksRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
@@ -616,6 +625,7 @@ export interface FileRouteTypes {
     | '/api/settings-imagegen'
     | '/api/telegram-chat-id'
     | '/api/telegram-cron'
+    | '/api/telegram-tasks'
     | '/api/telegram-test'
     | '/api/thumbnail-prompt'
     | '/api/trend-spy'
@@ -677,6 +687,7 @@ export interface FileRouteTypes {
     | '/api/settings-imagegen'
     | '/api/telegram-chat-id'
     | '/api/telegram-cron'
+    | '/api/telegram-tasks'
     | '/api/telegram-test'
     | '/api/thumbnail-prompt'
     | '/api/trend-spy'
@@ -740,6 +751,7 @@ export interface FileRouteTypes {
     | '/api/settings-imagegen'
     | '/api/telegram-chat-id'
     | '/api/telegram-cron'
+    | '/api/telegram-tasks'
     | '/api/telegram-test'
     | '/api/thumbnail-prompt'
     | '/api/trend-spy'
@@ -783,6 +795,7 @@ export interface RootRouteChildren {
   ApiSettingsImagegenRoute: typeof ApiSettingsImagegenRoute
   ApiTelegramChatIdRoute: typeof ApiTelegramChatIdRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
+  ApiTelegramTasksRoute: typeof ApiTelegramTasksRoute
   ApiTelegramTestRoute: typeof ApiTelegramTestRoute
   ApiThumbnailPromptRoute: typeof ApiThumbnailPromptRoute
   ApiTrendSpyRoute: typeof ApiTrendSpyRoute
@@ -1139,6 +1152,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTelegramCronRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/telegram-tasks': {
+      id: '/api/telegram-tasks'
+      path: '/api/telegram-tasks'
+      fullPath: '/api/telegram-tasks'
+      preLoaderRoute: typeof ApiTelegramTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/telegram-test': {
       id: '/api/telegram-test'
       path: '/api/telegram-test'
@@ -1342,6 +1362,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSettingsImagegenRoute: ApiSettingsImagegenRoute,
   ApiTelegramChatIdRoute: ApiTelegramChatIdRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
+  ApiTelegramTasksRoute: ApiTelegramTasksRoute,
   ApiTelegramTestRoute: ApiTelegramTestRoute,
   ApiThumbnailPromptRoute: ApiThumbnailPromptRoute,
   ApiTrendSpyRoute: ApiTrendSpyRoute,

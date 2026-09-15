@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Card, OutlineBtn, EmptyState, SkeletonList } from "../ui";
+import { Card, OutlineBtn, EmptyState, Pill, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
 import { apiGet } from "@/lib/api";
+import { useApi } from "@/hooks/useApi";
 import { HeroClock } from "../widgets/HeroClock";
 import { QuoteBar } from "../widgets/QuoteBar";
 
@@ -42,14 +43,14 @@ const PIPELINE: {
   { label: "Planner", status: "empty", icon: Calendar },
 ];
 
-type Task = { id: string; text: string; time: string; completed: boolean };
-
-const INITIAL_TASKS: Task[] = [
-  { id: "t1", text: "Review 3 competitor reels", time: "10:00", completed: true },
-  { id: "t2", text: "Approve script draft for Ep. 12", time: "13:30", completed: false },
-  { id: "t3", text: "Post scheduled Reel", time: "18:00", completed: false },
-  { id: "t4", text: "Reply to DMs bucket", time: "20:00", completed: false },
-];
+/** A row of the real `telegram_tasks` table (`done` = already delivered). */
+type TgTask = {
+  id: string;
+  text: string;
+  time?: string | null;
+  done?: number | boolean | null;
+  created_at?: number;
+};
 
 
 function useGreeting() {
@@ -413,45 +414,46 @@ function AIActivity() {
 
 
 function TelegramTasks() {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
-
-  const toggle = (id: string) =>
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
-    );
+  const { data, loading } = useApi<TgTask[]>("/api/telegram-tasks");
+  const tasks = Array.isArray(data) ? data : [];
 
   return (
     <Card className="p-5">
       <div className="mb-1 text-xs uppercase tracking-wide text-mute">
         From Telegram
       </div>
-      <div className="text-sm font-semibold text-fg">Today's Tasks</div>
-      <div className="mt-3 space-y-2">
-        {tasks.map((t) => (
-          <label
-            key={t.id}
-            className="flex cursor-pointer items-center gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
-          >
-            <input
-              type="checkbox"
-              checked={t.completed}
-              onChange={() => toggle(t.id)}
-              className="h-4 w-4 accent-[#52FF2E]"
-            />
-            <span
-              className={
-                t.completed
-                  ? "flex-1 text-mute line-through opacity-60"
-                  : "flex-1 text-fg"
-              }
+      <div className="text-sm font-semibold text-fg">Tasks</div>
+
+      {loading ? (
+        <div className="mt-3 text-sm text-mute">Loading…</div>
+      ) : tasks.length === 0 ? (
+        // Truthful empty state: nothing writes to telegram_tasks yet, so an
+        // invented to-do list would be a lie.
+        <div className="mt-3 text-sm text-mute">
+          Nothing is queued. Tasks appear here only when something adds them —
+          the Telegram bot has no intake that creates tasks yet, so this stays
+          empty until that is built.
+        </div>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {tasks.map((t) => (
+            <div
+              key={t.id}
+              className="flex items-start gap-3 rounded-md border border-line bg-surface p-2.5 text-sm"
             >
-              {t.text}
-            </span>
-            <span className="rounded-full border border-line bg-cardx px-2 py-0.5 text-[11px] text-fg2">
-              {t.time}
-            </span>
-          </label>
-        ))}
+              <span className="flex-1 text-fg">{t.text}</span>
+              {t.time && <span className="shrink-0 text-xs text-mute">{t.time}</span>}
+              <Pill variant={t.done ? "default" : "accent"}>
+                {t.done ? "sent" : "queued"}
+              </Pill>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-3 text-[11px] text-mute">
+        “sent” means the bot has delivered it; it is not a completion you can tick
+        off here.
       </div>
     </Card>
   );

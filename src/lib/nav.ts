@@ -85,7 +85,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { path: "/performance", label: "Performance", Icon: BarChart2 },
       { path: "/content-score", label: "Content Score", Icon: Star },
-      { path: "/hook-scoreboard", label: "Hook Scoreboard", Icon: ListOrdered },
+      { path: "/hook-scoreboard", label: "Hooks", Icon: ListOrdered },
       { path: "/series", label: "Series", Icon: Layers },
     ],
   },

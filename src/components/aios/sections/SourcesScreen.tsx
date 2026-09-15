@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, ChevronDown, Database, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge, Card, OutlineBtn, PrimaryBtn } from "../ui";
 
 type Status = "ok" | "error" | "never" | "nokey" | "running";
@@ -144,15 +145,31 @@ type RunState = {
   items?: number;
 };
 
-function Toggle({ label }: { label: string }) {
-  const [on, setOn] = useState(false);
+/**
+ * A hard switch, not decoration. It used to be component state that vanished on
+ * reload and that nothing ever read; it is now backed by the workspace table and
+ * honoured by the pipeline (a source switched off is not fetched by the 08:00 /
+ * 20:00 run either).
+ */
+function Toggle({
+  label,
+  on,
+  onToggle,
+  busy,
+}: {
+  label: string;
+  on: boolean;
+  onToggle: () => void;
+  busy?: boolean;
+}) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={on}
-      aria-label={`Enable ${label}`}
-      onClick={() => setOn((v) => !v)}
+      aria-label={`${on ? "Disable" : "Enable"} ${label}`}
+      disabled={busy}
+      onClick={onToggle}
       className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${
         on ? "border-lime bg-lime" : "border-line bg-surface"
       }`}
@@ -215,11 +232,17 @@ function SourceCard({
   snapshot,
   state,
   onRun,
+  disabled,
+  onToggle,
+  saving,
 }: {
   def: Def;
   snapshot: SettingsSnapshot | null;
   state: RunState;
   onRun: () => void;
+  disabled: string[];
+  onToggle: (id: string) => void;
+  saving: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const key = def.check(snapshot);
@@ -233,7 +256,12 @@ function SourceCard({
           <div className="truncate text-sm font-semibold text-fg">{def.name}</div>
           <div className="mt-0.5 text-xs text-mute">{def.fetchTag}</div>
         </div>
-        <Toggle label={def.name} />
+        <Toggle
+          label={def.name}
+          on={!disabled.includes(def.id)}
+          onToggle={() => onToggle(def.id)}
+          busy={saving}
+        />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -295,6 +323,54 @@ function SourceCard({
 export function SourcesScreen() {
   const [snapshot, setSnapshot] = useState<SettingsSnapshot | null>(null);
   const [states, setStates] = useState<Record<string, RunState>>({});
+  // Sources the owner switched off, persisted so the choice survives a reload.
+  const [disabled, setDisabled] = useState<string[]>([]);
+  const [savingSources, setSavingSources] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/workspace?key=sources:disabled")
+      .then((r) => r.json())
+      .then((d) => {
+        let v: any = d?.value ?? d?.data?.value ?? d;
+        if (typeof v === "string") {
+          try {
+            v = JSON.parse(v);
+          } catch {
+            v = null;
+          }
+        }
+        setDisabled(Array.isArray(v) ? v : []);
+      })
+      .catch(() => {
+        /* keep the default: everything on */
+      });
+  }, []);
+
+  const toggleSource = async (id: string) => {
+    const previous = disabled;
+    const next = previous.includes(id)
+      ? previous.filter((x) => x !== id)
+      : [...previous, id];
+    setDisabled(next);
+    setSavingSources(true);
+    try {
+      const res = await fetch("/api/workspace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "sources:disabled", value: next }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || json?.ok === false) {
+        throw new Error(json?.error ?? `HTTP ${res.status}`);
+      }
+    } catch (err: any) {
+      // never let the switch claim something that was not stored
+      setDisabled(previous);
+      toast.error(`Could not save that switch: ${err?.message ?? "network error"}`);
+    } finally {
+      setSavingSources(false);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -402,6 +478,9 @@ export function SourcesScreen() {
             snapshot={snapshot}
             state={states[d.id] ?? { status: d.check(snapshot).ready ? "never" : "nokey" }}
             onRun={() => void runOne(d)}
+            disabled={disabled}
+            onToggle={(id) => void toggleSource(id)}
+            saving={savingSources}
           />
         ))}
       </div>

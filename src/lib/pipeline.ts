@@ -65,10 +65,25 @@ export async function runPipeline(
   requested?: string[] | null,
 ): Promise<PipelineReport> {
   const startedAt = Date.now();
-  const wanted = (requested && requested.length
+  let wanted = (requested && requested.length
     ? requested
     : PIPELINE_STEPS.map((s) => s.id)
   ).filter((id, i, arr) => arr.indexOf(id) === i) as StepId[];
+
+  // The Sources screen switches must mean something: a source the owner turned
+  // off is not fetched by the scheduled run either. Only the three wired
+  // sources map to a step (youtube + serpapi → trends, ig-competitors → scrape).
+  try {
+    const disabled = await readJsonSetting<string[]>(env, "sources:disabled", []);
+    if (disabled.includes("youtube") && disabled.includes("serpapi")) {
+      wanted = wanted.filter((s) => s !== "trends");
+    }
+    if (disabled.includes("ig-competitors")) {
+      wanted = wanted.filter((s) => s !== "scrape");
+    }
+  } catch {
+    /* never block a run because a settings read failed */
+  }
 
   const steps: StepResult[] = [];
   let briefKey: string | undefined;

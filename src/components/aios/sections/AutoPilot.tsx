@@ -165,6 +165,23 @@ export function AutoPilot() {
     },
   ];
 
+  // The schedule is fixed in wrangler.toml: 02:00 and 14:00 UTC.
+  const nextScheduledRun = (() => {
+    const now = Date.now();
+    const at = (h: number) => {
+      const d = new Date();
+      d.setUTCHours(h, 0, 0, 0);
+      if (d.getTime() <= now) d.setUTCDate(d.getUTCDate() + 1);
+      return d.getTime();
+    };
+    return Math.min(at(2), at(14));
+  })();
+  const hoursToNext = Math.max(
+    1,
+    Math.round((nextScheduledRun - Date.now()) / 3_600_000),
+  );
+  const lastPipelineRun = feed.find((e) => e.module === "pipeline");
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -194,6 +211,49 @@ export function AutoPilot() {
           </PrimaryBtn>
         </div>
       </div>
+
+      {/* What happens without you */}
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span className="text-fg2">
+            Next automatic run:{" "}
+            <span className="text-fg">
+              {new Date(nextScheduledRun).toLocaleString(undefined, {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>{" "}
+            <span className="text-mute">(in ~{hoursToNext}h)</span>
+          </span>
+          <span className="text-mute">·</span>
+          <span className="text-fg2">
+            Last run:{" "}
+            {lastPipelineRun ? (
+              <span
+                className={
+                  lastPipelineRun.action === "pipeline_ok"
+                    ? "text-lime"
+                    : lastPipelineRun.action === "pipeline_failed"
+                      ? "text-err"
+                      : "text-fg2"
+                }
+              >
+                {lastPipelineRun.action === "pipeline_ok" ? "succeeded" : "failed"}{" "}
+                <span className="text-mute">· {lastPipelineRun.detail}</span>
+              </span>
+            ) : (
+              <span className="text-mute">nothing logged yet</span>
+            )}
+          </span>
+        </div>
+        <div className="mt-1 text-[11px] text-mute">
+          Fixed in wrangler.toml: 02:00 and 14:00 UTC — 08:00 and 20:00 in
+          Asia/Dhaka. It fetches trends, scrapes competitors, writes the brief and
+          sends it to Telegram. Everything else stays on demand.
+        </div>
+      </Card>
 
       {/* Individual steps */}
       <Card className="p-4">

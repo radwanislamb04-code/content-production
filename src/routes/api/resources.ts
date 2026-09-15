@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity";
@@ -37,7 +38,8 @@ export const Route = createFileRoute("/api/resources")({
         if (!db) return Response.json([]);
         try {
           const { results } = await db
-            .prepare("SELECT * FROM resources ORDER BY created_at DESC")
+            .prepare("SELECT * FROM resources WHERE user_id = ? ORDER BY created_at DESC")
+            .bind(await currentUserId(request, context))
             .all();
           return Response.json(results ?? []);
         } catch {

@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity";
@@ -49,8 +50,8 @@ export const Route = createFileRoute("/api/resources/$id")({
           return Response.json({ ok: false, error: "Missing id" }, { status: 400 });
         }
         const row = await db
-          .prepare("SELECT * FROM resources WHERE id = ?")
-          .bind(id)
+          .prepare("SELECT * FROM resources WHERE id = ? AND user_id = ?")
+          .bind(id, await currentUserId(request, context))
           .first();
         if (!row) {
           return Response.json(
@@ -115,8 +116,8 @@ export const Route = createFileRoute("/api/resources/$id")({
         }
 
         const row = await db
-          .prepare("SELECT * FROM resources WHERE id = ?")
-          .bind(id)
+          .prepare("SELECT * FROM resources WHERE id = ? AND user_id = ?")
+          .bind(id, await currentUserId(request, context))
           .first();
         await logActivity(env, "resources", "updated", id);
         return Response.json({ ok: true, resource: row });
@@ -138,8 +139,8 @@ export const Route = createFileRoute("/api/resources/$id")({
 
         try {
           const res = await db
-            .prepare("DELETE FROM resources WHERE id = ?")
-            .bind(id)
+            .prepare("DELETE FROM resources WHERE id = ? AND user_id = ?")
+            .bind(id, await currentUserId(request, context))
             .run();
           if (!res?.meta || res.meta.changes === 0) {
             return Response.json(

@@ -1,6 +1,7 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
-import { readActivity } from "../../lib/activity";
+import { logActivityFor, readActivity, readActivityFor } from "../../lib/activity";
 
 export const Route = createFileRoute("/api/activity")({
   server: {
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/api/activity")({
         const limit = Number(url.searchParams.get("limit") ?? 100);
         const module = url.searchParams.get("module");
         // Newest first. `?limit=` and `?module=` keep AutoPilot's polling cheap.
-        return Response.json(await readActivity(env, limit, module));
+        return Response.json(await readActivityFor(request, context, limit, module));
       },
       POST: async ({ request, context }) => {
         const env = getEnv(request, context);
@@ -25,13 +26,19 @@ export const Route = createFileRoute("/api/activity")({
           return Response.json({ error: "module and action are required" }, { status: 400 });
         }
         try {
-          const now = Date.now();
-          await db
-            .prepare(
-              "INSERT INTO activity (id, module, action, detail, created_at) VALUES (?, ?, ?, ?, ?)"
-            )
-            .run(id, module, action, detail ?? "", now);
-          return Response.json({ success: true, id });
+          // Was a raw INSERT using the positional .run(a, b, …) form, which fails
+          // on this runtime ("Wrong number of parameter bindings") — and it wrote
+          // no user_id. The library call fixes both.
+          const uid = await currentUserId(request, context);
+          const ok = await logActivityFor(
+            request,
+            context,
+            module,
+            action,
+            detail ?? "",
+          );
+          if (!ok) return Response.json({ error: "Insert failed" }, { status: 500 });
+          return Response.json({ success: true });
         } catch {
           return Response.json({ error: "Insert failed" }, { status: 500 });
         }

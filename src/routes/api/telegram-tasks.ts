@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity";
@@ -48,8 +49,9 @@ export const Route = createFileRoute("/api/telegram-tasks")({
         try {
           const { results } = await db
             .prepare(
-              `SELECT ${ROW} FROM telegram_tasks ORDER BY created_at DESC LIMIT 50`,
+              `SELECT ${ROW} FROM telegram_tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
             )
+            .bind(await currentUserId(request, context))
             .all();
           return Response.json(results ?? []);
         } catch {
@@ -84,9 +86,9 @@ export const Route = createFileRoute("/api/telegram-tasks")({
         try {
           await db
             .prepare(
-              `INSERT INTO telegram_tasks (id, text, time, done, created_at) VALUES (?, ?, ?, 0, ?)`,
+              `INSERT INTO telegram_tasks (id, text, time, done, created_at, user_id) VALUES (?, ?, ?, 0, ?, ?)`,
             )
-            .bind(id, parsed.data.text, time, Date.now())
+            .bind(id, parsed.data.text, time, Date.now(), await currentUserId(request, context))
             .run();
         } catch (err: any) {
           return Response.json(
@@ -106,8 +108,8 @@ export const Route = createFileRoute("/api/telegram-tasks")({
         );
 
         const task = await db
-          .prepare(`SELECT ${ROW} FROM telegram_tasks WHERE id = ?`)
-          .bind(id)
+          .prepare(`SELECT ${ROW} FROM telegram_tasks WHERE id = ? AND user_id = ?`)
+          .bind(id, await currentUserId(request, context))
           .first();
         return Response.json({ ok: true, task }, { status: 201 });
       },

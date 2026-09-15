@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { pathSegments } from "../../lib/route-params";
 import { getEnv } from "../../lib/settings";
@@ -28,8 +29,10 @@ export const Route = createFileRoute("/api/library/$type/$id")({
         if (!db || !id) return new Response("Not found", { status: 404 });
         try {
           const { results } = await db
-            .prepare("SELECT * FROM library WHERE id = ? AND type = ?")
-            .bind(id, type)
+            .prepare(
+              "SELECT * FROM library WHERE id = ? AND type = ? AND user_id = ?",
+            )
+            .bind(id, type, await currentUserId(request, context))
             .all();
           const row = (results as any[])?.[0] ?? null;
           if (!row) return new Response("Not found", { status: 404 });
@@ -80,7 +83,10 @@ export const Route = createFileRoute("/api/library/$type/$id")({
           return new Response("Internal server error", { status: 500 });
         }
         try {
-          await db.prepare("DELETE FROM library WHERE id = ?").bind(id).run();
+          await db
+            .prepare("DELETE FROM library WHERE id = ? AND user_id = ?")
+            .bind(id, await currentUserId(request, context))
+            .run();
           return Response.json({ ok: true });
         } catch {
           return new Response("Internal server error", { status: 500 });

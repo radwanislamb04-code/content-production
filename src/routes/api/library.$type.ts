@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { pathSegments } from "../../lib/route-params";
 import { getEnv } from "../../lib/settings";
@@ -25,8 +26,10 @@ export const Route = createFileRoute("/api/library/$type")({
         if (!db || !type) return Response.json([]);
         try {
           const { results } = await db
-            .prepare("SELECT * FROM library WHERE type = ? ORDER BY created_at DESC")
-            .bind(type)
+            .prepare(
+              "SELECT * FROM library WHERE type = ? AND user_id = ? ORDER BY created_at DESC",
+            )
+            .bind(type, await currentUserId(request, context))
             .all();
           return Response.json(results ?? []);
         } catch {
@@ -53,8 +56,8 @@ export const Route = createFileRoute("/api/library/$type")({
         try {
           await db
             .prepare(
-              `INSERT INTO library (id, type, title, content, source_id, quality_score, quality_analysis, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `INSERT INTO library (id, type, title, content, source_id, quality_score, quality_analysis, created_at, updated_at, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(id) DO UPDATE SET
                  title = excluded.title,
                  content = excluded.content,
@@ -73,6 +76,7 @@ export const Route = createFileRoute("/api/library/$type")({
               quality_analysis,
               now,
               now,
+              await currentUserId(request, context),
             )
             .run();
           return Response.json({ ok: true, id });

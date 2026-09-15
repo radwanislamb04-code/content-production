@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity";
@@ -80,7 +81,10 @@ export const Route = createFileRoute("/api/projects")({
 
         try {
           const { results } = await db
-            .prepare("SELECT * FROM projects ORDER BY updated_at DESC")
+            .prepare(
+              "SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC",
+            )
+            .bind(await currentUserId(request, context))
             .all();
           const rows = (results ?? []) as any[];
 
@@ -89,7 +93,7 @@ export const Route = createFileRoute("/api/projects")({
           try {
             const linked = await db
               .prepare(
-                "SELECT id, type, title, project_id, created_at FROM library WHERE project_id IS NOT NULL AND project_id != '' ORDER BY created_at DESC",
+                "SELECT id, type, title, project_id, created_at FROM library WHERE project_id IS NOT NULL AND project_id != '' AND user_id = ? ORDER BY created_at DESC",
               )
               .all();
             links = (linked.results ?? []) as any[];
@@ -150,8 +154,10 @@ export const Route = createFileRoute("/api/projects")({
           const { action, projectId, itemId } = parsed.data;
           try {
             await db
-              .prepare("UPDATE library SET project_id = ?, updated_at = ? WHERE id = ?")
-              .bind(action === "link" ? projectId : null, Date.now(), itemId)
+              .prepare(
+                "UPDATE library SET project_id = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+              )
+              .bind(action === "link" ? projectId : null, Date.now(), itemId, await currentUserId(request, context))
               .run();
             await logActivity(env, "projects", action, `${itemId} ↔ ${projectId}`);
             return Response.json({ ok: true });
@@ -176,9 +182,9 @@ export const Route = createFileRoute("/api/projects")({
         try {
           await db
             .prepare(
-              "INSERT INTO projects (id, title, module, status, pipeline_step, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              "INSERT INTO projects (id, title, module, status, pipeline_step, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             )
-            .bind(id, parsed.data.title, module, "active", step, now, now)
+            .bind(id, parsed.data.title, module, "active", step, now, now, await currentUserId(request, context))
             .run();
         } catch (err: any) {
           return Response.json({ ok: false, error: err?.message ?? String(err) }, { status: 500 });

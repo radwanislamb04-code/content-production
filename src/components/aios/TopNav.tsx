@@ -1,14 +1,23 @@
 import { apiFetch } from "@/lib/api";
 import { ProfileMenu } from "./ProfileMenu";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   Bell,
+  CalendarClock,
   CheckCircle2,
+  Download,
   Info,
+  KanbanSquare,
+  Lightbulb,
+  ListTodo,
   Menu,
+  Play,
   Search,
+  Sparkles,
+  Sun,
   X,
 } from "lucide-react";
 
@@ -228,6 +237,198 @@ export function TopNav({
   );
 }
 
+/**
+ * ⌘K actions — ⑦ of the master plan.
+ *
+ * Search used to be the only thing this palette could do. These run the thing you
+ * came for: start a scraper run, queue today's tasks, score what is unscored,
+ * download the library. Each one calls the same endpoint the page calls, so the
+ * palette cannot drift away from the app.
+ */
+type PaletteAction = {
+  id: string;
+  title: string;
+  hint: string;
+  keywords: string;
+  Icon: typeof Search;
+  run: (ctx: {
+    navigate: (to: string) => void;
+    close: () => void;
+    setMode: (mode: "search" | "task") => void;
+  }) => void | Promise<void>;
+};
+
+async function jsonPost(path: string, body?: unknown) {
+  const res = await apiFetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  return { res, json: await res.json().catch(() => null) };
+}
+
+const ACTIONS: PaletteAction[] = [
+  {
+    id: "new-idea",
+    title: "New idea",
+    hint: "Open the Ideator and generate ideas",
+    keywords: "new idea ideate generate brainstorm",
+    Icon: Lightbulb,
+    run: ({ navigate, close }) => {
+      close();
+      navigate("/ideator");
+    },
+  },
+  {
+    id: "add-task",
+    title: "Add a task…",
+    hint: "Type the task and press Enter — it lands in today's queue",
+    keywords: "add task todo queue telegram",
+    Icon: ListTodo,
+    run: ({ setMode }) => setMode("task"),
+  },
+  {
+    id: "queue-today",
+    title: "Queue today's tasks",
+    hint: "Turn today's calendar entries and draft scripts into tasks",
+    keywords: "queue today tasks calendar auto",
+    Icon: CalendarClock,
+    run: async ({ close }) => {
+      close();
+      const id = toast.loading("Queueing today's tasks…");
+      try {
+        const { res, json } = await jsonPost("/api/auto-queue");
+        if (!res.ok || !json?.ok) throw new Error(json?.error ?? "failed");
+        toast.success(
+          json.created > 0
+            ? `Queued ${json.created} task(s) for ${json.date_key}.`
+            : `Nothing new — ${json.skipped} already queued for ${json.date_key}.`,
+          { id },
+        );
+      } catch (err: any) {
+        toast.error(`Could not queue: ${err?.message ?? err}`, { id });
+      }
+    },
+  },
+  {
+    id: "run-scraper",
+    title: "Run scraper now",
+    hint: "Competitor scrape (Apify) on demand",
+    keywords: "run scraper scrape apify competitor now",
+    Icon: Play,
+    run: async ({ close }) => {
+      close();
+      const id = toast.loading("Running the competitor scrape…");
+      try {
+        const { res, json } = await jsonPost("/api/run-pipeline", { steps: ["scrape"] });
+        const step = json?.steps?.[0];
+        if (!res.ok || !json?.ok || step?.ok === false) {
+          throw new Error(step?.detail ?? json?.error ?? "failed");
+        }
+        toast.success(`Scrape finished — ${step?.detail ?? "done"}.`, { id });
+      } catch (err: any) {
+        toast.error(`Scrape failed: ${err?.message ?? err}`, { id });
+      }
+    },
+  },
+  {
+    id: "run-trends",
+    title: "Run trend fetch now",
+    hint: "YouTube / SerpApi trends on demand",
+    keywords: "run trends youtube serpapi fetch now",
+    Icon: Play,
+    run: async ({ close }) => {
+      close();
+      const id = toast.loading("Fetching trends…");
+      try {
+        const { res, json } = await jsonPost("/api/run-pipeline", { steps: ["trends"] });
+        const step = json?.steps?.[0];
+        if (!res.ok || !json?.ok || step?.ok === false) {
+          throw new Error(step?.detail ?? json?.error ?? "failed");
+        }
+        toast.success(`Trends updated — ${step?.detail ?? "done"}.`, { id });
+      } catch (err: any) {
+        toast.error(`Trend fetch failed: ${err?.message ?? err}`, { id });
+      }
+    },
+  },
+  {
+    id: "todays-brief",
+    title: "Open today's brief",
+    hint: "The morning brief for today",
+    keywords: "brief today daily morning open",
+    Icon: Sun,
+    run: ({ navigate, close }) => {
+      close();
+      navigate("/daily-brief");
+    },
+  },
+  {
+    id: "score-unscored",
+    title: "Score all unscored",
+    hint: "Batch-score five library items",
+    keywords: "score content quality batch unscored",
+    Icon: Sparkles,
+    run: async ({ close }) => {
+      close();
+      const id = toast.loading("Scoring up to five items…");
+      try {
+        const { res, json } = await jsonPost("/api/score-content", {
+          batch: true,
+          limit: 5,
+        });
+        if (!res.ok || !json?.ok) throw new Error(json?.error ?? "failed");
+        toast.success(
+          json.message ??
+            `Scored ${json.scored} item(s)${json.failed ? `, ${json.failed} failed` : ""} · ${json.remaining} left.`,
+          { id },
+        );
+      } catch (err: any) {
+        toast.error(`Scoring failed: ${err?.message ?? err}`, { id });
+      }
+    },
+  },
+  {
+    id: "export-library",
+    title: "Export the library (JSON)",
+    hint: "Download everything you have saved",
+    keywords: "export download backup library json",
+    Icon: Download,
+    run: async ({ close }) => {
+      close();
+      try {
+        const res = await apiFetch("/api/library-export?format=json");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `content-os-library-${new Date()
+          .toISOString()
+          .slice(0, 10)}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        toast.success("Library downloaded");
+      } catch (err: any) {
+        toast.error(`Export failed: ${err?.message ?? err}`);
+      }
+    },
+  },
+  {
+    id: "open-board",
+    title: "Open the board",
+    hint: "Kanban board",
+    keywords: "board kanban cards open",
+    Icon: KanbanSquare,
+    run: ({ navigate, close }) => {
+      close();
+      navigate("/board");
+    },
+  },
+];
+
 function Spotlight({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -236,10 +437,75 @@ function Spotlight({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState(false);
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<"search" | "task">("search");
+  const [savingTask, setSavingTask] = useState(false);
+  const [taskNote, setTaskNote] = useState<string | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  const matchingActions = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return ACTIONS.slice(0, 5);
+    return ACTIONS.filter(
+      (a) =>
+        a.title.toLowerCase().includes(needle) ||
+        a.keywords.includes(needle) ||
+        a.hint.toLowerCase().includes(needle),
+    );
+  }, [q]);
+
+  const rows = useMemo(
+    () => [
+      ...matchingActions.map((action) => ({ kind: "action" as const, action })),
+      ...(results ?? []).map((result) => ({ kind: "result" as const, result })),
+    ],
+    [matchingActions, results],
+  );
+
+  /** Task mode: what you type becomes a task instead of a search. */
+  const saveTask = useCallback(async () => {
+    const text = q.trim();
+    if (!text) return;
+    setSavingTask(true);
+    try {
+      const res = await apiFetch("/api/telegram-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        setTaskNote(json?.error ?? "Could not save the task.");
+        return;
+      }
+      toast.success("Task added to today's queue");
+      onClose();
+    } catch (err: any) {
+      setTaskNote(err?.message ?? "Could not save the task.");
+    } finally {
+      setSavingTask(false);
+    }
+  }, [q, onClose]);
+
+  const runRow = useCallback(
+    (index: number) => {
+      const row = rows[index];
+      if (!row) return;
+      if (row.kind === "result") {
+        onClose();
+        if (row.result.href) navigate({ to: row.result.href } as any);
+        return;
+      }
+      void row.action.run({
+        navigate: (to) => navigate({ to } as any),
+        close: onClose,
+        setMode,
+      });
+    },
+    [rows, navigate, onClose],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -276,25 +542,34 @@ function Spotlight({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (!results?.length) return;
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (mode === "task") {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (!savingTask) void saveTask();
+        }
+        return;
+      }
+      if (!rows.length) return;
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setCursor((c) => (c + 1) % results.length);
+        setCursor((c) => (c + 1) % rows.length);
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        setCursor((c) => (c - 1 + results.length) % results.length);
+        setCursor((c) => (c - 1 + rows.length) % rows.length);
       }
       if (e.key === "Enter") {
-        const hit = results[cursor];
-        onClose();
-        if (hit?.href) navigate({ to: hit.href } as any);
+        e.preventDefault();
+        runRow(cursor);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [results, cursor, onClose, navigate]);
+  }, [rows, cursor, onClose, mode, savingTask, saveTask, runRow]);
 
   return (
     <div
@@ -306,7 +581,11 @@ function Spotlight({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-line px-4">
-          <Search size={15} className="shrink-0 text-mute" />
+          {mode === "task" ? (
+            <ListTodo size={15} className="shrink-0 text-lime" />
+          ) : (
+            <Search size={15} className="shrink-0 text-mute" />
+          )}
           <input
             ref={inputRef}
             value={q}
@@ -314,9 +593,24 @@ function Spotlight({ onClose }: { onClose: () => void }) {
               setQ(e.target.value);
               setCursor(0);
             }}
-            placeholder="Search anything..."
+            placeholder={
+              mode === "task"
+                ? "What needs doing? Press Enter to save…"
+                : "Search anything, or type an action..."
+            }
             className="h-12 flex-1 bg-transparent text-sm text-fg placeholder:text-mute outline-none"
           />
+          {mode === "task" && (
+            <button
+              onClick={() => {
+                setMode("search");
+                setTaskNote(null);
+              }}
+              className="shrink-0 text-[11px] text-mute hover:text-fg2"
+            >
+              Cancel
+            </button>
+          )}
           <button
             onClick={onClose}
             aria-label="Close search"
@@ -327,54 +621,101 @@ function Spotlight({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="max-h-[50vh] overflow-y-auto p-3 aios-scroll">
-          <div className="mb-2 px-1 text-[11px] uppercase tracking-wide text-mute">
-            {q ? "Results" : "Recent searches"}
-          </div>
-
-          {loading && (
-            <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="aios-pulse h-11 rounded-lg bg-cardhi" />
-              ))}
+          {mode === "task" ? (
+            <div className="px-1 py-4 text-center">
+              <p className="text-sm text-fg2">
+                Press <span className="text-lime">Enter</span> to add it to today's
+                queue.
+              </p>
+              <p className="mt-1 text-[11px] text-mute">
+                It shows up on the Dashboard and in the next Telegram briefing.
+              </p>
+              {taskNote && <p className="mt-2 text-[12px] text-err">{taskNote}</p>}
             </div>
-          )}
+          ) : (
+            <>
+              {matchingActions.length > 0 && (
+                <>
+                  <div className="mb-2 px-1 text-[11px] uppercase tracking-wide text-mute">
+                    Actions
+                  </div>
+                  {matchingActions.map((action, i) => (
+                    <button
+                      key={action.id}
+                      onMouseEnter={() => setCursor(i)}
+                      onClick={() => runRow(i)}
+                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left ${
+                        cursor === i ? "bg-[rgba(82,255,46,0.08)]" : ""
+                      }`}
+                    >
+                      <action.Icon size={15} className="shrink-0 text-lime" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm text-fg">
+                          {action.title}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[11px] text-mute">
+                          {action.hint}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
 
-          {!loading && (error || !results?.length) && (
-            <p className="px-1 py-6 text-center text-sm text-mute">
-              {error
-                ? "Search is unavailable right now."
-                : "Nothing here yet — generate content and it'll show up in search."}
-            </p>
-          )}
+              <div className="mb-2 mt-3 px-1 text-[11px] uppercase tracking-wide text-mute">
+                {q ? "Results" : "Your content"}
+              </div>
 
-          {!loading &&
-            !error &&
-            results?.map((r, i) => (
-              <button
-                key={r.id}
-                onMouseEnter={() => setCursor(i)}
-                onClick={() => {
-                  onClose();
-                  if (r.href) navigate({ to: r.href } as any);
-                }}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left ${
-                  cursor === i ? "bg-[rgba(82,255,46,0.08)]" : ""
-                }`}
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm text-fg">{r.title}</span>
-                  {r.snippet ? (
-                    <span className="mt-0.5 block truncate text-[11px] text-mute">
-                      {r.snippet}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="shrink-0 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-fg2">
-                  {r.module}
-                </span>
-                <span className="shrink-0 text-[11px] text-mute">{r.date}</span>
-              </button>
-            ))}
+              {loading && (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="aios-pulse h-11 rounded-lg bg-cardhi" />
+                  ))}
+                </div>
+              )}
+
+              {!loading && error && (
+                <p className="px-1 py-6 text-center text-sm text-mute">
+                  Search is unavailable right now.
+                </p>
+              )}
+
+              {!loading && !error && !results?.length && (
+                <p className="px-1 py-6 text-center text-sm text-mute">
+                  Nothing matches — {q ? "try another word, or use an action above." : "nothing saved yet."}
+                </p>
+              )}
+
+              {!loading &&
+                !error &&
+                results?.map((r, i) => {
+                  const index = matchingActions.length + i;
+                  return (
+                    <button
+                      key={r.id}
+                      onMouseEnter={() => setCursor(index)}
+                      onClick={() => runRow(index)}
+                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left ${
+                        cursor === index ? "bg-[rgba(82,255,46,0.08)]" : ""
+                      }`}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm text-fg">{r.title}</span>
+                        {r.snippet ? (
+                          <span className="mt-0.5 block truncate text-[11px] text-mute">
+                            {r.snippet}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="shrink-0 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-fg2">
+                        {r.module}
+                      </span>
+                      <span className="shrink-0 text-[11px] text-mute">{r.date}</span>
+                    </button>
+                  );
+                })}
+            </>
+          )}
         </div>
       </div>
     </div>

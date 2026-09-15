@@ -5,6 +5,7 @@ import { apiFetch, apiGet } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { HeroClock } from "../widgets/HeroClock";
 import { QuoteBar } from "../widgets/QuoteBar";
+import { SetupHealth } from "./SetupHealth";
 
 import {
   Lightbulb,
@@ -106,6 +107,8 @@ export function Dashboard({
 
         <StatsRow />
 
+        {/* One honest card instead of guessing why something stopped working. */}
+        <SetupHealth />
 
         <Card className="p-5">
           <div className="mb-4 text-sm font-semibold text-fg2">Pipeline</div>

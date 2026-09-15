@@ -20,23 +20,20 @@ export type TelegramResult = {
   sent?: number;
 };
 
-/** Send a single plain-text message. Plain text on purpose: briefs contain
- *  user content, and an unescaped `<` in HTML parse mode fails the whole send. */
-export async function sendTelegram(
-  env: any,
+/**
+ * Send a plain-text message to an explicit bot + chat, with no settings lookup.
+ *
+ * The webhook intake needs this: it must answer the chat that wrote to it, which
+ * is not necessarily the chat id stored in Settings (a second person may have
+ * messaged the bot). Plain text on purpose — briefs contain user content, and an
+ * unescaped `<` in HTML parse mode fails the whole send.
+ */
+export async function sendTelegramTo(
+  botToken: string,
+  chatId: string | number,
   text: string,
-  opts: { disableNotification?: boolean } = {},
-  userId: string = OWNER_ID,
+  opts: { disableNotification?: boolean; replyTo?: number } = {},
 ): Promise<TelegramResult> {
-  const { botToken, chatId } = await readTelegramConfig(env, userId);
-  if (!botToken || !chatId) {
-    return {
-      ok: false,
-      error:
-        "Telegram is not configured — add the bot token and chat id in Settings → Notifications.",
-    };
-  }
-
   try {
     const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: "POST",
@@ -45,6 +42,7 @@ export async function sendTelegram(
         chat_id: chatId,
         text,
         disable_web_page_preview: true,
+        ...(opts.replyTo ? { reply_to_message_id: opts.replyTo } : {}),
         ...(opts.disableNotification ? { disable_notification: true } : {}),
       }),
     });
@@ -59,6 +57,24 @@ export async function sendTelegram(
   } catch (err: any) {
     return { ok: false, error: `Telegram request failed: ${err?.message ?? String(err)}` };
   }
+}
+
+/** Send a single plain-text message to the chat configured in Settings. */
+export async function sendTelegram(
+  env: any,
+  text: string,
+  opts: { disableNotification?: boolean } = {},
+  userId: string = OWNER_ID,
+): Promise<TelegramResult> {
+  const { botToken, chatId } = await readTelegramConfig(env, userId);
+  if (!botToken || !chatId) {
+    return {
+      ok: false,
+      error:
+        "Telegram is not configured — add the bot token and chat id in Settings → Notifications.",
+    };
+  }
+  return sendTelegramTo(botToken, chatId, text, opts);
 }
 
 /** Split a long brief into Telegram-sized chunks and send them in order. */

@@ -26,7 +26,7 @@ type ApifySlot = {
   cap?: number;
 };
 
-type Usage = {
+export type Usage = {
   id: string;
   label: string;
   job: string;
@@ -87,7 +87,11 @@ function subLimits(current: any, limits: any): Usage["subLimits"] {
   return rows;
 }
 
-async function usageFor(slot: ApifySlot, index: number): Promise<Usage> {
+/**
+ * Exported so /api/health can report the same live numbers instead of growing a
+ * second implementation that drifts from this one.
+ */
+export async function usageFor(slot: ApifySlot, index: number): Promise<Usage> {
   const token = String(slot.token ?? "").trim();
   const base: Usage = {
     id: String(slot.id ?? index + 1),

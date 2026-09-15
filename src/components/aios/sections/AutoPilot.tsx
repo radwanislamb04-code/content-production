@@ -4,6 +4,7 @@ import { Card, PrimaryBtn, OutlineBtn } from "../ui";
 import {
   AlertTriangle,
   Bot,
+  CalendarClock,
   CheckCircle2,
   Clock,
   Loader2,
@@ -95,6 +96,7 @@ export function AutoPilot() {
   const [running, setRunning] = useState<string | null>(null);
   const [report, setReport] = useState<PipelineReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [queueNote, setQueueNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -136,6 +138,36 @@ export function AutoPilot() {
     },
     [load],
   );
+
+  /**
+   * Fill today's task queue from what the app already knows (today's calendar
+   * entries and scripts still in draft). The cron does this at 08:00 and 20:00;
+   * this button is for "I just changed the plan, show me the queue now". Safe to
+   * press repeatedly — every auto row is deduplicated by ref_key.
+   */
+  const queueToday = useCallback(async () => {
+    setRunning("queue");
+    setError(null);
+    setQueueNote(null);
+    try {
+      const res = await apiFetch("/api/auto-queue", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        setError(data?.error ?? "Could not queue today's tasks");
+        return;
+      }
+      setQueueNote(
+        data.created > 0
+          ? `Queued ${data.created} task(s) for ${data.date_key}${data.skipped ? ` · ${data.skipped} were already queued` : ""}.`
+          : `Nothing new for ${data.date_key} — ${data.skipped} task(s) from your plan are already in the queue.`,
+      );
+      await load();
+    } catch (err: any) {
+      setError(err?.message ?? "Could not queue today's tasks");
+    } finally {
+      setRunning(null);
+    }
+  }, [load]);
 
   const latestOf = (modules: string[]) =>
     feed.find((r) => modules.includes(r.module)) ?? null;
@@ -198,6 +230,18 @@ export function AutoPilot() {
             <RefreshCw className="h-4 w-4" />
             Refresh
           </OutlineBtn>
+          <OutlineBtn
+            onClick={queueToday}
+            disabled={running !== null}
+            title="Turn today's calendar entries and draft scripts into tasks"
+          >
+            {running === "queue" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CalendarClock className="h-4 w-4" />
+            )}
+            {running === "queue" ? "Queueing…" : "Queue today's tasks"}
+          </OutlineBtn>
           <PrimaryBtn
             onClick={() => run("full", null)}
             disabled={running !== null}
@@ -212,6 +256,13 @@ export function AutoPilot() {
           </PrimaryBtn>
         </div>
       </div>
+
+      {queueNote && (
+        <Card className="flex items-start gap-2 p-3">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
+          <span className="text-sm text-fg2">{queueNote}</span>
+        </Card>
+      )}
 
       {/* What happens without you */}
       <Card className="p-4">

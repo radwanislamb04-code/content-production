@@ -597,6 +597,9 @@ function TelegramTab({ settings }: { settings: ReturnType<typeof useSettings> })
       <FieldGroup title="Bot">
         <TelegramFields settings={settings} />
       </FieldGroup>
+      <FieldGroup title="Incoming — send tasks from Telegram">
+        <TelegramWebhookCard />
+      </FieldGroup>
       <FieldGroup title="What gets sent">
         <ul className="list-disc pl-5 text-sm text-fg2">
           <li>
@@ -723,6 +726,205 @@ function TelegramFields({
         </OutlineBtn>
         <OutlineBtn onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save notifications"}
+        </OutlineBtn>
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------- Telegram, incoming side */
+
+/**
+ * The intake half of Telegram (master-plan step ⑤).
+ *
+ * Everything shown here comes from Telegram itself — the registered URL, the
+ * pending update count and the last delivery error — so when a message does not
+ * arrive you can see the reason instead of guessing. The delivery URL is shown
+ * because that is the only way to confirm what the bot is pointing at; it is
+ * reachable only from behind Access.
+ */
+type WebhookStatus = {
+  configured: boolean;
+  hasToken: boolean;
+  botUsername: string | null;
+  url: string | null;
+  registeredAt: number | null;
+  lastUpdateAt: number | null;
+  updatesSeen: number;
+  lastError: string | null;
+  telegram?: {
+    url: string | null;
+    pendingUpdates: number;
+    lastErrorDate: number | null;
+    lastErrorMessage: string | null;
+  } | null;
+  error?: string;
+};
+
+function when(ts: number | null | undefined): string {
+  if (!ts) return "never";
+  return new Date(ts).toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function TelegramWebhookCard() {
+  const [status, setStatus] = useState<WebhookStatus | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const res = await apiFetch("/api/telegram-webhook");
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json?.error ?? "Could not read the webhook status.");
+        return;
+      }
+      setStatus(json as WebhookStatus);
+      if (json?.error) setError(json.error);
+    } catch (err: any) {
+      setError(err?.message ?? "Could not read the webhook status.");
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const act = async (action: "register" | "remove" | "rotate", done: string) => {
+    setBusy(action);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/telegram-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        const message = json?.error ?? "Telegram refused the change.";
+        setError(message);
+        toast.error(message);
+        if (json?.configured !== undefined) setStatus(json as WebhookStatus);
+        return;
+      }
+      setStatus(json as WebhookStatus);
+      toast.success(done);
+    } catch (err: any) {
+      const message = err?.message ?? String(err);
+      setError(message);
+      toast.error(message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const copyUrl = async () => {
+    if (!status?.url) return;
+    try {
+      await navigator.clipboard.writeText(status.url);
+      toast.success("Delivery URL copied");
+    } catch {
+      toast.error("Copy failed — select the text and copy it manually.");
+    }
+  };
+
+  const live = !!status?.registeredAt;
+  const telegramKnows = !!status?.telegram?.url;
+
+  return (
+    <>
+      <p className="text-sm text-fg2">
+        Message your bot and it becomes a real task on the Dashboard. No app open,
+        no laptop on — Telegram calls this Worker directly.
+      </p>
+
+      <div className="space-y-2 rounded-md border border-line bg-surface p-3">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-fg">Status:</span>
+          {status === null ? (
+            <span className="text-mute">reading…</span>
+          ) : !status.hasToken ? (
+            <Badge tone="warning">add your bot token above first</Badge>
+          ) : live && telegramKnows ? (
+            <Badge tone="success">listening since {when(status.registeredAt)}</Badge>
+          ) : live && !telegramKnows ? (
+            <Badge tone="warning">
+              registered here, but Telegram reports no URL — press “Turn on” again
+            </Badge>
+          ) : (
+            <Badge tone="neutral">not switched on yet</Badge>
+          )}
+          {status?.botUsername ? (
+            <span className="text-mute">@ {status.botUsername}</span>
+          ) : null}
+        </div>
+
+        <div className="grid gap-1 text-[12px] text-mute sm:grid-cols-2">
+          <span>Messages received: {status?.updatesSeen ?? 0}</span>
+          <span>Last message: {when(status?.lastUpdateAt)}</span>
+          <span>Waiting at Telegram: {status?.telegram?.pendingUpdates ?? 0}</span>
+          <span>
+            Last Telegram error:{" "}
+            {status?.telegram?.lastErrorMessage
+              ? `${status.telegram.lastErrorMessage} (${when(status.telegram.lastErrorDate)})`
+              : "none"}
+          </span>
+        </div>
+
+        {status?.url ? (
+          <div className="flex items-center gap-2">
+            <input
+              readOnly
+              value={status.url}
+              onFocus={(e) => e.currentTarget.select()}
+              className="min-w-0 flex-1 truncate rounded-md border border-line bg-card px-2 py-1.5 font-mono text-[11px] text-fg2"
+            />
+            <OutlineBtn onClick={copyUrl}>Copy</OutlineBtn>
+          </div>
+        ) : null}
+
+        {(error || status?.lastError) && (
+          <p className="text-[12px] text-err">
+            {error ?? status?.lastError}
+          </p>
+        )}
+
+        <div className="text-[12px] leading-relaxed text-mute">
+          In the chat, <span className="text-fg2">/task buy props</span> saves a
+          task · <span className="text-fg2">/list</span> shows what is open ·{" "}
+          <span className="text-fg2">/done 2</span> ticks one off ·{" "}
+          <span className="text-fg2">/id</span> reports the chat id (it saves
+          itself the first time you say hello).
+        </div>
+      </div>
+
+      <div className="flex flex-wrap justify-end gap-2 pt-1">
+        <OutlineBtn onClick={load} disabled={busy !== null}>
+          <RefreshCw size={13} /> Refresh
+        </OutlineBtn>
+        <OutlineBtn
+          onClick={() => act("rotate", "New delivery URL registered")}
+          disabled={busy !== null || !status?.hasToken}
+        >
+          {busy === "rotate" ? "Working…" : "New URL"}
+        </OutlineBtn>
+        <OutlineBtn
+          onClick={() => act("remove", "Incoming messages switched off")}
+          disabled={busy !== null || !live}
+        >
+          {busy === "remove" ? "Working…" : "Turn off"}
+        </OutlineBtn>
+        <OutlineBtn
+          onClick={() => act("register", "Telegram is now delivering to this app")}
+          disabled={busy !== null || !status?.hasToken}
+        >
+          <Send size={13} /> {busy === "register" ? "Talking to Telegram…" : "Turn on"}
         </OutlineBtn>
       </div>
     </>

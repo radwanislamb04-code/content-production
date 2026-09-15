@@ -2,36 +2,37 @@ import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity";
-import { callAi, extractJson } from "../../lib/ai";
 import { getEnv } from "../../lib/settings";
+import { scoreItem, unscoredCount, unscoredItems } from "../../lib/scorer";
 
 /**
- * POST /api/score-content { id }
+ * POST /api/score-content
  *
- * The `content-scorer` agent from `.claude/agents/content-scorer.md`: rate a
- * library item on a 1-10 scale with a five-part breakdown, then store it in
- * `library.quality_score` + `library.quality_analysis` (columns that already
- * existed from migration 003 — nothing new was needed).
+ *   { id }                        → score one library item
+ *   { batch: true, limit?, type? } → score everything that has never been scored
+ *
+ * The `content-scorer` agent: rate an item on a 1-10 scale with a five-part
+ * breakdown, stored in `library.quality_score` + `library.quality_analysis`
+ * (columns that already existed from migration 003). The prompt and the
+ * normaliser live in `src/lib/scorer.ts` so the single and batch paths are the
+ * same code.
+ *
+ * Batch mode exists because scoring 100 items one click at a time is the reason
+ * most of a library stays unscored. It works in small batches (`limit`, max 25)
+ * rather than one long request, so the HTTP request never times out and the UI
+ * can show progress.
  */
 
-const bodySchema = z.object({ id: z.string().trim().min(1).max(120) });
+export type { ScoreAnalysis } from "../../lib/scorer";
 
-export type ScoreAnalysis = {
-  score: number;
-  grade: string;
-  breakdown: {
-    originality: number;
-    engagement_potential: number;
-    clarity: number;
-    actionability: number;
-    trend_alignment: number;
-  };
-  strengths: string[];
-  weaknesses: string[];
-  improvement_suggestions: string[];
-  recommended_action: "publish" | "revise" | "discard" | string;
-  summary: string;
-};
+const bodySchema = z.object({
+  id: z.string().trim().min(1).max(120).optional(),
+  batch: z.boolean().optional(),
+  limit: z.number().int().min(1).max(25).optional(),
+  type: z
+    .enum(["idea", "script", "storyboard", "video_prompt", "character"])
+    .optional(),
+});
 
 export const Route = createFileRoute("/api/score-content")({
   server: {
@@ -51,77 +52,132 @@ export const Route = createFileRoute("/api/score-content")({
         }
         const parsed = bodySchema.safeParse(raw);
         if (!parsed.success) {
+          return Response.json(
+            { ok: false, error: 'Pass an item id, or { "batch": true }' },
+            { status: 400 },
+          );
+        }
+
+        const userId = await currentUserId(request, context);
+        const type = parsed.data.type ?? null;
+
+        /* ------------------------------------------------------------ batch */
+        if (parsed.data.batch) {
+          const limit = parsed.data.limit ?? 5;
+
+          let before = 0;
+          try {
+            before = await unscoredCount(db, userId, type);
+          } catch (err: any) {
+            return Response.json(
+              { ok: false, error: err?.message ?? String(err) },
+              { status: 500 },
+            );
+          }
+
+          if (!before) {
+            return Response.json({
+              ok: true,
+              scored: 0,
+              failed: 0,
+              results: [],
+              remaining: 0,
+              message: "Everything in this workspace already has a score.",
+            });
+          }
+
+          let items;
+          try {
+            items = await unscoredItems(db, userId, limit, type);
+          } catch (err: any) {
+            return Response.json(
+              { ok: false, error: err?.message ?? String(err) },
+              { status: 500 },
+            );
+          }
+
+          const results: Array<{
+            id: string;
+            title: string;
+            type: string;
+            ok: boolean;
+            score?: number;
+            action?: string;
+            error?: string;
+          }> = [];
+
+          for (const item of items) {
+            const outcome = await scoreItem(env, db, userId, item);
+            if (outcome.ok) {
+              results.push({
+                id: item.id,
+                title: String(item.title ?? ""),
+                type: String(item.type ?? ""),
+                ok: true,
+                score: outcome.analysis.score,
+                action: outcome.analysis.recommended_action,
+              });
+            } else {
+              results.push({
+                id: item.id,
+                title: String(item.title ?? ""),
+                type: String(item.type ?? ""),
+                ok: false,
+                error: outcome.error,
+              });
+            }
+          }
+
+          const scored = results.filter((r) => r.ok).length;
+          const failed = results.length - scored;
+          const remaining = await unscoredCount(db, userId, type);
+
+          await logActivity(
+            env,
+            "content-scorer",
+            scored ? "scored_batch" : "scored_batch_failed",
+            `${scored} scored, ${failed} failed, ${remaining} left unscored`,
+            userId,
+          );
+
+          return Response.json({
+            ok: true,
+            scored,
+            failed,
+            results,
+            remaining,
+            scanned: results.length,
+          });
+        }
+
+        /* ----------------------------------------------------------- single */
+        if (!parsed.data.id) {
           return Response.json({ ok: false, error: "Pass the item id" }, { status: 400 });
         }
 
         let item: any;
         try {
           item = await db
-            .prepare("SELECT id, type, title, content, quality_score FROM library WHERE id = ? AND user_id = ?")
-            .bind(parsed.data.id,
-              await currentUserId(request, context))
+            .prepare(
+              "SELECT id, type, title, content, quality_score FROM library WHERE id = ? AND user_id = ?",
+            )
+            .bind(parsed.data.id, userId)
             .first();
         } catch (err: any) {
-          return Response.json({ ok: false, error: err?.message ?? String(err) }, { status: 500 });
+          return Response.json(
+            { ok: false, error: err?.message ?? String(err) },
+            { status: 500 },
+          );
         }
         if (!item) {
           return Response.json({ ok: false, error: "Item not found" }, { status: 404 });
         }
 
-        const prompt = buildPrompt({
-          type: String(item.type ?? ""),
-          title: String(item.title ?? ""),
-          content: String(item.content ?? ""),
-        });
-
-        let analysis: ScoreAnalysis | null = null;
-        let text = "";
-        for (let attempt = 1; attempt <= 2 && !analysis; attempt++) {
-          try {
-            text = await callAi(
-              env,
-              attempt === 1
-                ? prompt
-                : `${prompt}\n\nIMPORTANT: reply with the JSON object only — no prose, no code fences.`,
-              {
-                maxTokens: 1200,
-                userId: await currentUserId(request, context),
-              },
-            );
-          } catch (err: any) {
-            return Response.json(
-              { ok: false, error: err?.message ?? String(err) },
-              { status: 502 },
-            );
-          }
-          const got = extractJson<Partial<ScoreAnalysis>>(text);
-          if (got && typeof got.score === "number") {
-            analysis = normalize(got);
-          }
-        }
-
-        if (!analysis) {
+        const outcome = await scoreItem(env, db, userId, item);
+        if (!outcome.ok) {
           return Response.json(
-            {
-              ok: false,
-              error: "The model did not return a usable score.",
-              raw: text.slice(0, 1200),
-            },
+            { ok: false, error: outcome.error, raw: outcome.raw },
             { status: 502 },
-          );
-        }
-
-        try {
-          await db
-            .prepare(
-              "UPDATE library SET quality_score = ?, quality_analysis = ?, updated_at = ? WHERE id = ?",
-            )
-            .bind(Math.round(analysis.score), JSON.stringify(analysis), Date.now(), parsed.data.id)
-            .run();
-        } catch (err: any) {
-          return Response.json(
-            { ok: false, error: `Could not save the score: ${err?.message ?? err}` },
-            { status: 500 },
           );
         }
 
@@ -129,76 +185,12 @@ export const Route = createFileRoute("/api/score-content")({
           env,
           "content-scorer",
           "scored",
-          `${parsed.data.id} · ${analysis.score}/10 (${analysis.recommended_action})`,
+          `${parsed.data.id} · ${outcome.analysis.score}/10 (${outcome.analysis.recommended_action})`,
+          userId,
         );
 
-        return Response.json({ ok: true, analysis });
+        return Response.json({ ok: true, analysis: outcome.analysis });
       },
     },
   },
 });
-
-/** Clamp everything into the documented ranges so a wild answer cannot land. */
-function normalize(got: Partial<ScoreAnalysis>): ScoreAnalysis {
-  const num = (v: unknown, fallback = 5) => {
-    const n = Number(v);
-    if (!Number.isFinite(n)) return fallback;
-    return Math.min(10, Math.max(1, Math.round(n * 10) / 10));
-  };
-  const list = (v: unknown) =>
-    (Array.isArray(v) ? v : [])
-      .map((x) => String(x ?? "").trim())
-      .filter(Boolean)
-      .slice(0, 6);
-
-  const score = num(got.score);
-  const b = (got.breakdown ?? {}) as Record<string, unknown>;
-  const action = String(got.recommended_action ?? "").toLowerCase();
-
-  return {
-    score,
-    grade: gradeFor(score),
-    breakdown: {
-      originality: num(b.originality),
-      engagement_potential: num(b.engagement_potential),
-      clarity: num(b.clarity),
-      actionability: num(b.actionability),
-      trend_alignment: num(b.trend_alignment),
-    },
-    strengths: list(got.strengths),
-    weaknesses: list(got.weaknesses),
-    improvement_suggestions: list(got.improvement_suggestions),
-    recommended_action: ["publish", "revise", "discard"].includes(action) ? action : "revise",
-    summary: String(got.summary ?? "").slice(0, 600),
-  };
-}
-
-function gradeFor(score: number): string {
-  if (score >= 9) return "A";
-  if (score >= 8) return "A-";
-  if (score >= 7) return "B+";
-  if (score >= 6) return "B";
-  if (score >= 5) return "C+";
-  if (score >= 4) return "C";
-  return "D";
-}
-
-function buildPrompt(d: { type: string; title: string; content: string }): string {
-  return `You are a ruthless but fair content reviewer for a solo creator's short-form video channel (Instagram Reels / YouTube Shorts, handle @enzorico.ai).
-
-Rate the ${d.type} below and return ONLY JSON:
-{"score":8.2,"breakdown":{"originality":8,"engagement_potential":9,"clarity":7,"actionability":8,"trend_alignment":9},"strengths":["..."],"weaknesses":["..."],"improvement_suggestions":["..."],"recommended_action":"publish|revise|discard","summary":"one or two sentences"}
-
-Scoring rules:
-- Every number is 1-10 with one decimal at most. "score" is the overall verdict, not an average you round up.
-- originality: is this angle already everywhere? engagement_potential: would the first two seconds stop a scroll? clarity: is the payoff obvious? actionability: can it be shot as written? trend_alignment: does it ride something current?
-- 3 bullets maximum per list; each under 120 characters; be specific ("the hook states the payoff in 4 words" not "good hook").
-- recommended_action: publish if score >= 7.5, revise if 4-7.4, discard below 4.
-- Judge only what is written. Never invent facts about the creator.
-
-TITLE: ${d.title || "(none)"}
-${d.type.toUpperCase()}
----
-${d.content.slice(0, 6000)}
----`;
-}

@@ -7,6 +7,7 @@ import { logActivity } from "../../lib/activity";
 import { callAi, extractJson } from "../../lib/ai";
 import { getEnv, readPillars, readPostingTimes } from "../../lib/settings";
 import { getWorkspace, putWorkspace } from "../../lib/workspace";
+import { queuePendingWork } from "../../lib/autoqueue";
 
 /**
  * POST /api/generate-plan { month: "YYYY-MM", notes?: string }
@@ -149,9 +150,23 @@ export const Route = createFileRoute("/api/generate-plan")({
           `calendar_${month} · ${cleaned.length} entries`,
         );
 
+        // A freshly generated month should show up in the task queue immediately,
+        // not at the next cron fire. Only today's entries are queued, and the
+        // per-row ref_key means a regenerate cannot duplicate them.
+        let queued = 0;
+        try {
+          const result = await queuePendingWork(
+            getEnv(request, context),
+            await currentUserId(request, context),
+          );
+          queued = result.created;
+        } catch {
+          /* the calendar is saved either way — queueing is a convenience */
+        }
+
         // Read back so the client renders exactly what was stored.
         const stored = await getWorkspaceFor<any>(request, context, `calendar_${month}`);
-        return Response.json({ ok: true, calendar: stored ?? calendar });
+        return Response.json({ ok: true, calendar: stored ?? calendar, queued });
       },
     },
   },

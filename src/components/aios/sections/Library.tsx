@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Pill,
   Input,
@@ -10,10 +10,20 @@ import {
   OutlineBtn,
   Textarea,
 } from "../ui";
-import { apiGet, apiPut, apiDelete, errorMessage } from "@/lib/api";
+import { apiFetch, apiGet, apiPut, apiDelete, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import type { LibraryRow } from "@/lib/content-types";
-import { PenLine, LayoutPanelLeft, Film, Lightbulb, Check, X } from "lucide-react";
+import {
+  PenLine,
+  LayoutPanelLeft,
+  Film,
+  Lightbulb,
+  Check,
+  Download,
+  Upload,
+  Wand2,
+  X,
+} from "lucide-react";
 
 const TABS = [
   { label: "Scripts", slug: "script", Icon: PenLine, empty: "No scripts saved yet — generate one in Script & Hook." },
@@ -27,11 +37,16 @@ type Tab = (typeof TABS)[number];
 export function Library() {
   const [tab, setTab] = useState<Tab>(TABS[0]);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-bold text-fg">Library</h1>
-        <p className="mt-1 text-sm text-fg2">All your saved content in one place</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-bold text-fg">Library</h1>
+          <p className="mt-1 text-sm text-fg2">All your saved content in one place</p>
+        </div>
+        <LibraryDataButtons onImported={() => setRefreshKey((k) => k + 1)} />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -42,7 +57,122 @@ export function Library() {
         ))}
       </div>
 
-      <LibraryList key={tab.slug} tab={tab} />
+      <LibraryList key={`${tab.slug}:${refreshKey}`} tab={tab} />
+    </div>
+  );
+}
+
+/**
+ * Export / import — ⑦ of the master plan.
+ *
+ * The library is the only thing in this app that cannot be regenerated: an idea
+ * you captured three months ago, a script you wrote by hand. Two clicks put it in
+ * a file you control, and the same file goes back in without creating duplicates
+ * (items keep their ids, and the insert is `INSERT OR IGNORE`).
+ */
+function LibraryDataButtons({ onImported }: { onImported: () => void }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const download = async (format: "json" | "csv") => {
+    setBusy(format);
+    setError(null);
+    setNote(null);
+    try {
+      const res = await apiFetch(`/api/library-export?format=${format}`);
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        setError(json?.error ?? "Export failed.");
+        return;
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get("content-disposition") ?? "";
+      const name =
+        /filename="([^"]+)"/.exec(disposition)?.[1] ?? `content-os-library.${format}`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setNote(`Downloaded ${name}`);
+    } catch (err: any) {
+      setError(err?.message ?? "Export failed.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const upload = async (file: File) => {
+    setBusy("import");
+    setError(null);
+    setNote(null);
+    try {
+      const text = await file.text();
+      let payload: unknown;
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        setError("That file is not JSON — export a .json file from here first.");
+        return;
+      }
+      const res = await apiFetch("/api/library-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!json?.ok) {
+        setError(json?.error ?? "Import failed.");
+        return;
+      }
+      setNote(
+        `Imported ${json.added} item(s)${json.skipped ? `, ${json.skipped} already present` : ""}${
+          json.errors?.length ? ` · ${json.errors.length} skipped` : ""
+        }.`,
+      );
+      if (json.errors?.length) toast.error(String(json.errors[0]));
+      onImported();
+    } catch (err: any) {
+      setError(err?.message ?? "Import failed.");
+    } finally {
+      setBusy(null);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <OutlineBtn onClick={() => download("json")} disabled={busy !== null}>
+          <Download size={13} /> {busy === "json" ? "Exporting…" : "Export JSON"}
+        </OutlineBtn>
+        <OutlineBtn onClick={() => download("csv")} disabled={busy !== null}>
+          <Download size={13} /> {busy === "csv" ? "Exporting…" : "Export CSV"}
+        </OutlineBtn>
+        <OutlineBtn onClick={() => fileRef.current?.click()} disabled={busy !== null}>
+          <Upload size={13} /> {busy === "import" ? "Importing…" : "Import"}
+        </OutlineBtn>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void upload(file);
+          }}
+        />
+      </div>
+      {(note || error) && (
+        <span className={`text-[11px] ${error ? "text-err" : "text-mute"}`}>
+          {error ?? note}
+        </span>
+      )}
     </div>
   );
 }
@@ -61,6 +191,8 @@ function LibraryList({ tab }: { tab: Tab }) {
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  /** Bumped when something other than this list created rows (platform variants). */
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,7 +210,7 @@ function LibraryList({ tab }: { tab: Tab }) {
     return () => {
       cancelled = true;
     };
-  }, [tab.slug]);
+  }, [tab.slug, reloadKey]);
 
   const visible = useMemo(() => {
     const list = items.filter((i) =>
@@ -164,6 +296,7 @@ function LibraryList({ tab }: { tab: Tab }) {
           onSaved={(row) =>
             setItems((cur) => cur.map((i) => (i.id === row.id ? { ...i, ...row } : i)))
           }
+          onVariantsCreated={() => setReloadKey((k) => k + 1)}
         />
       )}
     </div>
@@ -257,17 +390,53 @@ function DetailModal({
   id,
   onClose,
   onSaved,
+  onVariantsCreated,
 }: {
   type: string;
   id: string;
   onClose: () => void;
   onSaved: (row: LibraryRow) => void;
+  onVariantsCreated?: () => void;
 }) {
   const [row, setRow] = useState<LibraryRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [makingVariants, setMakingVariants] = useState(false);
+  const [variantNote, setVariantNote] = useState<string | null>(null);
+
+  /**
+   * One script → Shorts / Reels / TikTok. The three rewrites are saved as their
+   * own library items, so this is a real deliverable rather than a preview.
+   */
+  const makeVariants = async () => {
+    setMakingVariants(true);
+    setVariantNote(null);
+    try {
+      const res = await apiFetch("/api/platform-variants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json();
+      if (!json?.ok) {
+        setVariantNote(json?.error ?? "Could not build the variants.");
+        return;
+      }
+      setVariantNote(
+        `Created ${json.created.length} variant(s): ${json.created
+          .map((c: any) => c.platform)
+          .join(", ")} — they are in the Scripts list.`,
+      );
+      toast.success(`${json.created.length} platform variant(s) saved`);
+      onVariantsCreated?.();
+    } catch (err: any) {
+      setVariantNote(err?.message ?? "Could not build the variants.");
+    } finally {
+      setMakingVariants(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -345,6 +514,24 @@ function DetailModal({
                   style={{ minHeight: 260 }}
                 />
               </div>
+              {type === "script" && (
+                <div className="rounded-lg border border-line bg-surface p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[12px] text-mute">
+                      Adapt this script for Shorts, Reels and TikTok — each one is
+                      saved to the Library.
+                    </span>
+                    <OutlineBtn onClick={makeVariants} disabled={makingVariants}>
+                      <Wand2 size={13} />
+                      {makingVariants ? "Writing 3 versions…" : "Make platform variants"}
+                    </OutlineBtn>
+                  </div>
+                  {variantNote && (
+                    <p className="mt-2 text-[12px] text-fg2">{variantNote}</p>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-end gap-2">
                 <OutlineBtn onClick={onClose}>Cancel</OutlineBtn>
                 <PrimaryBtn onClick={save} loading={saving}>

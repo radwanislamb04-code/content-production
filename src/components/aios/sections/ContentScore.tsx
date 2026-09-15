@@ -99,6 +99,48 @@ export function ContentScore() {
   );
   const analysis = useMemo(() => parseAnalysis(selected?.quality_analysis ?? null), [selected]);
 
+  const [batching, setBatching] = useState(false);
+  const [batchNote, setBatchNote] = useState<string | null>(null);
+
+  const unscored = useMemo(
+    () => items.filter((i) => !i.quality_score).length,
+    [items],
+  );
+
+  /**
+   * "Score all unscored" — five items per press rather than one long request, so
+   * nothing times out and each press shows exactly what happened. Scoring a
+   * hundred items one dropdown at a time is why a library stays unscored.
+   */
+  const scoreUnscored = useCallback(async () => {
+    setBatching(true);
+    setError(null);
+    setBatchNote(null);
+    try {
+      const res = await apiFetch("/api/score-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ batch: true, limit: 5 }),
+      });
+      const json = await res.json();
+      if (!json?.ok) {
+        setError(json?.error ?? "Batch scoring failed");
+        return;
+      }
+      setBatchNote(
+        json.message ??
+          `Scored ${json.scored} item(s)${
+            json.failed ? `, ${json.failed} failed` : ""
+          } · ${json.remaining} still unscored${json.remaining ? " — press again" : ""}.`,
+      );
+      await load();
+    } catch (err: any) {
+      setError(err?.message ?? "Batch scoring failed");
+    } finally {
+      setBatching(false);
+    }
+  }, [load]);
+
   const score = useCallback(async () => {
     if (!selected) return;
     setScoring(true);
@@ -155,6 +197,20 @@ export function ContentScore() {
               </option>
             ))}
           </Select>
+          <OutlineBtn
+            onClick={scoreUnscored}
+            disabled={batching || scoring || !unscored}
+            title={
+              unscored
+                ? "Score up to five items that have never been scored"
+                : "Every item already has a score"
+            }
+          >
+            {batching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : null}
+            {batching ? "Scoring…" : `Score all unscored (${unscored})`}
+          </OutlineBtn>
           <PrimaryBtn onClick={score} disabled={!selected || scoring}>
             {scoring ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -170,6 +226,13 @@ export function ContentScore() {
         <Card className="flex items-start gap-2 p-4">
           <AlertTriangle className="mt-0.5 h-4 w-4 text-err" />
           <span className="text-sm text-err">{error}</span>
+        </Card>
+      )}
+
+      {batchNote && (
+        <Card className="flex items-start gap-2 p-4">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
+          <span className="text-sm text-fg2">{batchNote}</span>
         </Card>
       )}
 

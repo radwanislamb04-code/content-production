@@ -36,6 +36,7 @@ import { Route as AppVideoPromptRouteImport } from './routes/_app.video-prompt'
 import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiApifyUsageRouteImport } from './routes/api/apify-usage'
 import { Route as ApiAppearanceRouteImport } from './routes/api/appearance'
+import { Route as ApiAutoQueueRouteImport } from './routes/api/auto-queue'
 import { Route as ApiBoardRouteImport } from './routes/api/board'
 import { Route as ApiBoardAttachRouteImport } from './routes/api/board-attach'
 import { Route as ApiBriefRouteImport } from './routes/api/brief'
@@ -43,12 +44,16 @@ import { Route as ApiCharactersRouteImport } from './routes/api/characters'
 import { Route as ApiFrameCheckRouteImport } from './routes/api/frame-check'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiGeneratePlanRouteImport } from './routes/api/generate-plan'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
 import { Route as ApiHooksRouteImport } from './routes/api/hooks'
 import { Route as ApiIdeatorGenerateRouteImport } from './routes/api/ideator-generate'
+import { Route as ApiLibraryExportRouteImport } from './routes/api/library-export'
+import { Route as ApiLibraryImportRouteImport } from './routes/api/library-import'
 import { Route as ApiMeRouteImport } from './routes/api/me'
 import { Route as ApiNotificationsRouteImport } from './routes/api/notifications'
 import { Route as ApiPillarsRouteImport } from './routes/api/pillars'
+import { Route as ApiPlatformVariantsRouteImport } from './routes/api/platform-variants'
 import { Route as ApiPostPerformanceRouteImport } from './routes/api/post-performance'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
 import { Route as ApiReaderRouteImport } from './routes/api/reader'
@@ -62,8 +67,10 @@ import { Route as ApiSettingsRouteImport } from './routes/api/settings'
 import { Route as ApiSettingsImagegenRouteImport } from './routes/api/settings-imagegen'
 import { Route as ApiTelegramChatIdRouteImport } from './routes/api/telegram-chat-id'
 import { Route as ApiTelegramCronRouteImport } from './routes/api/telegram-cron'
+import { Route as ApiTelegramHookRouteImport } from './routes/api/telegram-hook'
 import { Route as ApiTelegramTasksRouteImport } from './routes/api/telegram-tasks'
 import { Route as ApiTelegramTestRouteImport } from './routes/api/telegram-test'
+import { Route as ApiTelegramWebhookRouteImport } from './routes/api/telegram-webhook'
 import { Route as ApiThumbnailPromptRouteImport } from './routes/api/thumbnail-prompt'
 import { Route as ApiTrendSpyRouteImport } from './routes/api/trend-spy'
 import { Route as ApiTrendsRouteImport } from './routes/api/trends'
@@ -211,6 +218,11 @@ const ApiAppearanceRoute = ApiAppearanceRouteImport.update({
   path: '/api/appearance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAutoQueueRoute = ApiAutoQueueRouteImport.update({
+  id: '/api/auto-queue',
+  path: '/api/auto-queue',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBoardRoute = ApiBoardRouteImport.update({
   id: '/api/board',
   path: '/api/board',
@@ -246,6 +258,11 @@ const ApiGeneratePlanRoute = ApiGeneratePlanRouteImport.update({
   path: '/api/generate-plan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHookScriptWriterRoute = ApiHookScriptWriterRouteImport.update({
   id: '/api/hook-script-writer',
   path: '/api/hook-script-writer',
@@ -261,6 +278,16 @@ const ApiIdeatorGenerateRoute = ApiIdeatorGenerateRouteImport.update({
   path: '/api/ideator-generate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLibraryExportRoute = ApiLibraryExportRouteImport.update({
+  id: '/api/library-export',
+  path: '/api/library-export',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLibraryImportRoute = ApiLibraryImportRouteImport.update({
+  id: '/api/library-import',
+  path: '/api/library-import',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeRoute = ApiMeRouteImport.update({
   id: '/api/me',
   path: '/api/me',
@@ -274,6 +301,11 @@ const ApiNotificationsRoute = ApiNotificationsRouteImport.update({
 const ApiPillarsRoute = ApiPillarsRouteImport.update({
   id: '/api/pillars',
   path: '/api/pillars',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPlatformVariantsRoute = ApiPlatformVariantsRouteImport.update({
+  id: '/api/platform-variants',
+  path: '/api/platform-variants',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPostPerformanceRoute = ApiPostPerformanceRouteImport.update({
@@ -341,6 +373,11 @@ const ApiTelegramCronRoute = ApiTelegramCronRouteImport.update({
   path: '/api/telegram-cron',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTelegramHookRoute = ApiTelegramHookRouteImport.update({
+  id: '/api/telegram-hook',
+  path: '/api/telegram-hook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTelegramTasksRoute = ApiTelegramTasksRouteImport.update({
   id: '/api/telegram-tasks',
   path: '/api/telegram-tasks',
@@ -349,6 +386,11 @@ const ApiTelegramTasksRoute = ApiTelegramTasksRouteImport.update({
 const ApiTelegramTestRoute = ApiTelegramTestRouteImport.update({
   id: '/api/telegram-test',
   path: '/api/telegram-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTelegramWebhookRoute = ApiTelegramWebhookRouteImport.update({
+  id: '/api/telegram-webhook',
+  path: '/api/telegram-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiThumbnailPromptRoute = ApiThumbnailPromptRouteImport.update({
@@ -440,6 +482,7 @@ export interface FileRoutesByFullPath {
   '/api/activity': typeof ApiActivityRoute
   '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
+  '/api/auto-queue': typeof ApiAutoQueueRoute
   '/api/board': typeof ApiBoardRoute
   '/api/board-attach': typeof ApiBoardAttachRoute
   '/api/brief': typeof ApiBriefRoute
@@ -447,12 +490,16 @@ export interface FileRoutesByFullPath {
   '/api/frame-check': typeof ApiFrameCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/library-export': typeof ApiLibraryExportRoute
+  '/api/library-import': typeof ApiLibraryImportRoute
   '/api/me': typeof ApiMeRoute
   '/api/notifications': typeof ApiNotificationsRoute
   '/api/pillars': typeof ApiPillarsRoute
+  '/api/platform-variants': typeof ApiPlatformVariantsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/reader': typeof ApiReaderRoute
@@ -466,8 +513,10 @@ export interface FileRoutesByFullPath {
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-chat-id': typeof ApiTelegramChatIdRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/telegram-hook': typeof ApiTelegramHookRoute
   '/api/telegram-tasks': typeof ApiTelegramTasksRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
+  '/api/telegram-webhook': typeof ApiTelegramWebhookRoute
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
@@ -507,6 +556,7 @@ export interface FileRoutesByTo {
   '/api/activity': typeof ApiActivityRoute
   '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
+  '/api/auto-queue': typeof ApiAutoQueueRoute
   '/api/board': typeof ApiBoardRoute
   '/api/board-attach': typeof ApiBoardAttachRoute
   '/api/brief': typeof ApiBriefRoute
@@ -514,12 +564,16 @@ export interface FileRoutesByTo {
   '/api/frame-check': typeof ApiFrameCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/library-export': typeof ApiLibraryExportRoute
+  '/api/library-import': typeof ApiLibraryImportRoute
   '/api/me': typeof ApiMeRoute
   '/api/notifications': typeof ApiNotificationsRoute
   '/api/pillars': typeof ApiPillarsRoute
+  '/api/platform-variants': typeof ApiPlatformVariantsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/reader': typeof ApiReaderRoute
@@ -533,8 +587,10 @@ export interface FileRoutesByTo {
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-chat-id': typeof ApiTelegramChatIdRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/telegram-hook': typeof ApiTelegramHookRoute
   '/api/telegram-tasks': typeof ApiTelegramTasksRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
+  '/api/telegram-webhook': typeof ApiTelegramWebhookRoute
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
@@ -577,6 +633,7 @@ export interface FileRoutesById {
   '/api/activity': typeof ApiActivityRoute
   '/api/apify-usage': typeof ApiApifyUsageRoute
   '/api/appearance': typeof ApiAppearanceRoute
+  '/api/auto-queue': typeof ApiAutoQueueRoute
   '/api/board': typeof ApiBoardRoute
   '/api/board-attach': typeof ApiBoardAttachRoute
   '/api/brief': typeof ApiBriefRoute
@@ -584,12 +641,16 @@ export interface FileRoutesById {
   '/api/frame-check': typeof ApiFrameCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
   '/api/hooks': typeof ApiHooksRoute
   '/api/ideator-generate': typeof ApiIdeatorGenerateRoute
+  '/api/library-export': typeof ApiLibraryExportRoute
+  '/api/library-import': typeof ApiLibraryImportRoute
   '/api/me': typeof ApiMeRoute
   '/api/notifications': typeof ApiNotificationsRoute
   '/api/pillars': typeof ApiPillarsRoute
+  '/api/platform-variants': typeof ApiPlatformVariantsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
   '/api/reader': typeof ApiReaderRoute
@@ -603,8 +664,10 @@ export interface FileRoutesById {
   '/api/settings-imagegen': typeof ApiSettingsImagegenRoute
   '/api/telegram-chat-id': typeof ApiTelegramChatIdRoute
   '/api/telegram-cron': typeof ApiTelegramCronRoute
+  '/api/telegram-hook': typeof ApiTelegramHookRoute
   '/api/telegram-tasks': typeof ApiTelegramTasksRoute
   '/api/telegram-test': typeof ApiTelegramTestRoute
+  '/api/telegram-webhook': typeof ApiTelegramWebhookRoute
   '/api/thumbnail-prompt': typeof ApiThumbnailPromptRoute
   '/api/trend-spy': typeof ApiTrendSpyRoute
   '/api/trends': typeof ApiTrendsRoute
@@ -648,6 +711,7 @@ export interface FileRouteTypes {
     | '/api/activity'
     | '/api/apify-usage'
     | '/api/appearance'
+    | '/api/auto-queue'
     | '/api/board'
     | '/api/board-attach'
     | '/api/brief'
@@ -655,12 +719,16 @@ export interface FileRouteTypes {
     | '/api/frame-check'
     | '/api/generate-image'
     | '/api/generate-plan'
+    | '/api/health'
     | '/api/hook-script-writer'
     | '/api/hooks'
     | '/api/ideator-generate'
+    | '/api/library-export'
+    | '/api/library-import'
     | '/api/me'
     | '/api/notifications'
     | '/api/pillars'
+    | '/api/platform-variants'
     | '/api/post-performance'
     | '/api/projects'
     | '/api/reader'
@@ -674,8 +742,10 @@ export interface FileRouteTypes {
     | '/api/settings-imagegen'
     | '/api/telegram-chat-id'
     | '/api/telegram-cron'
+    | '/api/telegram-hook'
     | '/api/telegram-tasks'
     | '/api/telegram-test'
+    | '/api/telegram-webhook'
     | '/api/thumbnail-prompt'
     | '/api/trend-spy'
     | '/api/trends'
@@ -715,6 +785,7 @@ export interface FileRouteTypes {
     | '/api/activity'
     | '/api/apify-usage'
     | '/api/appearance'
+    | '/api/auto-queue'
     | '/api/board'
     | '/api/board-attach'
     | '/api/brief'
@@ -722,12 +793,16 @@ export interface FileRouteTypes {
     | '/api/frame-check'
     | '/api/generate-image'
     | '/api/generate-plan'
+    | '/api/health'
     | '/api/hook-script-writer'
     | '/api/hooks'
     | '/api/ideator-generate'
+    | '/api/library-export'
+    | '/api/library-import'
     | '/api/me'
     | '/api/notifications'
     | '/api/pillars'
+    | '/api/platform-variants'
     | '/api/post-performance'
     | '/api/projects'
     | '/api/reader'
@@ -741,8 +816,10 @@ export interface FileRouteTypes {
     | '/api/settings-imagegen'
     | '/api/telegram-chat-id'
     | '/api/telegram-cron'
+    | '/api/telegram-hook'
     | '/api/telegram-tasks'
     | '/api/telegram-test'
+    | '/api/telegram-webhook'
     | '/api/thumbnail-prompt'
     | '/api/trend-spy'
     | '/api/trends'
@@ -784,6 +861,7 @@ export interface FileRouteTypes {
     | '/api/activity'
     | '/api/apify-usage'
     | '/api/appearance'
+    | '/api/auto-queue'
     | '/api/board'
     | '/api/board-attach'
     | '/api/brief'
@@ -791,12 +869,16 @@ export interface FileRouteTypes {
     | '/api/frame-check'
     | '/api/generate-image'
     | '/api/generate-plan'
+    | '/api/health'
     | '/api/hook-script-writer'
     | '/api/hooks'
     | '/api/ideator-generate'
+    | '/api/library-export'
+    | '/api/library-import'
     | '/api/me'
     | '/api/notifications'
     | '/api/pillars'
+    | '/api/platform-variants'
     | '/api/post-performance'
     | '/api/projects'
     | '/api/reader'
@@ -810,8 +892,10 @@ export interface FileRouteTypes {
     | '/api/settings-imagegen'
     | '/api/telegram-chat-id'
     | '/api/telegram-cron'
+    | '/api/telegram-hook'
     | '/api/telegram-tasks'
     | '/api/telegram-test'
+    | '/api/telegram-webhook'
     | '/api/thumbnail-prompt'
     | '/api/trend-spy'
     | '/api/trends'
@@ -832,6 +916,7 @@ export interface RootRouteChildren {
   ApiActivityRoute: typeof ApiActivityRoute
   ApiApifyUsageRoute: typeof ApiApifyUsageRoute
   ApiAppearanceRoute: typeof ApiAppearanceRoute
+  ApiAutoQueueRoute: typeof ApiAutoQueueRoute
   ApiBoardRoute: typeof ApiBoardRoute
   ApiBoardAttachRoute: typeof ApiBoardAttachRoute
   ApiBriefRoute: typeof ApiBriefRoute
@@ -839,12 +924,16 @@ export interface RootRouteChildren {
   ApiFrameCheckRoute: typeof ApiFrameCheckRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiGeneratePlanRoute: typeof ApiGeneratePlanRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
   ApiHooksRoute: typeof ApiHooksRoute
   ApiIdeatorGenerateRoute: typeof ApiIdeatorGenerateRoute
+  ApiLibraryExportRoute: typeof ApiLibraryExportRoute
+  ApiLibraryImportRoute: typeof ApiLibraryImportRoute
   ApiMeRoute: typeof ApiMeRoute
   ApiNotificationsRoute: typeof ApiNotificationsRoute
   ApiPillarsRoute: typeof ApiPillarsRoute
+  ApiPlatformVariantsRoute: typeof ApiPlatformVariantsRoute
   ApiPostPerformanceRoute: typeof ApiPostPerformanceRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
   ApiReaderRoute: typeof ApiReaderRoute
@@ -858,8 +947,10 @@ export interface RootRouteChildren {
   ApiSettingsImagegenRoute: typeof ApiSettingsImagegenRoute
   ApiTelegramChatIdRoute: typeof ApiTelegramChatIdRoute
   ApiTelegramCronRoute: typeof ApiTelegramCronRoute
+  ApiTelegramHookRoute: typeof ApiTelegramHookRoute
   ApiTelegramTasksRoute: typeof ApiTelegramTasksRoute
   ApiTelegramTestRoute: typeof ApiTelegramTestRoute
+  ApiTelegramWebhookRoute: typeof ApiTelegramWebhookRoute
   ApiThumbnailPromptRoute: typeof ApiThumbnailPromptRoute
   ApiTrendSpyRoute: typeof ApiTrendSpyRoute
   ApiTrendsRoute: typeof ApiTrendsRoute
@@ -1062,6 +1153,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAppearanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auto-queue': {
+      id: '/api/auto-queue'
+      path: '/api/auto-queue'
+      fullPath: '/api/auto-queue'
+      preLoaderRoute: typeof ApiAutoQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/board': {
       id: '/api/board'
       path: '/api/board'
@@ -1111,6 +1209,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGeneratePlanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/hook-script-writer': {
       id: '/api/hook-script-writer'
       path: '/api/hook-script-writer'
@@ -1132,6 +1237,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiIdeatorGenerateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/library-export': {
+      id: '/api/library-export'
+      path: '/api/library-export'
+      fullPath: '/api/library-export'
+      preLoaderRoute: typeof ApiLibraryExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/library-import': {
+      id: '/api/library-import'
+      path: '/api/library-import'
+      fullPath: '/api/library-import'
+      preLoaderRoute: typeof ApiLibraryImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me': {
       id: '/api/me'
       path: '/api/me'
@@ -1151,6 +1270,13 @@ declare module '@tanstack/react-router' {
       path: '/api/pillars'
       fullPath: '/api/pillars'
       preLoaderRoute: typeof ApiPillarsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/platform-variants': {
+      id: '/api/platform-variants'
+      path: '/api/platform-variants'
+      fullPath: '/api/platform-variants'
+      preLoaderRoute: typeof ApiPlatformVariantsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/post-performance': {
@@ -1244,6 +1370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTelegramCronRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/telegram-hook': {
+      id: '/api/telegram-hook'
+      path: '/api/telegram-hook'
+      fullPath: '/api/telegram-hook'
+      preLoaderRoute: typeof ApiTelegramHookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/telegram-tasks': {
       id: '/api/telegram-tasks'
       path: '/api/telegram-tasks'
@@ -1256,6 +1389,13 @@ declare module '@tanstack/react-router' {
       path: '/api/telegram-test'
       fullPath: '/api/telegram-test'
       preLoaderRoute: typeof ApiTelegramTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/telegram-webhook': {
+      id: '/api/telegram-webhook'
+      path: '/api/telegram-webhook'
+      fullPath: '/api/telegram-webhook'
+      preLoaderRoute: typeof ApiTelegramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/thumbnail-prompt': {
@@ -1440,6 +1580,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiActivityRoute: ApiActivityRoute,
   ApiApifyUsageRoute: ApiApifyUsageRoute,
   ApiAppearanceRoute: ApiAppearanceRoute,
+  ApiAutoQueueRoute: ApiAutoQueueRoute,
   ApiBoardRoute: ApiBoardRoute,
   ApiBoardAttachRoute: ApiBoardAttachRoute,
   ApiBriefRoute: ApiBriefRoute,
@@ -1447,12 +1588,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFrameCheckRoute: ApiFrameCheckRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiGeneratePlanRoute: ApiGeneratePlanRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,
   ApiHooksRoute: ApiHooksRoute,
   ApiIdeatorGenerateRoute: ApiIdeatorGenerateRoute,
+  ApiLibraryExportRoute: ApiLibraryExportRoute,
+  ApiLibraryImportRoute: ApiLibraryImportRoute,
   ApiMeRoute: ApiMeRoute,
   ApiNotificationsRoute: ApiNotificationsRoute,
   ApiPillarsRoute: ApiPillarsRoute,
+  ApiPlatformVariantsRoute: ApiPlatformVariantsRoute,
   ApiPostPerformanceRoute: ApiPostPerformanceRoute,
   ApiProjectsRoute: ApiProjectsRoute,
   ApiReaderRoute: ApiReaderRoute,
@@ -1466,8 +1611,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSettingsImagegenRoute: ApiSettingsImagegenRoute,
   ApiTelegramChatIdRoute: ApiTelegramChatIdRoute,
   ApiTelegramCronRoute: ApiTelegramCronRoute,
+  ApiTelegramHookRoute: ApiTelegramHookRoute,
   ApiTelegramTasksRoute: ApiTelegramTasksRoute,
   ApiTelegramTestRoute: ApiTelegramTestRoute,
+  ApiTelegramWebhookRoute: ApiTelegramWebhookRoute,
   ApiThumbnailPromptRoute: ApiThumbnailPromptRoute,
   ApiTrendSpyRoute: ApiTrendSpyRoute,
   ApiTrendsRoute: ApiTrendsRoute,

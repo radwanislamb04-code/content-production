@@ -32,6 +32,7 @@
 
 import { logActivity } from "../../src/lib/activity";
 import { runPipeline } from "../../src/lib/pipeline";
+import { queuePendingWork } from "../../src/lib/autoqueue";
 
 // Must match `[triggers].crons` in wrangler.toml exactly. Cron expressions are
 // ALWAYS UTC; the Dhaka times above are what the user asked for.
@@ -83,6 +84,21 @@ export default function contentOsCron(nitroApp: {
 
         const failures: string[] = [];
         for (const user of users) {
+          // Fill the task queue from what the app already knows (today's calendar
+          // entries plus scripts still in draft) BEFORE the brief is composed, so
+          // the brief's "today's tasks" section is current. Deduplicated by
+          // ref_key, so the 20:00 run cannot re-add the morning's rows.
+          const queue = await queuePendingWork(env, user.id);
+          if (queue.created) {
+            await logActivity(
+              env,
+              "auto-queue",
+              "queued",
+              `${queue.date_key}: ${queue.created} new task(s), ${queue.skipped} already queued`,
+              user.id,
+            );
+          }
+
           const report = await runPipeline(env, steps, user.id);
           const failed = report.steps.filter((s) => !s.ok);
           const summary = report.steps

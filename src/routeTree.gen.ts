@@ -45,6 +45,7 @@ import { Route as ApiNotificationsRouteImport } from './routes/api/notifications
 import { Route as ApiPillarsRouteImport } from './routes/api/pillars'
 import { Route as ApiPostPerformanceRouteImport } from './routes/api/post-performance'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
+import { Route as ApiReaderRouteImport } from './routes/api/reader'
 import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiRunPipelineRouteImport } from './routes/api/run-pipeline'
 import { Route as ApiScoreContentRouteImport } from './routes/api/score-content'
@@ -64,6 +65,7 @@ import { Route as ApiVideoGenPromptRouteImport } from './routes/api/video-gen-pr
 import { Route as ApiVisualStoryboardRouteImport } from './routes/api/visual-storyboard'
 import { Route as ApiWorkspaceRouteImport } from './routes/api/workspace'
 import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
+import { Route as ApiResourcesIdRouteImport } from './routes/api/resources.$id'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
 import { Route as ApiLibraryTypeIdRouteImport } from './routes/api/library.$type.$id'
 
@@ -246,6 +248,11 @@ const ApiProjectsRoute = ApiProjectsRouteImport.update({
   path: '/api/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiReaderRoute = ApiReaderRouteImport.update({
+  id: '/api/reader',
+  path: '/api/reader',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiResourcesRoute = ApiResourcesRouteImport.update({
   id: '/api/resources',
   path: '/api/resources',
@@ -341,6 +348,11 @@ const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
   path: '/api/library/$type',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiResourcesIdRoute = ApiResourcesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiResourcesRoute,
+} as any)
 const ApiWorkspaceSelected_ideaRoute =
   ApiWorkspaceSelected_ideaRouteImport.update({
     id: '/selected_idea',
@@ -389,7 +401,8 @@ export interface FileRoutesByFullPath {
   '/api/pillars': typeof ApiPillarsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
-  '/api/resources': typeof ApiResourcesRoute
+  '/api/reader': typeof ApiReaderRoute
+  '/api/resources': typeof ApiResourcesRouteWithChildren
   '/api/run-pipeline': typeof ApiRunPipelineRoute
   '/api/score-content': typeof ApiScoreContentRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
@@ -408,6 +421,7 @@ export interface FileRoutesByFullPath {
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/workspace': typeof ApiWorkspaceRouteWithChildren
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
+  '/api/resources/$id': typeof ApiResourcesIdRoute
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
 }
@@ -446,7 +460,8 @@ export interface FileRoutesByTo {
   '/api/pillars': typeof ApiPillarsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
-  '/api/resources': typeof ApiResourcesRoute
+  '/api/reader': typeof ApiReaderRoute
+  '/api/resources': typeof ApiResourcesRouteWithChildren
   '/api/run-pipeline': typeof ApiRunPipelineRoute
   '/api/score-content': typeof ApiScoreContentRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
@@ -466,6 +481,7 @@ export interface FileRoutesByTo {
   '/api/workspace': typeof ApiWorkspaceRouteWithChildren
   '/': typeof AppIndexRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
+  '/api/resources/$id': typeof ApiResourcesIdRoute
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
 }
@@ -506,7 +522,8 @@ export interface FileRoutesById {
   '/api/pillars': typeof ApiPillarsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
-  '/api/resources': typeof ApiResourcesRoute
+  '/api/reader': typeof ApiReaderRoute
+  '/api/resources': typeof ApiResourcesRouteWithChildren
   '/api/run-pipeline': typeof ApiRunPipelineRoute
   '/api/score-content': typeof ApiScoreContentRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
@@ -526,6 +543,7 @@ export interface FileRoutesById {
   '/api/workspace': typeof ApiWorkspaceRouteWithChildren
   '/_app/': typeof AppIndexRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
+  '/api/resources/$id': typeof ApiResourcesIdRoute
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
 }
@@ -567,6 +585,7 @@ export interface FileRouteTypes {
     | '/api/pillars'
     | '/api/post-performance'
     | '/api/projects'
+    | '/api/reader'
     | '/api/resources'
     | '/api/run-pipeline'
     | '/api/score-content'
@@ -586,6 +605,7 @@ export interface FileRouteTypes {
     | '/api/visual-storyboard'
     | '/api/workspace'
     | '/api/library/$type'
+    | '/api/resources/$id'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -624,6 +644,7 @@ export interface FileRouteTypes {
     | '/api/pillars'
     | '/api/post-performance'
     | '/api/projects'
+    | '/api/reader'
     | '/api/resources'
     | '/api/run-pipeline'
     | '/api/score-content'
@@ -644,6 +665,7 @@ export interface FileRouteTypes {
     | '/api/workspace'
     | '/'
     | '/api/library/$type'
+    | '/api/resources/$id'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
   id:
@@ -683,6 +705,7 @@ export interface FileRouteTypes {
     | '/api/pillars'
     | '/api/post-performance'
     | '/api/projects'
+    | '/api/reader'
     | '/api/resources'
     | '/api/run-pipeline'
     | '/api/score-content'
@@ -703,6 +726,7 @@ export interface FileRouteTypes {
     | '/api/workspace'
     | '/_app/'
     | '/api/library/$type'
+    | '/api/resources/$id'
     | '/api/workspace/selected_idea'
     | '/api/library/$type/$id'
   fileRoutesById: FileRoutesById
@@ -722,7 +746,8 @@ export interface RootRouteChildren {
   ApiPillarsRoute: typeof ApiPillarsRoute
   ApiPostPerformanceRoute: typeof ApiPostPerformanceRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
-  ApiResourcesRoute: typeof ApiResourcesRoute
+  ApiReaderRoute: typeof ApiReaderRoute
+  ApiResourcesRoute: typeof ApiResourcesRouteWithChildren
   ApiRunPipelineRoute: typeof ApiRunPipelineRoute
   ApiScoreContentRoute: typeof ApiScoreContentRoute
   ApiScrapeCompetitorRoute: typeof ApiScrapeCompetitorRoute
@@ -997,6 +1022,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/reader': {
+      id: '/api/reader'
+      path: '/api/reader'
+      fullPath: '/api/reader'
+      preLoaderRoute: typeof ApiReaderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/resources': {
       id: '/api/resources'
       path: '/api/resources'
@@ -1130,6 +1162,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLibraryTypeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/resources/$id': {
+      id: '/api/resources/$id'
+      path: '/$id'
+      fullPath: '/api/resources/$id'
+      preLoaderRoute: typeof ApiResourcesIdRouteImport
+      parentRoute: typeof ApiResourcesRoute
+    }
     '/api/workspace/selected_idea': {
       id: '/api/workspace/selected_idea'
       path: '/selected_idea'
@@ -1199,6 +1238,18 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiResourcesRouteChildren {
+  ApiResourcesIdRoute: typeof ApiResourcesIdRoute
+}
+
+const ApiResourcesRouteChildren: ApiResourcesRouteChildren = {
+  ApiResourcesIdRoute: ApiResourcesIdRoute,
+}
+
+const ApiResourcesRouteWithChildren = ApiResourcesRoute._addFileChildren(
+  ApiResourcesRouteChildren,
+)
+
 interface ApiWorkspaceRouteChildren {
   ApiWorkspaceSelected_ideaRoute: typeof ApiWorkspaceSelected_ideaRoute
 }
@@ -1238,7 +1289,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPillarsRoute: ApiPillarsRoute,
   ApiPostPerformanceRoute: ApiPostPerformanceRoute,
   ApiProjectsRoute: ApiProjectsRoute,
-  ApiResourcesRoute: ApiResourcesRoute,
+  ApiReaderRoute: ApiReaderRoute,
+  ApiResourcesRoute: ApiResourcesRouteWithChildren,
   ApiRunPipelineRoute: ApiRunPipelineRoute,
   ApiScoreContentRoute: ApiScoreContentRoute,
   ApiScrapeCompetitorRoute: ApiScrapeCompetitorRoute,

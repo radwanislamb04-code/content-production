@@ -22,6 +22,7 @@
 import { SETTINGS_KEYS, readTelegramConfig, writeSetting } from "./settings";
 import { sendTelegramTo, type TelegramResult } from "./telegram";
 import { logActivity } from "./activity";
+import { getWorkspace, putWorkspace } from "./workspace";
 
 export type WebhookRow = {
   user_id: string;
@@ -464,10 +465,320 @@ export async function createTask(
   }
 }
 
+/* ---------------------------------------------------------------- routing */
+
+/**
+ * Where a message can go. The buttons in the bot reply are this list; the tap
+ * arrives as a `callback_query` and `routeInbox` does the actual move.
+ */
+export type Destination = "task" | "board" | "calendar" | "idea" | "remind" | "discard";
+
+export const DESTINATIONS: Array<{ id: Destination; label: string }> = [
+  { id: "task", label: "📋 Task" },
+  { id: "board", label: "🗂 Board" },
+  { id: "calendar", label: "📅 Calendar" },
+  { id: "idea", label: "💡 Idea" },
+  { id: "remind", label: "⏰ Remind" },
+  { id: "discard", label: "🗑 Discard" },
+];
+
+/**
+ * Telegram caps `callback_data` at 64 bytes and an id here is a 36-character
+ * UUID, so a task + list pair would not fit. Eight characters is 4 billion
+ * values — and `resolvePrefix` still refuses an ambiguous match rather than
+ * guessing.
+ */
+export function shortId(id: string): string {
+  return String(id ?? "").replace(/-/g, "").slice(0, 8);
+}
+
+/** Look a row up by the short id from a button, refusing an ambiguous match. */
+async function resolveTask(env: any, userId: string, prefix: string) {
+  const db = env?.DB;
+  if (!db || !prefix) return null;
+  try {
+    const { results } = await db
+      .prepare(
+        "SELECT * FROM telegram_tasks WHERE user_id = ? AND id LIKE ? LIMIT 2",
+      )
+      .bind(userId, `${prefix}%`)
+      .all();
+    const rows = (results ?? []) as any[];
+    return rows.length === 1 ? rows[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The reply keyboard. Each row: Task/Board/Calendar, then Idea/Remind/Discard. */
+export function inboxKeyboard(taskId: string): any {
+  const short = shortId(taskId);
+  const button = (id: Destination, label: string) => ({
+    text: label,
+    callback_data: `r:${id}:${short}`,
+  });
+  return {
+    inline_keyboard: [
+      [
+        button("task", "📋 Task"),
+        button("board", "🗂 Board"),
+        button("calendar", "📅 Calendar"),
+      ],
+      [button("idea", "💡 Idea"), button("remind", "⏰ Remind"), button("discard", "🗑")],
+    ],
+  };
+}
+
+/** The second step: which column of the board? */
+export function columnKeyboard(taskId: string, lists: Array<{ id: string; name: string }>) {
+  const short = shortId(taskId);
+  const rows: any[][] = [];
+  let row: any[] = [];
+  for (const list of lists.slice(0, 6)) {
+    row.push({ text: list.name.slice(0, 22), callback_data: `c:${short}:${shortId(list.id)}` });
+    if (row.length === 3) {
+      rows.push(row);
+      row = [];
+    }
+  }
+  if (row.length) rows.push(row);
+  rows.push([{ text: "« back", callback_data: `b:${short}` }]);
+  return { inline_keyboard: rows };
+}
+
+/** Today's month key + date key in Asia/Dhaka, the calendar's own format. */
+function monthKey(dateKey: string): string {
+  return dateKey.slice(0, 7);
+}
+
+/**
+ * Do the move a button asked for. Every branch is user-scoped, and a row can only
+ * be routed once — a second tap on an old message answers with where it already
+ * went instead of filing it twice.
+ */
+export async function routeInbox(
+  env: any,
+  userId: string,
+  taskPrefix: string,
+  destination: Destination,
+  opts: { listPrefix?: string } = {},
+): Promise<{ ok: boolean; label: string; toast: string; detail?: string; error?: string }> {
+  const db = env?.DB;
+  if (!db) return { ok: false, label: "—", toast: "No database.", error: "no db" };
+
+  const task = await resolveTask(env, userId, taskPrefix);
+  if (!task) {
+    return {
+      ok: false,
+      label: "—",
+      toast: "I could not find that message any more.",
+      error: "task not found",
+    };
+  }
+
+  if (task.routed_to) {
+    return {
+      ok: true,
+      label: task.routed_to === "library" ? "Idea" : String(task.routed_to),
+      toast: `Already moved to ${task.routed_to}.`,
+      detail: `already ${task.routed_to}`,
+    };
+  }
+
+  const text = String(task.text ?? "");
+  const now = Date.now();
+  const dateKey = dhakaDate();
+
+  const finish = async (routedTo: string, routedId: string, done: number) => {
+    try {
+      await db
+        .prepare(
+          "UPDATE telegram_tasks SET routed_to = ?, routed_id = ?, routed_at = ?, done = ? WHERE id = ? AND user_id = ?",
+        )
+        .bind(routedTo, routedId, now, done, task.id, userId)
+        .run();
+    } catch {
+      /* the destination row exists either way; the flag is bookkeeping */
+    }
+  };
+
+  if (destination === "task") {
+    await finish("task", "", 0);
+    return {
+      ok: true,
+      label: "Task",
+      toast: "Stays in your task queue.",
+      detail: "task queue",
+    };
+  }
+
+  if (destination === "remind") {
+    await finish("remind", dateKey, 0);
+    return {
+      ok: true,
+      label: "Remind",
+      toast: "It will be in the next Telegram briefing.",
+      detail: "kept for the next briefing",
+    };
+  }
+
+  if (destination === "discard") {
+    try {
+      await db
+        .prepare("DELETE FROM telegram_tasks WHERE id = ? AND user_id = ?")
+        .bind(task.id, userId)
+        .run();
+    } catch (err: any) {
+      return { ok: false, label: "—", toast: "Could not remove it.", error: err?.message };
+    }
+    return { ok: true, label: "Discarded", toast: "Removed from the queue.", detail: "deleted" };
+  }
+
+  if (destination === "board") {
+    // Which column? The oldest board (created first) is the user's main one.
+    try {
+      const board = await db
+        .prepare(
+          "SELECT id, name FROM boards WHERE user_id = ? ORDER BY created_at ASC LIMIT 1",
+        )
+        .bind(userId)
+        .first();
+      if (!board) {
+        return {
+          ok: false,
+          label: "—",
+          toast: "You have no board yet — open Board once, then try again.",
+          error: "no board",
+        };
+      }
+      let list: any = null;
+      if (opts.listPrefix) {
+        const { results } = await db
+          .prepare(
+            "SELECT id, name FROM board_lists WHERE user_id = ? AND board_id = ? AND id LIKE ? LIMIT 2",
+          )
+          .bind(userId, board.id, `${opts.listPrefix}%`)
+          .all();
+        const rows = (results ?? []) as any[];
+        list = rows.length === 1 ? rows[0] : null;
+      } else {
+        list = await db
+          .prepare(
+            "SELECT id, name FROM board_lists WHERE user_id = ? AND board_id = ? ORDER BY position ASC LIMIT 1",
+          )
+          .bind(userId, board.id)
+          .first();
+      }
+      if (!list) {
+        return { ok: false, label: "—", toast: "That column is gone.", error: "no list" };
+      }
+
+      const max = await db
+        .prepare("SELECT COALESCE(MAX(position), 0) AS max FROM cards WHERE user_id = ? AND list_id = ?")
+        .bind(userId, list.id)
+        .first();
+      const position = Number((max as any)?.max ?? 0) + 1000;
+      const cardId = crypto.randomUUID();
+
+      await db
+        .prepare(
+          "INSERT INTO cards (id, list_id, user_id, title, labels, due_date, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(cardId, list.id, userId, text.slice(0, 200), null, null, position, now, now)
+        .run();
+
+      await finish("board", cardId, 1);
+      return {
+        ok: true,
+        label: "Board",
+        toast: `Card added to “${list.name}”.`,
+        detail: `${board.name} → ${list.name}`,
+      };
+    } catch (err: any) {
+      return { ok: false, label: "—", toast: "Could not add the card.", error: err?.message };
+    }
+  }
+
+  if (destination === "calendar") {
+    try {
+      const key = `calendar_${monthKey(dateKey)}`;
+      const calendar: any = (await getWorkspace<any>(env, userId, key)) ?? {
+        month: monthKey(dateKey),
+        generated_at: now,
+        entries: [],
+      };
+      const entries: any[] = Array.isArray(calendar.entries) ? calendar.entries : [];
+      const time = /^\d{2}:\d{2}$/.test(String(task.time ?? "")) ? String(task.time) : dhakaTime();
+      entries.push({ date: dateKey, type: "Reel", topic: text.slice(0, 200), time });
+      entries.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      const saved = await putWorkspace(env, userId, key, { ...calendar, entries });
+      if (!saved) {
+        return { ok: false, label: "—", toast: "Could not save the calendar.", error: "save failed" };
+      }
+      await finish("calendar", `${dateKey}@${time}`, 1);
+      return {
+        ok: true,
+        label: "Calendar",
+        toast: `Added to ${dateKey} at ${time}.`,
+        detail: `${dateKey} ${time}`,
+      };
+    } catch (err: any) {
+      return { ok: false, label: "—", toast: "Could not save the calendar.", error: err?.message };
+    }
+  }
+
+  // idea
+  try {
+    const id = crypto.randomUUID();
+    await db
+      .prepare(
+        `INSERT INTO library
+           (id, type, title, content, created_at, updated_at, user_id, quality_score, status, source_id)
+         VALUES (?, 'idea', ?, ?, ?, ?, ?, 0, 'draft', NULL)`,
+      )
+      .bind(id, text.slice(0, 120), text, now, now, userId)
+      .run();
+    await finish("library", id, 1);
+    return {
+      ok: true,
+      label: "Idea",
+      toast: "Saved to Library → Ideas.",
+      detail: "Library → Ideas",
+    };
+  } catch (err: any) {
+    return { ok: false, label: "—", toast: "Could not save the idea.", error: err?.message };
+  }
+}
+
+/** The board's columns, for the second step of the 🗂 button. */
+export async function boardColumns(
+  env: any,
+  userId: string,
+): Promise<Array<{ id: string; name: string }>> {
+  try {
+    const board = await env.DB.prepare(
+      "SELECT id FROM boards WHERE user_id = ? ORDER BY created_at ASC LIMIT 1",
+    )
+      .bind(userId)
+      .first();
+    if (!board) return [];
+    const { results } = await env.DB.prepare(
+      "SELECT id, name FROM board_lists WHERE user_id = ? AND board_id = ? ORDER BY position ASC LIMIT 6",
+    )
+      .bind(userId, board.id)
+      .all();
+    return (results ?? []) as Array<{ id: string; name: string }>;
+  } catch {
+    return [];
+  }
+}
+
 /* ------------------------------------------------------------------ updates */
 
 export type TgUpdate = {
   update_id?: number;
+  /** A tap on one of the reply buttons — not a new message. */
+  callback_query?: TgCallback;
   message?: {
     message_id?: number;
     text?: string;
@@ -477,14 +788,38 @@ export type TgUpdate = {
 };
 
 const HELP = [
-  "Content OS bot — send me anything and it becomes a task:",
+  "Content OS bot",
   "",
-  "• any text — saved for today",
-  "• /task <text> — same, explicitly",
+  "Send anything — a task, an idea, a plan. Then tap where it belongs:",
+  "📋 Task · 🗂 Board · 📅 Calendar · 💡 Idea · ⏰ Remind · 🗑 Discard",
+  "",
+  "No tapping? Type it straight in:",
+  "• /card <text> — new card on the Board (To do)",
+  "• /cal <text> — today's calendar at the posting time",
+  "• /idea <text> — Library → Ideas",
+  "",
   "• /list — your open tasks",
   "• /done <n> — mark task n from /list as delivered",
   "• /id — your chat id (for Settings → Telegram)",
 ].join("\n");
+
+/** Text shortcuts for the same destinations — the buttons are the default. */
+const TEXT_ALIASES: Record<string, Destination> = {
+  "/card": "board",
+  "/board": "board",
+  "/cal": "calendar",
+  "/calendar": "calendar",
+  "/idea": "idea",
+};
+
+const DESTINATION_CONFIRMATION: Record<Destination, string> = {
+  task: "Saved to your task queue",
+  board: "Added to the Board",
+  calendar: "Added to the calendar",
+  idea: "Saved to Library → Ideas",
+  remind: "Kept for the next briefing",
+  discard: "Discarded",
+};
 
 /**
  * Turn one Telegram update into an action. The reply is returned rather than
@@ -495,13 +830,15 @@ export async function handleUpdate(
   row: WebhookRow,
   botToken: string,
   update: TgUpdate,
-): Promise<{ action: string; detail: string; reply?: string }> {
+): Promise<{ action: string; detail: string; reply?: string; keyboard?: any }> {
   const userId = row.user_id;
   const msg = update?.message;
   const chatId = msg?.chat?.id;
   const text = String(msg?.text ?? "").trim();
 
-  if (!chatId || !text) {
+  // `=== undefined`, not `!chatId`: a falsy check would also swallow a chat id of
+  // 0 (Telegram never sends one, but a wrong early-return is invisible).
+  if (chatId === undefined || chatId === null || !text) {
     return { action: "ignored", detail: "no text message" };
   }
 
@@ -569,6 +906,31 @@ export async function handleUpdate(
     return { action: "done", detail: target.text.slice(0, 60), reply: `Done ✅ “${target.text}”` };
   }
 
+  // Straight-to-a-destination shortcuts. The buttons are the normal path; these
+  // exist so a fast typist never has to tap at all.
+  const aliased = TEXT_ALIASES[cmd];
+  if (aliased) {
+    if (!arg) {
+      return { action: "alias_no_text", detail: cmd, reply: `Give me the text: ${cmd} <text>` };
+    }
+    const written = await createTask(env, userId, { text: arg, source: "telegram" });
+    if (!written.created || !written.id) {
+      return {
+        action: "error",
+        detail: written.error ?? "could not save",
+        reply: `Could not save that: ${written.error ?? "database error"}`,
+      };
+    }
+    const routed = await routeInbox(env, userId, shortId(written.id), aliased);
+    return {
+      action: routed.ok ? `routed_${aliased}` : "error",
+      detail: routed.detail ?? routed.toast,
+      reply: routed.ok
+        ? `${DESTINATION_CONFIRMATION[aliased]} ✅ “${arg}”`
+        : `Could not file that: ${routed.toast}`,
+    };
+  }
+
   if (cmd.startsWith("/") && cmd !== "/task") {
     return { action: "unknown_command", detail: cmd, reply: `Unknown command ${cmd}\n\n${HELP}` };
   }
@@ -591,7 +953,10 @@ export async function handleUpdate(
   return {
     action: "task_created",
     detail: body.slice(0, 60),
-    reply: `Saved ✅ “${body}” — it is on your dashboard now.`,
+    // The buttons are the point: one tap says where this belongs, instead of
+    // typing /card or /cal by hand.
+    reply: `Saved ✅ “${body}”\nWhere should it go?`,
+    keyboard: written.id ? inboxKeyboard(written.id) : undefined,
   };
 }
 
@@ -619,4 +984,182 @@ export async function replyTo(
   text: string,
 ): Promise<TelegramResult> {
   return sendTelegramTo(botToken, chatId, text);
+}
+
+/* ------------------------------------------------------------------ buttons */
+
+async function callBot(botToken: string, method: string, body: unknown): Promise<any> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data: any = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) {
+      return { ok: false, error: data?.description ?? `Telegram returned HTTP ${res.status}` };
+    }
+    return { ok: true, result: data?.result ?? null };
+  } catch (err: any) {
+    return { ok: false, error: `Telegram request failed: ${err?.message ?? String(err)}` };
+  }
+}
+
+/** A message with inline buttons — the whole point of the intake. */
+export async function sendWithKeyboard(
+  botToken: string,
+  chatId: string | number,
+  text: string,
+  keyboard?: any,
+): Promise<TelegramResult> {
+  const res = await callBot(botToken, "sendMessage", {
+    chat_id: chatId,
+    text,
+    disable_web_page_preview: true,
+    ...(keyboard ? { reply_markup: keyboard } : {}),
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+  return { ok: true, messageId: res.result?.message_id, sent: 1 };
+}
+
+/**
+ * Stop the little spinner on the button Telegram shows until this is called.
+ * Always called (even for a failure) or the button looks broken to the user.
+ */
+export async function answerCallback(
+  botToken: string,
+  callbackQueryId: string,
+  text?: string,
+): Promise<void> {
+  await callBot(botToken, "answerCallbackQuery", {
+    callback_query_id: callbackQueryId,
+    ...(text ? { text: text.slice(0, 190) } : {}),
+  });
+}
+
+/** Replace a message's text and/or its buttons (an empty keyboard clears it). */
+export async function editMessage(
+  botToken: string,
+  chatId: string | number,
+  messageId: number,
+  text: string,
+  keyboard?: any,
+): Promise<void> {
+  await callBot(botToken, "editMessageText", {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    disable_web_page_preview: true,
+    reply_markup: keyboard ?? { inline_keyboard: [] },
+  });
+}
+
+export type TgCallback = {
+  id?: string;
+  data?: string;
+  message?: {
+    message_id?: number;
+    chat?: { id?: number | string };
+    text?: string;
+  };
+};
+
+/**
+ * One button tap.
+ *
+ * `callback_data` is `r:<destination>:<shortTaskId>` for the first row of buttons,
+ * `c:<shortTaskId>:<shortListId>` for a column, and `b:<shortTaskId>` for "back" —
+ * short because Telegram caps the field at 64 bytes.
+ */
+export async function handleCallback(
+  env: any,
+  row: WebhookRow,
+  botToken: string,
+  cb: TgCallback,
+): Promise<{ action: string; detail: string; toast: string }> {
+  const userId = row.user_id;
+  const chatId = cb.message?.chat?.id;
+  const messageId = cb.message?.message_id;
+  const queryId = String(cb.id ?? "");
+  const [kind, second, third] = String(cb.data ?? "").split(":");
+
+  const finish = async (
+    result: { ok: boolean; label: string; toast: string; detail?: string; error?: string },
+    options: { keyboard?: any; keepText?: string } = {},
+  ) => {
+    if (queryId) await answerCallback(botToken, queryId, result.toast);
+    if (chatId !== undefined && typeof messageId === "number") {
+      const base = options.keepText ?? String(cb.message?.text ?? "").split("\nWhere should")[0];
+      await editMessage(
+        botToken,
+        chatId,
+        messageId,
+        result.ok ? `${base}\n\n→ ${result.label}${result.detail ? ` (${result.detail})` : ""}` : `${base}\n\n⚠️ ${result.toast}`,
+        options.keyboard,
+      );
+    }
+    await logActivity(
+      env,
+      "telegram-hook",
+      result.ok ? "routed" : "route_failed",
+      `${String(cb.data ?? "")} → ${result.detail ?? result.error ?? result.label}`,
+      userId,
+    );
+    return { action: `route_${result.label.toLowerCase()}`, detail: result.detail ?? result.toast, toast: result.toast };
+  };
+
+  if (kind === "b") {
+    const restored = { ok: true, label: "Choose again", toast: "Where to?", detail: "menu" };
+    if (queryId) await answerCallback(botToken, queryId);
+    if (chatId !== undefined && typeof messageId === "number") {
+      await editMessage(
+        botToken,
+        chatId,
+        messageId,
+        `Saved ✅\nWhere should it go?`,
+        inboxKeyboard(second ?? ""),
+      );
+    }
+    return { action: "route_menu", detail: "menu shown", toast: restored.toast };
+  }
+
+  if (kind === "c") {
+    const result = await routeInbox(env, userId, second ?? "", "board", {
+      listPrefix: third ?? "",
+    });
+    return finish(result);
+  }
+
+  if (kind === "r") {
+    const destination = (second ?? "") as Destination;
+    if (!DESTINATIONS.some((d) => d.id === destination)) {
+      if (queryId) await answerCallback(botToken, queryId, "Unknown button.");
+      return { action: "route_unknown", detail: String(cb.data ?? ""), toast: "Unknown button." };
+    }
+
+    // Board asks which column first — a card in the wrong column is just noise.
+    if (destination === "board") {
+      const columns = await boardColumns(env, userId);
+      if (columns.length > 1) {
+        if (queryId) await answerCallback(botToken, queryId, "Which column?");
+        if (chatId !== undefined && typeof messageId === "number") {
+          const base = String(cb.message?.text ?? "").split("\nWhere should")[0];
+          await editMessage(
+            botToken,
+            chatId,
+            messageId,
+            `${base}\n\nWhich column?`,
+            columnKeyboard(third ?? "", columns),
+          );
+        }
+        return { action: "route_board_columns", detail: `${columns.length} columns`, toast: "Which column?" };
+      }
+    }
+
+    const result = await routeInbox(env, userId, third ?? "", destination);
+    return finish(result);
+  }
+
+  if (queryId) await answerCallback(botToken, queryId, "Unknown button.");
+  return { action: "route_unknown", detail: String(cb.data ?? ""), toast: "Unknown button." };
 }

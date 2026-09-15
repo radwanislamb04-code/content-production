@@ -3,9 +3,11 @@ import { getEnv, readTelegramConfig } from "../../lib/settings";
 import {
   claimUpdate,
   findWebhookBySecret,
+  handleCallback,
   handleUpdate,
   markUpdate,
   replyTo,
+  sendWithKeyboard,
   webhookUrl,
   type TgUpdate,
 } from "../../lib/telegram-hook";
@@ -109,13 +111,31 @@ export const Route = createFileRoute("/api/telegram-hook")({
           return Response.json({ ok: true, ignored: "no bot token stored" });
         }
 
+        // A button tap ("where should this go?") is a callback_query, not a
+        // message — it needs the same idempotency and its own branch.
+        if (update.callback_query) {
+          const routed = await handleCallback(env, row, botToken, update.callback_query);
+          await markUpdate(env, row.user_id, { error: null });
+          return Response.json({
+            ok: true,
+            update_id: updateId,
+            action: routed.action,
+            detail: routed.detail,
+            toast: routed.toast,
+          });
+        }
+
         const handled = await handleUpdate(env, row, botToken, update);
         const chatId = update?.message?.chat?.id;
 
         let replyId: number | undefined;
         let replyError: string | null = null;
         if (handled.reply && chatId !== undefined) {
-          const sent = await replyTo(botToken, chatId, handled.reply);
+          // With buttons when the reply has somewhere to send it; plain text
+          // otherwise (/list, /id, /help never need a keyboard).
+          const sent = handled.keyboard
+            ? await sendWithKeyboard(botToken, chatId, handled.reply, handled.keyboard)
+            : await replyTo(botToken, chatId, handled.reply);
           if (sent.ok) replyId = sent.messageId;
           else replyError = sent.error ?? "reply failed";
         }

@@ -414,8 +414,37 @@ function AIActivity() {
 
 
 function TelegramTasks() {
-  const { data, loading } = useApi<TgTask[]>("/api/telegram-tasks");
+  const { data, loading, setData } = useApi<TgTask[]>("/api/telegram-tasks");
   const tasks = Array.isArray(data) ? data : [];
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // The missing writer: nothing in the app ever queued a task, so this list could
+  // only ever be empty. The 08:00 / 20:00 cron delivers whatever is queued here.
+  const addTask = async () => {
+    const text = draft.trim();
+    if (!text || saving) return;
+    setSaving(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/telegram-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error ?? `HTTP ${res.status}`);
+      }
+      setData((prev) => [json.task as TgTask, ...(prev ?? [])]);
+      setDraft("");
+    } catch (e: any) {
+      setErr(e?.message ?? "Could not save the task");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Card className="p-5">
@@ -424,15 +453,31 @@ function TelegramTasks() {
       </div>
       <div className="text-sm font-semibold text-fg">Tasks</div>
 
+      <div className="mt-3 flex items-center gap-2">
+        <input
+          value={draft}
+          maxLength={300}
+          placeholder="Add a task — the bot will send it at 08:00 / 20:00"
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void addTask();
+          }}
+          className="h-9 min-w-0 flex-1 rounded-md border border-line bg-surface px-2.5 text-sm text-fg outline-none placeholder:text-mute focus:border-lime"
+        />
+        <OutlineBtn onClick={() => void addTask()} disabled={saving || !draft.trim()}>
+          {saving ? "Saving…" : "Add"}
+        </OutlineBtn>
+      </div>
+      {err && <div className="mt-2 text-[11px] text-err">{err}</div>}
+
       {loading ? (
         <div className="mt-3 text-sm text-mute">Loading…</div>
       ) : tasks.length === 0 ? (
         // Truthful empty state: nothing writes to telegram_tasks yet, so an
         // invented to-do list would be a lie.
         <div className="mt-3 text-sm text-mute">
-          Nothing is queued. Tasks appear here only when something adds them —
-          the Telegram bot has no intake that creates tasks yet, so this stays
-          empty until that is built.
+          Nothing is queued. Add one above and the bot will send it with the next
+          automatic run.
         </div>
       ) : (
         <div className="mt-3 space-y-2">

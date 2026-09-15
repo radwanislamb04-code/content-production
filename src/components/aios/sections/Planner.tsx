@@ -55,6 +55,13 @@ function monthLabel(key: string): string {
   });
 }
 
+/** Shift an ISO date by N days (UTC, so the string never drifts by timezone). */
+function shiftDate(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + days));
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-${String(next.getUTCDate()).padStart(2, "0")}`;
+}
+
 /** Monday-first grid of the month's dates, padded to whole weeks. */
 function buildGrid(key: string): (string | null)[] {
   const [y, m] = key.split("-").map(Number);
@@ -78,6 +85,9 @@ export function Planner() {
   const [manual, setManual] = useState<{ date: string; type: string; topic: string; time: string } | null>(
     null,
   );
+  // Drag & drop: grab a card, drop it on another day.
+  const [drag, setDrag] = useState<{ entry: Entry; from: string } | null>(null);
+  const [over, setOver] = useState<string | null>(null);
 
   const load = useCallback(async (key: string) => {
     setLoading(true);
@@ -171,6 +181,35 @@ export function Planner() {
       await persist((calendar?.entries ?? []).filter((e) => e !== target));
     },
     [calendar?.entries, persist],
+  );
+
+  /**
+   * Move a dragged card to another day (copy instead when Alt is held). A card
+   * may only travel inside the current month: the month is its own workspace
+   * record, so a cross-month move would save an entry that can never be seen.
+   */
+  const moveEntry = useCallback(
+    async (targetDate: string, copy: boolean) => {
+      const dragged = drag;
+      setDrag(null);
+      setOver(null);
+      if (!dragged || !calendar) return;
+      if (targetDate.slice(0, 7) !== month) {
+        setError(
+          `“${dragged.entry.topic}” was not moved: cards can only move inside ${monthLabel(month)}. Use the month arrows to plan another month.`,
+        );
+        return;
+      }
+      if (!copy && dragged.from === targetDate) return;
+      setError(null);
+      const next = copy
+        ? [...calendar.entries, { ...dragged.entry, date: targetDate }]
+        : calendar.entries.map((e) =>
+            e === dragged.entry ? { ...e, date: targetDate } : e,
+          );
+      await persist(next);
+    },
+    [calendar, drag, month, persist],
   );
 
   return (
@@ -299,7 +338,23 @@ export function Planner() {
                 {grid.map((date, i) => (
                   <div
                     key={i}
-                    className="min-h-[140px] border-b border-r border-line p-2 last:border-r-0"
+                    onDragOver={(ev) => {
+                      if (!drag || !date) return;
+                      ev.preventDefault();
+                      ev.dataTransfer.dropEffect = ev.altKey ? "copy" : "move";
+                      setOver(date);
+                    }}
+                    onDragLeave={() => setOver((cur) => (cur === date ? null : cur))}
+                    onDrop={(ev) => {
+                      if (!drag || !date) return;
+                      ev.preventDefault();
+                      void moveEntry(date, ev.altKey);
+                    }}
+                    className={`group min-h-[140px] border-b border-r border-line p-2 last:border-r-0 ${
+                      over === date
+                        ? "bg-[rgba(82,255,46,0.07)] ring-1 ring-inset ring-lime"
+                        : ""
+                    }`}
                   >
                     {date ? (
                       <>
@@ -326,12 +381,50 @@ export function Planner() {
                           {(byDate.get(date) ?? []).map((e, idx) => (
                             <div
                               key={idx}
-                              className={`group cursor-pointer rounded-md border p-1.5 transition hover:translate-y-[-1px] hover:shadow-lg ${
-                                TYPE_STYLES[e.type] ?? TYPE_STYLES.Story
-                              }`}
-                              onClick={() => removeEntry(e)}
-                              title="Click to remove"
+                              draggable
+                              tabIndex={0}
+                              role="button"
+                              aria-label={`${e.type}: ${e.topic}, ${date} at ${e.time}. Drag to another day, hold Alt to copy, or use the arrow keys.`}
+                              onDragStart={(ev) => {
+                                setDrag({ entry: e, from: date });
+                                ev.dataTransfer.effectAllowed = "copyMove";
+                                // Firefox refuses to start a drag without payload.
+                                ev.dataTransfer.setData("text/plain", e.topic);
+                              }}
+                              onDragEnd={() => {
+                                setDrag(null);
+                                setOver(null);
+                              }}
+                              onKeyDown={(ev) => {
+                                const step =
+                                  ev.key === "ArrowLeft"
+                                    ? -1
+                                    : ev.key === "ArrowRight"
+                                      ? 1
+                                      : ev.key === "ArrowUp"
+                                        ? -7
+                                        : ev.key === "ArrowDown"
+                                          ? 7
+                                          : 0;
+                                if (!step) return;
+                                ev.preventDefault();
+                                void moveEntry(shiftDate(e.date, step), false);
+                              }}
+                              className={`relative cursor-grab rounded-md border p-1.5 transition hover:translate-y-[-1px] hover:shadow-lg focus-visible:ring-2 focus-visible:ring-lime active:cursor-grabbing ${
+                                drag?.entry === e ? "opacity-40" : ""
+                              } ${TYPE_STYLES[e.type] ?? TYPE_STYLES.Story}`}
+                              title="Drag to another day · hold Alt to copy · arrow keys move a day, ↑↓ a week"
                             >
+                              <button
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  void removeEntry(e);
+                                }}
+                                aria-label={`Remove ${e.topic}`}
+                                className="absolute right-1 top-1 hidden rounded p-0.5 text-mute hover:text-err group-hover:block"
+                              >
+                                <X size={11} />
+                              </button>
                               <div className="text-[9px] font-semibold uppercase tracking-wide text-fg2">
                                 {e.type}
                               </div>
@@ -384,7 +477,7 @@ export function Planner() {
           {calendar.pillars?.length
             ? `pillars: ${calendar.pillars.join(", ")}`
             : "no pillars set"}{" "}
-          · click a card to remove it
+          · drag a card to another day to move it (hold Alt to copy) · arrow keys work too
         </div>
       )}
     </div>

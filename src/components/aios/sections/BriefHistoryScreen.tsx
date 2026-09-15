@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Copy, Check, History, Loader2, RefreshCw } from "lucide-react";
 import { BriefBody, type Brief, briefPreview, clock } from "../brief-view";
@@ -31,7 +32,7 @@ export function BriefHistoryScreen() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/brief");
+      const res = await apiFetch("/api/brief");
       const json = (await res.json()) as Index;
       if (!json?.ok) {
         setError(json?.error ?? "Could not load the brief archive");
@@ -57,7 +58,7 @@ export function BriefHistoryScreen() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/brief?date=${date}`);
+      const res = await apiFetch(`/api/brief?date=${date}`);
       const json = (await res.json()) as Index;
       if (!json?.ok) setError(json?.error ?? "Could not open that brief");
       else setBrief(json.brief);

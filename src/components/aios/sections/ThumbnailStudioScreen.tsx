@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useEffect, useRef, useState } from "react";
 import { getAppearance } from "@/lib/appearance";
 import { Link } from "@tanstack/react-router";
@@ -100,7 +101,7 @@ export function ThumbnailStudioScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/library/script")
+    apiFetch("/api/library/script")
       .then((r) => r.json())
       .then((rows) => {
         if (cancelled || !Array.isArray(rows)) return;
@@ -130,7 +131,7 @@ export function ThumbnailStudioScreen() {
     setPromptBusy(true);
     setPromptError(null);
     try {
-      const res = await fetch("/api/thumbnail-prompt", {
+      const res = await apiFetch("/api/thumbnail-prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -187,7 +188,7 @@ export function ThumbnailStudioScreen() {
   const [inAppHint, setInAppHint] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/settings-imagegen")
+    apiFetch("/api/settings-imagegen")
       .then((r) => r.json())
       .then((data) => {
         if (data?.defaultModel) setAiModel(data.defaultModel);
@@ -240,7 +241,7 @@ export function ThumbnailStudioScreen() {
       }
       setGenerating(true);
       try {
-        const res = await fetch("/api/generate-image", {
+        const res = await apiFetch("/api/generate-image", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

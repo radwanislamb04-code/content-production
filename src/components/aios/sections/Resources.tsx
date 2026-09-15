@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -119,7 +120,7 @@ export function Resources() {
   const remove = async (site: Site) => {
     setBusyId(site.id);
     try {
-      const res = await fetch(`/api/resources/${encodeURIComponent(site.id)}`, {
+      const res = await apiFetch(`/api/resources/${encodeURIComponent(site.id)}`, {
         method: "DELETE",
       });
       const json = await res.json().catch(() => null);
@@ -363,7 +364,7 @@ function SiteViewer({ site, onClose }: { site: Site; onClose: () => void }) {
     setFailed(false);
     setLoaded(false);
     setFrameReason(null);
-    fetch(`/api/frame-check?url=${encodeURIComponent(site.url)}`)
+    apiFetch(`/api/frame-check?url=${encodeURIComponent(site.url)}`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
@@ -402,7 +403,7 @@ function SiteViewer({ site, onClose }: { site: Site; onClose: () => void }) {
     setReaderUrl(url);
     setReading(true);
     setReader(null);
-    fetch(`/api/reader?url=${encodeURIComponent(url)}`)
+    apiFetch(`/api/reader?url=${encodeURIComponent(url)}`)
       .then((r) => r.json())
       .then((d: ReaderPayload) => setReader(d))
       .catch((err: any) =>

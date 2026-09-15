@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { FolderOpen, Link2, Plus, Unlink } from "lucide-react";
@@ -66,7 +67,7 @@ export function Projects() {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch("/api/projects");
+      const res = await apiFetch("/api/projects");
       const json = await res.json();
       setProjects(Array.isArray(json) ? json : []);
     } catch {
@@ -260,7 +261,7 @@ function NewProjectModal({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/projects", {
+      const res = await apiFetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim(), module }),
@@ -340,7 +341,7 @@ function ProjectDetail({
     let cancelled = false;
     Promise.all(
       ["idea", "script", "storyboard", "video_prompt"].map((t) =>
-        fetch(`/api/library/${t}`).then((r) => r.json()),
+        apiFetch(`/api/library/${t}`).then((r) => r.json()),
       ),
     )
       .then((rows) => {
@@ -371,7 +372,7 @@ function ProjectDetail({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/projects", {
+      const res = await apiFetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, projectId: project.id, itemId }),

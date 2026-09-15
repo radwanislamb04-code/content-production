@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Heart, Loader2, MessageCircle, RefreshCw, Users } from "lucide-react";
 import { Card, OutlineBtn } from "../ui";
@@ -69,7 +70,7 @@ export function Analyst() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/post-performance");
+      const res = await apiFetch("/api/post-performance");
       const json = (await res.json()) as Data;
       if (!json?.ok) {
         setError(json?.error ?? "Could not load performance data");

@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Loader2, Sparkles } from "lucide-react";
 import { Card, OutlineBtn, PrimaryBtn, Select } from "../ui";
@@ -74,7 +75,7 @@ export function ContentScore() {
     try {
       const types = ["script", "idea", "storyboard", "video_prompt"];
       const res = await Promise.all(
-        types.map((t) => fetch(`/api/library/${t}`).then((r) => r.json())),
+        types.map((t) => apiFetch(`/api/library/${t}`).then((r) => r.json())),
       );
       const merged: Item[] = res
         .flatMap((r) => (Array.isArray(r) ? r : []))
@@ -103,7 +104,7 @@ export function ContentScore() {
     setScoring(true);
     setError(null);
     try {
-      const res = await fetch("/api/score-content", {
+      const res = await apiFetch("/api/score-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: selected.id }),

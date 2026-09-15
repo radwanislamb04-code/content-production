@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { Layers, Plug } from "lucide-react";
 import { Card, EmptyState, Pill, Progress } from "../ui";
@@ -28,7 +29,7 @@ export function SeriesScreen() {
   const [data, setData] = useState<PillarData | null>(null);
 
   useEffect(() => {
-    fetch("/api/pillars")
+    apiFetch("/api/pillars")
       .then((r) => r.json())
       .then((json) => setData(json as PillarData))
       .catch(() => {

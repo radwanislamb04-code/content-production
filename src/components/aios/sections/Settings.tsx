@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { AppearancePanel } from "./AppearancePanel";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Card, Input, OutlineBtn, Progress, Select } from "../ui";
@@ -88,7 +89,7 @@ function useSettings() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/settings");
+      const res = await apiFetch("/api/settings");
       const data = await res.json();
       if (!res.ok || !data?.ok) {
         setFailed(data?.error ?? `HTTP ${res.status}`);
@@ -110,7 +111,7 @@ function useSettings() {
   const save = useCallback(
     async (patch: unknown, label: string) => {
       try {
-        const res = await fetch("/api/settings", {
+        const res = await apiFetch("/api/settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(patch),
@@ -202,7 +203,7 @@ function ApiKeys({ settings }: { settings: ReturnType<typeof useSettings> }) {
   const loadApifyUsage = async (fresh = false) => {
     setApifyUsageLoading(true);
     try {
-      const res = await fetch(`/api/apify-usage${fresh ? "?fresh=1" : ""}`);
+      const res = await apiFetch(`/api/apify-usage${fresh ? "?fresh=1" : ""}`);
       const json = await res.json();
       if (json?.ok) setApifyUsage(json.slots ?? []);
     } catch {
@@ -236,7 +237,7 @@ function ApiKeys({ settings }: { settings: ReturnType<typeof useSettings> }) {
   }, [snapshot]);
 
   useEffect(() => {
-    fetch("/api/settings-imagegen")
+    apiFetch("/api/settings-imagegen")
       .then((r) => r.json())
       .then((d) => {
         if (d?.defaultModel) setIgDefaultModel(d.defaultModel);
@@ -321,7 +322,7 @@ function ApiKeys({ settings }: { settings: ReturnType<typeof useSettings> }) {
         defaultModel: igDefaultModel,
       };
       if (igKeyInput.length > 0) body.vyceaiKey = igKeyInput;
-      const res = await fetch("/api/settings-imagegen", {
+      const res = await apiFetch("/api/settings-imagegen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -632,7 +633,7 @@ function TelegramFields({
   const findChatId = async () => {
     setFinding(true);
     try {
-      const res = await fetch("/api/telegram-chat-id", { method: "POST" });
+      const res = await apiFetch("/api/telegram-chat-id", { method: "POST" });
       const json = await res.json();
       if (!json?.ok) {
         toast.error(json?.error ?? "Could not find the chat id");
@@ -669,7 +670,7 @@ function TelegramFields({
   const sendTest = async () => {
     setTesting(true);
     try {
-      const res = await fetch("/api/telegram-test", { method: "POST" });
+      const res = await apiFetch("/api/telegram-test", { method: "POST" });
       const d = await res.json();
       if (!res.ok || !d?.ok) {
         toast.error(d?.error ?? "Test failed");

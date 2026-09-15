@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, ChevronDown, Database, CheckCircle2 } from "lucide-react";
@@ -198,14 +199,14 @@ async function callSource(
   snapshot: SettingsSnapshot | null,
 ): Promise<{ items: number; error?: string }> {
   if (def.run === "youtube") {
-    const res = await fetch("/api/trends?platform=youtube");
+    const res = await apiFetch("/api/trends?platform=youtube");
     const d: any = await res.json();
     if (!Array.isArray(d)) return { items: 0, error: d?.error ?? "Unexpected response" };
     const err = d.find((x: any) => typeof x?.title === "string" && /error|not configured/i.test(x.title));
     return err ? { items: 0, error: err.title } : { items: d.length };
   }
   if (def.run === "google") {
-    const res = await fetch("/api/trends?platform=google");
+    const res = await apiFetch("/api/trends?platform=google");
     const d: any = await res.json();
     if (!Array.isArray(d)) return { items: 0, error: d?.error ?? "Unexpected response" };
     const err = d.find((x: any) => typeof x?.title === "string" && /error|not configured/i.test(x.title));
@@ -214,7 +215,7 @@ async function callSource(
   if (def.run === "instagram") {
     const handle = snapshot?.instagram.competitors?.[0];
     if (!handle) return { items: 0, error: "Add a competitor handle in Settings → Instagram first." };
-    const res = await fetch("/api/scrape-competitor", {
+    const res = await apiFetch("/api/scrape-competitor", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ handle, platform: "instagram" }),
@@ -328,7 +329,7 @@ export function SourcesScreen() {
   const [savingSources, setSavingSources] = useState(false);
 
   useEffect(() => {
-    fetch("/api/workspace?key=sources:disabled")
+    apiFetch("/api/workspace?key=sources:disabled")
       .then((r) => r.json())
       .then((d) => {
         let v: any = d?.value ?? d?.data?.value ?? d;
@@ -354,7 +355,7 @@ export function SourcesScreen() {
     setDisabled(next);
     setSavingSources(true);
     try {
-      const res = await fetch("/api/workspace", {
+      const res = await apiFetch("/api/workspace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "sources:disabled", value: next }),
@@ -374,7 +375,7 @@ export function SourcesScreen() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/settings");
+      const res = await apiFetch("/api/settings");
       const d = await res.json();
       if (d?.ok) setSnapshot(d as SettingsSnapshot);
     } catch {

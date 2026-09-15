@@ -2,7 +2,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, Modal, OutlineBtn, PrimaryBtn } from "../ui";
-import { apiGet, apiPost, errorMessage } from "@/lib/api";
+import { apiFetch, apiGet, apiPost, errorMessage } from "@/lib/api";
 import {
   ArrowLeft,
   ArrowRight,
@@ -88,6 +88,22 @@ export function BoardScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /** Upload one file to a card, then refresh so the card shows it. */
+  const uploadFile = async (cardId: string, file: File) => {
+    try {
+      const fd = new FormData();
+      fd.append("cardId", cardId);
+      fd.append("file", file);
+      const res = await apiFetch("/api/board-attach", { method: "POST", body: fd });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
+      await load();
+      toast(`${file.name} attached`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed");
+    }
+  };
 
   const act = async (payload: Record<string, unknown>) => {
     setBusy(true);
@@ -274,6 +290,12 @@ export function BoardScreen() {
                       setOverCardId(null);
                     }}
                     onDragOver={(ev) => {
+                      // A file dragged in from the desktop is an upload, not a card move.
+                      if (ev.dataTransfer.types.includes("Files")) {
+                        ev.preventDefault();
+                        ev.dataTransfer.dropEffect = "copy";
+                        return;
+                      }
                       if (!dragging || dragging.card.id === c.id) return;
                       ev.preventDefault();
                       ev.stopPropagation();
@@ -281,6 +303,12 @@ export function BoardScreen() {
                       setOverCardId(c.id);
                     }}
                     onDrop={(ev) => {
+                      if (ev.dataTransfer.types.includes("Files")) {
+                        ev.preventDefault();
+                        const file = ev.dataTransfer.files?.[0];
+                        if (file) void uploadFile(c.id, file);
+                        return;
+                      }
                       if (!dragging || dragging.card.id === c.id) return;
                       ev.preventDefault();
                       ev.stopPropagation();
@@ -440,6 +468,26 @@ function CardDetail({
     { id: string; type: string; title: string }[]
   >([]);
   const [uploading, setUploading] = useState(false);
+  const [dropping, setDropping] = useState(false);
+
+  /** Shared by the file picker and the drop zone. */
+  const doUpload = async (file: File) => {
+    if (!card) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("cardId", card.id);
+      fd.append("file", file);
+      const res = await apiFetch("/api/board-attach", { method: "POST", body: fd });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
+      await reload();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // The picker searches the user's own library (the search route already returns
   // the latest items when the query is empty).
@@ -447,7 +495,7 @@ function CardDetail({
     if (!linking) return;
     let cancelled = false;
     const t = setTimeout(() => {
-      fetch(`/api/search${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`)
+      apiFetch(`/api/search${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`)
         .then((r) => r.json())
         .then((rows: any) => {
           if (cancelled) return;
@@ -489,7 +537,7 @@ function CardDetail({
   if (!card) return null;
 
   return (
-    <Modal open={Boolean(card)} onClose={onClose} title="Card">
+    <Modal open={Boolean(card)} onClose={onClose} title="Card" className="max-w-[720px]">
       <div className="space-y-3">
         <div>
           <div className="mb-1 text-xs text-mute">Title</div>
@@ -503,10 +551,10 @@ function CardDetail({
         <div>
           <div className="mb-1 text-xs text-mute">Description</div>
           <textarea
-            rows={3}
+            rows={9}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-md border border-line bg-surface px-2.5 py-2 text-sm text-fg outline-none focus:border-lime"
+            className="min-h-[180px] w-full resize-y rounded-md border border-line bg-surface px-2.5 py-2 text-sm leading-relaxed text-fg outline-none focus:border-lime"
           />
         </div>
 
@@ -664,7 +712,25 @@ function CardDetail({
       </div>
 
       {/* ---- attachments (R2) ---- */}
-      <div className="mt-3">
+      <div
+        className={`mt-3 rounded-md border border-dashed p-2 transition-colors ${
+          dropping ? "border-lime bg-lime/5" : "border-line"
+        }`}
+        onDragOver={(ev) => {
+          if (!ev.dataTransfer.types.includes("Files")) return;
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = "copy";
+          setDropping(true);
+        }}
+        onDragLeave={() => setDropping(false)}
+        onDrop={(ev) => {
+          if (!ev.dataTransfer.types.includes("Files")) return;
+          ev.preventDefault();
+          setDropping(false);
+          const file = ev.dataTransfer.files?.[0];
+          if (file) void doUpload(file);
+        }}
+      >
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs text-mute">Attachments</span>
           <label className="cursor-pointer text-[11px] text-lime hover:underline">
@@ -673,31 +739,17 @@ function CardDetail({
               type="file"
               className="hidden"
               accept="image/*,application/pdf,text/*,video/mp4"
-              onChange={async (ev) => {
+              onChange={(ev) => {
                 const file = ev.target.files?.[0];
                 ev.target.value = "";
-                if (!file) return;
-                setUploading(true);
-                try {
-                  const fd = new FormData();
-                  fd.append("cardId", card.id);
-                  fd.append("file", file);
-                  const res = await fetch("/api/board-attach", { method: "POST", body: fd });
-                  const json = await res.json().catch(() => null);
-                  if (!res.ok || !json?.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
-                  await reload();
-                } catch (err: any) {
-                  toast.error(err?.message ?? "Upload failed");
-                } finally {
-                  setUploading(false);
-                }
+                if (file) void doUpload(file);
               }}
             />
           </label>
         </div>
         {card.attachments.length === 0 ? (
           <div className="text-[11px] text-mute">
-            Images, PDF, video or text — up to 5 MB each.
+            Drag a file here (or onto a card) — images, PDF, video or text, up to 5 MB each.
           </div>
         ) : (
           <div className="space-y-1">

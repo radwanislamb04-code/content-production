@@ -155,11 +155,11 @@ async function snapshot(env: any, userId: string) {
     readSetting(env, SETTINGS_KEYS.redditId, undefined, userId),
     readSetting(env, SETTINGS_KEYS.redditSecret, undefined, userId),
     readSetting(env, SETTINGS_KEYS.producthunt, undefined, userId),
-    readJsonSetting<ApifySlot[]>(env, SETTINGS_KEYS.apifySlots, []),
+    readJsonSetting<ApifySlot[]>(env, SETTINGS_KEYS.apifySlots, [], userId),
     readSetting(env, SETTINGS_KEYS.telegramBotToken, undefined, userId),
     readSetting(env, SETTINGS_KEYS.telegramChatId, undefined, userId),
     readSetting(env, SETTINGS_KEYS.instagramHandle, undefined, userId),
-    readJsonSetting<string[]>(env, SETTINGS_KEYS.instagramCompetitors, []),
+    readJsonSetting<string[]>(env, SETTINGS_KEYS.instagramCompetitors, [], userId),
     readPillars(env, userId),
     readPostingTimes(env, userId),
   ]);

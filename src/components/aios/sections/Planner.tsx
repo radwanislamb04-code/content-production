@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, Plus, X } from "lucide-react";
 import { Card, OutlineBtn, PrimaryBtn, Select } from "../ui";
@@ -93,7 +94,7 @@ export function Planner() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/workspace?key=calendar_${key}`);
+      const res = await apiFetch(`/api/workspace?key=calendar_${key}`);
       const json = await res.json();
       setCalendar((json?.value as Calendar) ?? null);
     } catch (err: any) {
@@ -111,7 +112,7 @@ export function Planner() {
     setBusy("generate");
     setError(null);
     try {
-      const res = await fetch("/api/generate-plan", {
+      const res = await apiFetch("/api/generate-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ month }),
@@ -141,7 +142,7 @@ export function Planner() {
         ),
       };
       setCalendar(next);
-      await fetch("/api/workspace", {
+      await apiFetch("/api/workspace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: `calendar_${month}`, value: next }),

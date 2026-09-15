@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, OutlineBtn, EmptyState, Pill, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
-import { apiGet } from "@/lib/api";
+import { apiFetch, apiGet } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { HeroClock } from "../widgets/HeroClock";
 import { QuoteBar } from "../widgets/QuoteBar";
@@ -428,7 +428,7 @@ function TelegramTasks() {
     setSaving(true);
     setErr(null);
     try {
-      const res = await fetch("/api/telegram-tasks", {
+      const res = await apiFetch("/api/telegram-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),

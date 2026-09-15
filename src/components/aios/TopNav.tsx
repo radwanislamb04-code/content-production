@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { ProfileMenu } from "./ProfileMenu";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -57,7 +58,7 @@ export function TopNav({
       since = 0;
     }
     try {
-      const res = await fetch(`/api/notifications?limit=20&since=${since}`);
+      const res = await apiFetch(`/api/notifications?limit=20&since=${since}`);
       const json = await res.json();
       setItems(Array.isArray(json?.items) ? json.items : []);
       setUnread(Number(json?.unread) || 0);
@@ -245,7 +246,7 @@ function Spotlight({ onClose }: { onClose: () => void }) {
     setLoading(true);
     setError(false);
     const timer = setTimeout(() => {
-      fetch(`/api/search?q=${encodeURIComponent(q)}`)
+      apiFetch(`/api/search?q=${encodeURIComponent(q)}`)
         .then((res) => res.json())
         .then((json) => {
           if (cancelled) return;

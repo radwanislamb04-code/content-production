@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, ExternalLink, Info, ListOrdered, RefreshCw } from "lucide-react";
 import { Card, EmptyState, OutlineBtn, Pill } from "../ui";
@@ -62,7 +63,7 @@ export function HookScoreboardScreen() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/hooks");
+      const res = await apiFetch("/api/hooks");
       const json = (await res.json()) as Data;
       if (!json?.ok) setError(json?.error ?? "Could not load hook data");
       else setData(json);

@@ -3,7 +3,7 @@ import { Card, PrimaryBtn, GhostBtn, Textarea, SectionHeader, Input } from "../u
 import { takePendingTemplate } from "@/lib/pending-template";
 import type { SectionId } from "../Sidebar";
 import { toast } from "sonner";
-import { apiPost, errorMessage } from "@/lib/api";
+import { apiFetch, apiPost, errorMessage } from "@/lib/api";
 import {
   Copy,
   FileText,
@@ -302,7 +302,7 @@ function CustomIdeas({ onNav }: { onNav?: (id: SectionId) => void }) {
   const send = async () => {
     setSending(true);
     try {
-      await fetch("/api/workspace/selected_idea", {
+      await apiFetch("/api/workspace/selected_idea", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ideas: finalized.map((i) => i.text.trim()) }),

@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useState } from "react";
 import { Card, PrimaryBtn, OutlineBtn } from "../ui";
 import {
@@ -97,7 +98,7 @@ export function AutoPilot() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/activity?limit=50");
+      const res = await apiFetch("/api/activity?limit=50");
       const data = (await res.json()) as ActivityRow[];
       setFeed(Array.isArray(data) ? data : []);
       setError(null);
@@ -118,7 +119,7 @@ export function AutoPilot() {
       setError(null);
       setReport(null);
       try {
-        const res = await fetch("/api/run-pipeline", {
+        const res = await apiFetch("/api/run-pipeline", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(steps ? { steps } : {}),

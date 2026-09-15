@@ -259,12 +259,15 @@ export function Modal({
   title,
   children,
   footer,
+  className = "",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
   footer?: ReactNode;
+  /** Optional extra classes for the panel (e.g. a wider card editor). */
+  className?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -322,7 +325,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative z-10 max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-cardx p-5 outline-none"
+        className={`relative z-10 max-h-[85dvh] w-full overflow-y-auto rounded-xl border border-line bg-cardx p-5 outline-none ${className || "max-w-lg"}`}
       >
         <h2 id={titleId} className="text-[15px] font-semibold text-fg">
           {title}

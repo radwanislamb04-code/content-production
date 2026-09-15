@@ -76,7 +76,7 @@ export async function runPipeline(
   // off is not fetched by the scheduled run either. Only the three wired
   // sources map to a step (youtube + serpapi → trends, ig-competitors → scrape).
   try {
-    const disabled = await readJsonSetting<string[]>(env, "sources:disabled", []);
+    const disabled = await readJsonSetting<string[]>(env, "sources:disabled", [], userId);
     if (disabled.includes("youtube") && disabled.includes("serpapi")) {
       wanted = wanted.filter((s) => s !== "trends");
     }
@@ -191,7 +191,7 @@ async function stepScrape(
 
   const own = normalizeHandle(await readSetting(env, SETTINGS_KEYS.instagramHandle));
   const competitors = (
-    await readJsonSetting<string[]>(env, SETTINGS_KEYS.instagramCompetitors, [])
+    await readJsonSetting<string[]>(env, SETTINGS_KEYS.instagramCompetitors, [], userId)
   )
     .map(normalizeHandle)
     .filter(Boolean)

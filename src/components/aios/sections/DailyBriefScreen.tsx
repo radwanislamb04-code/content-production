@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Check, Copy, Loader2, RefreshCw, Send } from "lucide-react";
 import { Card, OutlineBtn, PrimaryBtn } from "../ui";
@@ -51,7 +52,7 @@ export function DailyBriefScreen() {
     setBusy("generate");
     setError(null);
     try {
-      const res = await fetch("/api/brief", { method: "POST" });
+      const res = await apiFetch("/api/brief", { method: "POST" });
       const json = await res.json();
       if (!json?.ok) setError(json?.error ?? "Brief generation failed");
       await load(null);
@@ -66,7 +67,7 @@ export function DailyBriefScreen() {
     setBusy("send");
     setError(null);
     try {
-      const res = await fetch("/api/run-pipeline", {
+      const res = await apiFetch("/api/run-pipeline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ steps: ["send"] }),

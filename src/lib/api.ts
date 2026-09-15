@@ -1,5 +1,19 @@
 import { profileHeader } from "./profile";
 
+/**
+ * fetch() that carries the chosen profile.
+ *
+ * Twenty-odd components called fetch("/api/…") directly, which silently bypassed
+ * the profile header — so a switched view still showed the owner's data and keys.
+ * Everything goes through here now.
+ */
+export function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(path, {
+    ...init,
+    headers: { ...profileHeader(), ...(init.headers ?? {}) },
+  });
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {

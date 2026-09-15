@@ -1,3 +1,4 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { SETTINGS_KEYS, getEnv, readJsonSetting } from "../../lib/settings";
 
@@ -157,10 +158,14 @@ export const Route = createFileRoute("/api/apify-usage")({
           return Response.json({ ok: true, cached: true, slots: cache.payload });
         }
 
+        // The caller's own slots: this route used to read the owner's, which would
+        // have shown one user another's tokens and remaining credit.
+        const uid = await currentUserId(request, context);
         const slots = await readJsonSetting<ApifySlot[]>(
           env,
           SETTINGS_KEYS.apifySlots,
           [],
+          uid,
         );
         const payload = await Promise.all(slots.map((s, i) => usageFor(s, i)));
         cache = { at: Date.now(), payload };

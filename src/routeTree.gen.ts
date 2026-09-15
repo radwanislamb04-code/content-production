@@ -36,7 +36,6 @@ import { Route as ApiActivityRouteImport } from './routes/api/activity'
 import { Route as ApiAppearanceRouteImport } from './routes/api/appearance'
 import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiCharactersRouteImport } from './routes/api/characters'
-import { Route as ApiEmbedCheckRouteImport } from './routes/api/embed-check'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiGeneratePlanRouteImport } from './routes/api/generate-plan'
 import { Route as ApiHookScriptWriterRouteImport } from './routes/api/hook-script-writer'
@@ -200,11 +199,6 @@ const ApiBriefRoute = ApiBriefRouteImport.update({
 const ApiCharactersRoute = ApiCharactersRouteImport.update({
   id: '/api/characters',
   path: '/api/characters',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiEmbedCheckRoute = ApiEmbedCheckRouteImport.update({
-  id: '/api/embed-check',
-  path: '/api/embed-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
@@ -386,7 +380,6 @@ export interface FileRoutesByFullPath {
   '/api/appearance': typeof ApiAppearanceRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
-  '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
@@ -444,7 +437,6 @@ export interface FileRoutesByTo {
   '/api/appearance': typeof ApiAppearanceRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
-  '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
@@ -505,7 +497,6 @@ export interface FileRoutesById {
   '/api/appearance': typeof ApiAppearanceRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/characters': typeof ApiCharactersRoute
-  '/api/embed-check': typeof ApiEmbedCheckRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-plan': typeof ApiGeneratePlanRoute
   '/api/hook-script-writer': typeof ApiHookScriptWriterRoute
@@ -567,7 +558,6 @@ export interface FileRouteTypes {
     | '/api/appearance'
     | '/api/brief'
     | '/api/characters'
-    | '/api/embed-check'
     | '/api/generate-image'
     | '/api/generate-plan'
     | '/api/hook-script-writer'
@@ -625,7 +615,6 @@ export interface FileRouteTypes {
     | '/api/appearance'
     | '/api/brief'
     | '/api/characters'
-    | '/api/embed-check'
     | '/api/generate-image'
     | '/api/generate-plan'
     | '/api/hook-script-writer'
@@ -685,7 +674,6 @@ export interface FileRouteTypes {
     | '/api/appearance'
     | '/api/brief'
     | '/api/characters'
-    | '/api/embed-check'
     | '/api/generate-image'
     | '/api/generate-plan'
     | '/api/hook-script-writer'
@@ -725,7 +713,6 @@ export interface RootRouteChildren {
   ApiAppearanceRoute: typeof ApiAppearanceRoute
   ApiBriefRoute: typeof ApiBriefRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
-  ApiEmbedCheckRoute: typeof ApiEmbedCheckRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiGeneratePlanRoute: typeof ApiGeneratePlanRoute
   ApiHookScriptWriterRoute: typeof ApiHookScriptWriterRoute
@@ -945,13 +932,6 @@ declare module '@tanstack/react-router' {
       path: '/api/characters'
       fullPath: '/api/characters'
       preLoaderRoute: typeof ApiCharactersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/embed-check': {
-      id: '/api/embed-check'
-      path: '/api/embed-check'
-      fullPath: '/api/embed-check'
-      preLoaderRoute: typeof ApiEmbedCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/generate-image': {
@@ -1249,7 +1229,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAppearanceRoute: ApiAppearanceRoute,
   ApiBriefRoute: ApiBriefRoute,
   ApiCharactersRoute: ApiCharactersRoute,
-  ApiEmbedCheckRoute: ApiEmbedCheckRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiGeneratePlanRoute: ApiGeneratePlanRoute,
   ApiHookScriptWriterRoute: ApiHookScriptWriterRoute,

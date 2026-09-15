@@ -1,3 +1,4 @@
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, Pill, Input, Select, PrimaryBtn, OutlineBtn, SkeletonCards, EmptyState } from "../ui";
 import { useApi } from "@/hooks/useApi";
@@ -144,42 +145,6 @@ function favicon(url: string) {
     : "";
 }
 
-/* ---------- embeddability detection (cached) ---------- */
-
-type EmbedState = "checking" | "yes" | "no";
-const cache = new Map<string, boolean>();
-
-function useEmbeddable(url: string): EmbedState {
-  const [state, setState] = useState<EmbedState>(() =>
-    cache.has(url) ? (cache.get(url) ? "yes" : "no") : "checking",
-  );
-
-  useEffect(() => {
-    if (cache.has(url)) {
-      setState(cache.get(url) ? "yes" : "no");
-      return;
-    }
-    let cancelled = false;
-    setState("checking");
-    fetch(`/api/embed-check?url=${encodeURIComponent(url)}`)
-      .then((r) => (r.ok ? r.json() : { embeddable: false }))
-      .then((d: { embeddable?: boolean }) => {
-        const ok = Boolean(d.embeddable);
-        cache.set(url, ok);
-        if (!cancelled) setState(ok ? "yes" : "no");
-      })
-      .catch(() => {
-        cache.set(url, false);
-        if (!cancelled) setState("no");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
-
-  return state;
-}
-
 /* ---------- section ---------- */
 
 export function Resources() {
@@ -248,10 +213,24 @@ export function Resources() {
 }
 
 function SiteCard({ site, onPreview }: { site: Site; onPreview: () => void }) {
-  const embed = useEmbeddable(site.url);
 
+  // The card itself opens the in-app viewer: every resource is browsed inside
+  // the app, and a new tab is only ever a last resort on the sites that forbid
+  // framing (see the viewer's fallback).
   return (
-    <Card className="flex items-start gap-3 p-4">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onPreview}
+      onKeyDown={(e: ReactKeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onPreview();
+        }
+      }}
+      className="cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-lime"
+    >
+      <Card className="flex h-full items-start gap-3 p-4 transition-colors hover:border-lime">
       <img
         src={favicon(site.url)}
         alt=""
@@ -271,31 +250,29 @@ function SiteCard({ site, onPreview }: { site: Site; onPreview: () => void }) {
           {site.description ?? hostOf(site.url)}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Pill variant={embed === "yes" ? "accent" : "default"}>
-            {embed === "checking"
-              ? "Checking preview…"
-              : embed === "yes"
-              ? "✅ Opens in page"
-              : "🔗 Opens in new tab"}
-          </Pill>
-          {embed === "yes" && (
-            <OutlineBtn onClick={onPreview}>Preview</OutlineBtn>
-          )}
-          <OutlineBtn
-            onClick={() =>
-              window.open(site.url, "_blank", "noopener,noreferrer")
-            }
-          >
-            <ExternalLink size={14} />
-            {embed === "yes" ? "Open" : "Open Website"}
+          <Pill>Opens in the app</Pill>
+          <OutlineBtn onClick={onPreview}>
+            <Globe size={14} /> Open in app
           </OutlineBtn>
+          <button
+            aria-label={`Open ${site.name} in a new tab`}
+            title="Last resort — only needed if the site refuses to load in the app"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(site.url, "_blank", "noopener,noreferrer");
+            }}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-mute transition-colors hover:text-lime"
+          >
+            <ExternalLink size={15} />
+          </button>
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
 
-/* ---------- preview modal ---------- */
+/* ---------- in-app site viewer ---------- */
 
 function PreviewModal({ site, onClose }: { site: Site; onClose: () => void }) {
   const [loaded, setLoaded] = useState(false);
@@ -306,7 +283,7 @@ function PreviewModal({ site, onClose }: { site: Site; onClose: () => void }) {
   useEffect(() => {
     setLoaded(false);
     setFailed(false);
-    timer.current = setTimeout(() => setFailed(true), 12000);
+    timer.current = setTimeout(() => setFailed(true), 10000);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
@@ -372,19 +349,30 @@ function PreviewModal({ site, onClose }: { site: Site; onClose: () => void }) {
         <div className="relative min-h-0 flex-1 bg-surface">
           {failed ? (
             <div className="flex h-full items-center justify-center p-6">
-              <EmptyState
-                icon={<Globe size={22} />}
-                message="Preview unavailable — this website doesn't allow embedded previews."
-                action={
+              <div className="max-w-[540px] text-center">
+                <Globe size={22} className="mx-auto text-mute" />
+                <p className="mt-3 text-sm font-semibold text-fg">
+                  {site.name} refused to load inside the app
+                </p>
+                <p className="mt-1 text-xs text-mute">
+                  This site replies with X-Frame-Options or a CSP
+                  frame-ancestors rule that forbids being shown in another page.
+                  Browsers enforce that, so no in-app view can display it.
+                  Everything else in the list opens here.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  <PrimaryBtn onClick={() => setNonce((n) => n + 1)}>
+                    <RefreshCw size={14} /> Try again
+                  </PrimaryBtn>
                   <OutlineBtn
                     onClick={() =>
                       window.open(site.url, "_blank", "noopener,noreferrer")
                     }
                   >
-                    Open Website <ExternalLink size={14} />
+                    Open externally <ExternalLink size={14} />
                   </OutlineBtn>
-                }
-              />
+                </div>
+              </div>
             </div>
           ) : (
             <>
@@ -400,11 +388,12 @@ function PreviewModal({ site, onClose }: { site: Site; onClose: () => void }) {
                 title={site.name}
                 loading="lazy"
                 referrerPolicy="no-referrer"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-presentation"
                 onLoad={() => {
                   if (timer.current) clearTimeout(timer.current);
                   setLoaded(true);
                 }}
+                onError={() => setFailed(true)}
                 className="h-full w-full border-0 bg-surface"
               />
             </>

@@ -26,7 +26,21 @@ const STEPS = [
 const LABELS = ["ai tips", "behind the scenes", "productivity", "story", "idea"];
 
 const actionSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("create_list"), name: z.string().trim().min(1).max(60) }),
+  z.object({
+    action: z.literal("create_board"),
+    name: z.string().trim().min(1).max(80).optional(),
+  }),
+  z.object({
+    action: z.literal("rename_board"),
+    boardId: z.string().min(1),
+    name: z.string().trim().min(1).max(80),
+  }),
+  z.object({ action: z.literal("delete_board"), boardId: z.string().min(1) }),
+  z.object({
+    action: z.literal("create_list"),
+    name: z.string().trim().min(1).max(60),
+    boardId: z.string().min(1).optional(),
+  }),
   z.object({
     action: z.literal("rename_list"),
     listId: z.string().min(1),
@@ -84,12 +98,15 @@ const actionSchema = z.discriminatedUnion("action", [
 
 type Row = Record<string, any>;
 
-async function loadBoard(env: any, userId: string) {
-  let board = (await env.DB.prepare(
-    "SELECT id, name FROM boards WHERE user_id = ? ORDER BY created_at ASC LIMIT 1",
+async function loadBoard(env: any, userId: string, boardId?: string | null) {
+  const all = ((await env.DB.prepare(
+    "SELECT id, name, created_at FROM boards WHERE user_id = ? ORDER BY created_at ASC",
   )
     .bind(userId)
-    .first()) as Row | null;
+    .all()).results ?? []) as Row[];
+
+  let board =
+    (boardId ? all.find((b) => b.id === boardId) : undefined) ?? all[0] ?? null;
 
   if (!board) {
     const boardId = crypto.randomUUID();
@@ -107,6 +124,7 @@ async function loadBoard(env: any, userId: string) {
         .run();
     }
     board = { id: boardId, name: "Content board" };
+    all.push({ id: boardId, name: "Content board" });
   }
 
   const lists = ((
@@ -149,6 +167,8 @@ async function loadBoard(env: any, userId: string) {
 
   return {
     board: { id: board.id, name: board.name },
+    // Every board this user owns, so the UI can switch between them.
+    boards: all.map((b) => ({ id: b.id, name: b.name })),
     labels: LABELS,
     lists: lists.map((l) => ({
       id: l.id,
@@ -209,7 +229,8 @@ export const Route = createFileRoute("/api/board")({
         const env = getEnv(request, context);
         if (!env?.DB) return Response.json({ ok: false, error: "No database." }, { status: 500 });
         const userId = await currentUserId(request, context);
-        return Response.json({ ok: true, ...(await loadBoard(env, userId)) });
+        const boardId = new URL(request.url).searchParams.get("boardId");
+        return Response.json({ ok: true, ...(await loadBoard(env, userId, boardId)) });
       },
 
       POST: async ({ request, context }) => {
@@ -224,11 +245,68 @@ export const Route = createFileRoute("/api/board")({
             { status: 400 },
           );
         }
-        const a = parsed.data;
+        const a = parsed.data as typeof parsed.data & { boardId?: string };
+        const requestedBoard =
+          new URL(request.url).searchParams.get("boardId") ?? a.boardId ?? null;
 
         try {
-          if (a.action === "create_list") {
-            const board = await loadBoard(env, userId);
+          if (a.action === "create_board") {
+            const id = crypto.randomUUID();
+            const now = Date.now();
+            const name = a.name?.trim() || `Board ${new Date().toLocaleDateString()}`;
+            await env.DB.prepare(
+              "INSERT INTO boards (id, user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+            )
+              .bind(id, userId, name, now, now)
+              .run();
+            // A new board with no columns is a dead end, so give it the same start.
+            for (const step of STEPS) {
+              await env.DB.prepare(
+                "INSERT INTO board_lists (id, board_id, user_id, name, position, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+              )
+                .bind(crypto.randomUUID(), id, userId, step.name, step.position, now)
+                .run();
+            }
+          } else if (a.action === "rename_board") {
+            await env.DB.prepare(
+              "UPDATE boards SET name = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+            )
+              .bind(a.name, Date.now(), a.boardId, userId)
+              .run();
+          } else if (a.action === "delete_board") {
+            // Take its columns and cards with it; keep at least one board so the
+            // page never becomes unusable.
+            const count = await env.DB.prepare(
+              "SELECT COUNT(*) AS n FROM boards WHERE user_id = ?",
+            )
+              .bind(userId)
+              .first();
+            if (Number(count?.n ?? 0) <= 1) {
+              return Response.json(
+                { ok: false, error: "Keep at least one board." },
+                { status: 400 },
+              );
+            }
+            const lists = ((await env.DB.prepare(
+              "SELECT id FROM board_lists WHERE board_id = ? AND user_id = ?",
+            )
+              .bind(a.boardId, userId)
+              .all()).results ?? []) as Row[];
+            for (const l of lists) {
+              await env.DB.prepare("DELETE FROM cards WHERE list_id = ? AND user_id = ?")
+                .bind(l.id, userId)
+                .run();
+            }
+            await env.DB.prepare(
+              "DELETE FROM board_lists WHERE board_id = ? AND user_id = ?",
+            )
+              .bind(a.boardId, userId)
+              .run();
+            await env.DB.prepare("DELETE FROM boards WHERE id = ? AND user_id = ?")
+              .bind(a.boardId, userId)
+              .run();
+          } else if (a.action === "create_list") {
+            const board = await loadBoard(env, userId, a.boardId ?? null);
             const max = await env.DB.prepare(
               "SELECT COALESCE(MAX(position), 0) AS max FROM board_lists WHERE user_id = ? AND board_id = ?",
             )
@@ -412,7 +490,10 @@ export const Route = createFileRoute("/api/board")({
           );
         }
 
-        return Response.json({ ok: true, ...(await loadBoard(env, userId)) });
+        return Response.json({
+          ok: true,
+          ...(await loadBoard(env, userId, requestedBoard)),
+        });
       },
     },
   },

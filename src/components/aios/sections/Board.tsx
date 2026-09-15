@@ -9,6 +9,7 @@ import {
   Check,
   GripVertical,
   Loader2,
+  Pencil,
   Plus,
   Trash2,
   X,
@@ -47,9 +48,12 @@ type ListRow = {
 
 type BoardData = {
   board: { id: string; name: string };
+  boards: { id: string; name: string }[];
   labels: string[];
   lists: ListRow[];
 };
+
+const BOARD_KEY = "aios.boardId";
 
 export function BoardScreen() {
   const [data, setData] = useState<BoardData | null>(null);
@@ -60,6 +64,12 @@ export function BoardScreen() {
   const [overList, setOverList] = useState<string | null>(null);
   const [overCardId, setOverCardId] = useState<string | null>(null);
   const [addingList, setAddingList] = useState(false);
+  // Which board is open. Kept locally so a reload stays on the same board.
+  const [boardId, setBoardId] = useState<string | null>(
+    typeof localStorage === "undefined" ? null : localStorage.getItem(BOARD_KEY),
+  );
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameDraft, setRenameDraft] = useState("");
   const [newList, setNewList] = useState("");
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [openId, setOpenId] = useState<string | null>(null);
@@ -77,13 +87,17 @@ export function BoardScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      apply(await apiGet<any>("/api/board"));
+      apply(
+        await apiGet<any>(
+          `/api/board${boardId ? `?boardId=${encodeURIComponent(boardId)}` : ""}`,
+        ),
+      );
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [apply]);
+  }, [apply, boardId]);
 
   useEffect(() => {
     void load();
@@ -108,7 +122,12 @@ export function BoardScreen() {
   const act = async (payload: Record<string, unknown>) => {
     setBusy(true);
     try {
-      apply(await apiPost<any>("/api/board", payload));
+      apply(
+        await apiPost<any>(
+          `/api/board${boardId ? `?boardId=${encodeURIComponent(boardId)}` : ""}`,
+          payload,
+        ),
+      );
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -173,13 +192,64 @@ export function BoardScreen() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-fg">
-            {data?.board.name ?? "Board"}
-          </h1>
+        <div className="min-w-0">
+          {renameOpen ? (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                value={renameDraft}
+                onChange={(e) => setRenameDraft(e.target.value)}
+                className="h-9 rounded-md border border-line bg-surface px-2.5 text-sm text-fg outline-none focus:border-lime"
+              />
+              <PrimaryBtn
+                onClick={() => {
+                  const name = renameDraft.trim();
+                  if (name && data) void act({ action: "rename_board", boardId: data.board.id, name });
+                  setRenameOpen(false);
+                }}
+              >
+                Save
+              </PrimaryBtn>
+              <OutlineBtn onClick={() => setRenameOpen(false)}>Cancel</OutlineBtn>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-xl font-semibold text-fg">
+                {data?.board.name ?? "Board"}
+              </h1>
+              <button
+                aria-label="Rename board"
+                onClick={() => {
+                  setRenameDraft(data?.board.name ?? "");
+                  setRenameOpen(true);
+                }}
+                className="text-mute hover:text-lime"
+              >
+                <Pencil size={13} />
+              </button>
+              <button
+                aria-label="Delete board"
+                onClick={() => {
+                  if (!data) return;
+                  if (!confirm(`Delete the board “${data.board.name}” and all its cards?`)) return;
+                  void act({ action: "delete_board", boardId: data.board.id }).then(() => {
+                    // fall back to whatever board remains
+                    const next = data.boards.find((b) => b.id !== data.board.id);
+                    if (next) {
+                      setBoardId(next.id);
+                      if (typeof localStorage !== "undefined") localStorage.setItem(BOARD_KEY, next.id);
+                    }
+                  });
+                }}
+                className="text-mute hover:text-err"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          )}
           <p className="mt-1 text-sm text-mute">
-            Drag a card between columns · click a card to edit it · positions are saved
-            as you drop.
+            Drag a card between columns · click a card to edit it · drag a file onto a
+            card to attach it.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -193,6 +263,34 @@ export function BoardScreen() {
           <div className="text-[12px] text-err">{error}</div>
         </Card>
       )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {(data?.boards ?? []).map((b) => (
+          <button
+            key={b.id}
+            onClick={() => {
+              setBoardId(b.id);
+              if (typeof localStorage !== "undefined") localStorage.setItem(BOARD_KEY, b.id);
+            }}
+            className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${
+              data?.board.id === b.id
+                ? "border-lime bg-lime/15 text-lime"
+                : "border-line text-fg2 hover:border-lime"
+            }`}
+          >
+            {b.name}
+          </button>
+        ))}
+        <button
+          onClick={() => {
+            const name = prompt("New board name");
+            if (name && name.trim()) void act({ action: "create_board", name: name.trim() });
+          }}
+          className="rounded-full border border-dashed border-line px-3 py-1 text-[12px] text-mute hover:border-lime hover:text-lime"
+        >
+          <Plus size={12} className="mr-1 inline" /> New board
+        </button>
+      </div>
 
       <div
         // A file dropped anywhere on the board must never navigate the browser to

@@ -498,23 +498,32 @@ export async function disconnectChannel(env: any, userId: string, id: string): P
   }
 }
 
+/**
+ * Bookkeeping for a channel.
+ *
+ * Every bound value is a real value: D1 throws on `undefined` ("Type 'undefined'
+ * not supported"), and because the whole call sits in a catch, the update would
+ * have failed silently — which is exactly how `last_event_at` would have stopped
+ * being recorded without anybody noticing.
+ */
 export async function markChannel(
   env: any,
   id: string,
   patch: { status?: string; error?: string | null; lastEventAt?: number },
 ): Promise<void> {
+  const touchesError = patch.error !== undefined;
   try {
     await env.DB.prepare(
       `UPDATE channels SET
          status = COALESCE(?, status),
-         last_error = CASE WHEN ? IS NULL THEN last_error ELSE ? END,
+         last_error = CASE WHEN ? = 1 THEN ? ELSE last_error END,
          last_event_at = COALESCE(?, last_event_at),
          updated_at = ?
        WHERE id = ?`,
     )
       .bind(
         patch.status ?? null,
-        patch.error === undefined ? undefined : (patch.error ?? ""),
+        touchesError ? 1 : 0,
         patch.error ?? null,
         patch.lastEventAt ?? null,
         Date.now(),

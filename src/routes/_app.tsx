@@ -10,6 +10,8 @@ import { TopNav } from "@/components/aios/TopNav";
 import { PipelineProvider } from "@/components/aios/pipeline";
 import { TITLE_BY_PATH, groupForPath } from "@/lib/nav";
 import { hydrateAppearance, loadAppearance } from "@/lib/appearance";
+import { useSidebarOpen } from "@/lib/sidebar";
+import { ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -18,8 +20,21 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const path = pathname.replace(/(.)\/$/, "$1");
   const title = TITLE_BY_PATH[path] ?? "Dashboard";
+
+  // Ctrl/⌘+B is what every editor uses for this, so it costs nothing to support.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        setSidebarOpen(!sidebarOpen);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sidebarOpen, setSidebarOpen]);
 
   // Apply the stored appearance before the shell paints: the localStorage
   // mirror first (no dark flash), then the account copy.
@@ -33,7 +48,26 @@ function AppLayout() {
       <div className="min-h-screen overflow-x-hidden bg-app text-fg">
         <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
         <TopNav title={title} onMenu={() => setMenuOpen(true)} />
-        <main className="min-h-screen pt-[57px] lg:ml-[200px]">
+
+        {/* The way back once the sidebar is hidden — a thin tab on the left edge,
+            so the whole menu comes back without hunting for a button. */}
+        {!sidebarOpen && (
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Show the sidebar"
+            title="Show the sidebar (Ctrl+B)"
+            className="fixed left-0 top-1/2 z-40 hidden h-14 w-5 -translate-y-1/2 items-center justify-center rounded-r-md border border-l-0 border-line bg-cardx text-mute shadow-[0_4px_14px_rgba(0,0,0,0.35)] transition-colors hover:border-lime hover:text-lime lg:flex"
+          >
+            <ChevronRight size={15} aria-hidden="true" />
+          </button>
+        )}
+
+        <main
+          className={`min-h-screen pt-[57px] ${
+            sidebarOpen ? "lg:ml-[200px]" : "lg:ml-0"
+          }`}
+        >
           <SiblingTabs path={path} />
           <div className="p-4 sm:p-6">
             <Outlet />

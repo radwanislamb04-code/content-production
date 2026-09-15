@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { getAppearance } from "@/lib/appearance";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronLeft } from "lucide-react";
 import { NAV_GROUPS, TOP_LINKS, BOTTOM_LINKS, type NavEntry } from "@/lib/nav";
+import { useSidebarOpen } from "@/lib/sidebar";
 
 export type { SectionId } from "@/lib/nav";
 
@@ -36,6 +37,8 @@ export function Sidebar({
   onClose?: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Desktop: pinned (remembered per browser) or hidden. Mobile: the drawer.
+  const [pinned, setPinned] = useSidebarOpen();
   const [groups, setGroups] = useState<Record<string, boolean>>(
     defaultOpenState,
   );
@@ -76,11 +79,27 @@ export function Sidebar({
           aria-hidden="true"
         />
       )}
+      {/* Mobile is the drawer (`open`), desktop is the pin (`pinned`) — the `lg:`
+          classes override the mobile-first value so the two never fight. Writing
+          `open || pinned` here slid the drawer open on a phone, where `pinned`
+          defaults to true. */}
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-[80vw] max-w-[240px] flex-col border-r border-line bg-app2 pb-4 transition-transform duration-200 lg:w-[200px] lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-[80vw] max-w-[240px] flex-col border-r border-line bg-app2 pb-4 transition-transform duration-200 lg:w-[200px] ${
           open ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${pinned ? "lg:translate-x-0" : "lg:-translate-x-full"}`}
       >
+        {/* The collapse handle rides the sidebar's own edge — exactly where the
+            cursor already is when you reach for the menu. */}
+        <button
+          type="button"
+          onClick={() => setPinned(false)}
+          aria-label="Hide the sidebar"
+          title="Hide the sidebar"
+          className="absolute -right-3 top-1/2 z-10 hidden h-12 w-6 -translate-y-1/2 items-center justify-center rounded-md border border-line bg-cardx text-mute shadow-[0_4px_14px_rgba(0,0,0,0.35)] transition-colors hover:border-lime hover:text-lime lg:flex"
+        >
+          <ChevronLeft size={15} aria-hidden="true" />
+        </button>
+
         {/* TOP — logo + 3 TOP_LINKS. Fixed, never compresses. */}
       <div className="shrink-0 px-3">
         <Link

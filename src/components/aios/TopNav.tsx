@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { toggleSidebar, useSidebarOpen } from "@/lib/sidebar";
 import { ProfileMenu } from "./ProfileMenu";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -56,6 +57,8 @@ export function TopNav({
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
   const navigate = useNavigate();
+  // The header sits to the right of the sidebar, so it has to move with it.
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
 
   // One event source, two places: the same `activity` rows that feed Telegram
   // delivery also feed this bell.
@@ -108,7 +111,11 @@ export function TopNav({
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-20 border-b border-line bg-header backdrop-blur-md lg:left-[200px]">
+      <header
+        className={`fixed left-0 right-0 top-0 z-20 border-b border-line bg-header backdrop-blur-md ${
+          sidebarOpen ? "lg:left-[200px]" : "lg:left-0"
+        }`}
+      >
         <div className="grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:grid-cols-[180px_minmax(0,1fr)_180px] sm:gap-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <button
@@ -415,6 +422,14 @@ const ACTIONS: PaletteAction[] = [
         toast.error(`Export failed: ${err?.message ?? err}`);
       }
     },
+  },
+  {
+    id: "toggle-sidebar",
+    title: "Hide / show the sidebar",
+    hint: "Ctrl+B — more room for the content",
+    keywords: "sidebar hide show collapse expand menu panel toggle",
+    Icon: Menu,
+    run: () => toggleSidebar(),
   },
   {
     id: "open-board",

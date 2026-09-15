@@ -6,6 +6,7 @@ import { apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { Idea } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";
+import { useSidebarOpen } from "@/lib/sidebar";
 
 const SOURCES = [
   { id: "my_posts", label: "My Posts", hint: "Ideas derived from your best performing posts." },
@@ -26,6 +27,9 @@ type MyPost = {
 
 export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
   const { ideas, setIdeas, selectedIdea, setSelectedIdea } = usePipeline();
+  // The selection bar is fixed to the bottom of the viewport, so it has to follow
+  // the sidebar exactly like the header does.
+  const [sidebarOpen] = useSidebarOpen();
   const [source, setSource] = useState<Source>("my_posts");
   const [entries, setEntries] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
@@ -332,7 +336,11 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
       )}
 
       {selectedIdea && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-lime bg-surface px-4 py-3 backdrop-blur sm:px-6 lg:left-[200px]">
+        <div
+          className={`fixed bottom-0 left-0 right-0 z-20 border-t border-lime bg-surface px-4 py-3 backdrop-blur sm:px-6 ${
+            sidebarOpen ? "lg:left-[200px]" : "lg:left-0"
+          }`}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0 text-sm text-fg">
               <span className="text-mute">Selected:</span>{" "}

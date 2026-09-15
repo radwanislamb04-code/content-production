@@ -5,7 +5,14 @@
  * AI routes and the Settings test all write here, and the UI reads it back:
  * AutoPilot's log panel and the TopNav notification feed both come from this
  * one table, so nothing has to invent its own history.
+ *
+ * Every line carries the user it belongs to. Writes default to the owner because
+ * a log line describing the owner's own cron run is still the owner's; routes
+ * that act for a signed-in user pass theirs explicitly.
  */
+
+import { getEnv } from "./settings";
+import { OWNER_ID, currentUserId } from "./users";
 
 export type ActivityRow = {
   id: string;
@@ -13,6 +20,7 @@ export type ActivityRow = {
   action: string;
   detail: string | null;
   created_at: number;
+  user_id?: string | null;
 };
 
 /**
@@ -32,6 +40,7 @@ export async function logActivity(
   module: string,
   action: string,
   detail: unknown = "",
+  userId: string = OWNER_ID,
 ): Promise<boolean> {
   const db = env?.DB;
   if (!db) {
@@ -41,10 +50,10 @@ export async function logActivity(
   }
   try {
     // NOTE: bind().run() — the positional run(a, b, c...) form fails on this
-    // runtime with "Wrong number of parameter bindings for SQL query".
+    // runtime with "Wrong number of parameters bindings for SQL query".
     await db
       .prepare(
-        "INSERT INTO activity (id, module, action, detail, created_at) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)",
       )
       .bind(
         crypto.randomUUID(),
@@ -52,6 +61,7 @@ export async function logActivity(
         String(action),
         typeof detail === "string" ? detail : JSON.stringify(detail ?? ""),
         Date.now(),
+        userId,
       )
       .run();
     lastError = null;
@@ -63,26 +73,34 @@ export async function logActivity(
   }
 }
 
-/** Newest-first log lines, optionally filtered to one module. */
+/** Newest-first log lines, optionally filtered to one module and one user. */
 export async function readActivity(
   env: any,
   limit = 50,
   module?: string | null,
+  userId?: string,
 ): Promise<ActivityRow[]> {
   const db = env?.DB;
   if (!db) return [];
   const lim = Math.min(Math.max(1, Number(limit) || 50), 200);
   try {
-    const stmt = module
-      ? db
-          .prepare(
-            "SELECT * FROM activity WHERE module = ? ORDER BY created_at DESC LIMIT ?",
-          )
-          .bind(module, lim)
-      : db
-          .prepare("SELECT * FROM activity ORDER BY created_at DESC LIMIT ?")
-          .bind(lim);
-    const { results } = await stmt.all();
+    const where: string[] = [];
+    const args: unknown[] = [];
+    if (module) {
+      where.push("module = ?");
+      args.push(module);
+    }
+    if (userId) {
+      where.push("user_id = ?");
+      args.push(userId);
+    }
+    const sql = `SELECT * FROM activity${
+      where.length ? ` WHERE ${where.join(" AND ")}` : ""
+    } ORDER BY created_at DESC LIMIT ?`;
+    const { results } = await db
+      .prepare(sql)
+      .bind(...args, lim)
+      .all();
     return (results ?? []) as ActivityRow[];
   } catch {
     return [];
@@ -93,7 +111,39 @@ export async function readActivity(
 export async function lastActivityAt(
   env: any,
   module: string,
+  userId?: string,
 ): Promise<number | null> {
-  const rows = await readActivity(env, 1, module);
+  const rows = await readActivity(env, 1, module, userId);
   return rows.length ? rows[0].created_at : null;
+}
+
+/* ------------------------------------------------------------------ *
+ * Request-shaped wrappers: a route only needs to say "the current user".
+ * ------------------------------------------------------------------ */
+
+export async function logActivityFor(
+  request: Request,
+  context: any,
+  module: string,
+  action: string,
+  detail: unknown = "",
+): Promise<boolean> {
+  const env = getEnv(request, context);
+  return logActivity(
+    env,
+    module,
+    action,
+    detail,
+    await currentUserId(request, context),
+  );
+}
+
+export async function readActivityFor(
+  request: Request,
+  context: any,
+  limit = 50,
+  module?: string | null,
+): Promise<ActivityRow[]> {
+  const env = getEnv(request, context);
+  return readActivity(env, limit, module, await currentUserId(request, context));
 }

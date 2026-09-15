@@ -1,4 +1,5 @@
 import { lastActivityError, logActivity } from "./activity";
+import { OWNER_ID } from "./users";
 import { callAi } from "./ai";
 import {
   readApifyToken,
@@ -142,7 +143,10 @@ export async function runPipeline(
 // ---------------------------------------------------------------- steps
 
 /** Fetch trends and remember them so the brief step does not refetch. */
-async function stepTrends(env: any): Promise<{ detail: string; items: number }> {
+async function stepTrends(
+  env: any,
+  userId: string = OWNER_ID,
+): Promise<{ detail: string; items: number }> {
   const [serp, yt] = await Promise.all([
     readSetting(env, SETTINGS_KEYS.serpapi),
     readSetting(env, SETTINGS_KEYS.youtube),
@@ -162,7 +166,7 @@ async function stepTrends(env: any): Promise<{ detail: string; items: number }> 
     );
   }
 
-  await putWorkspace(env, "last_trends", {
+  await putWorkspace(env, userId, "last_trends", {
     at: Date.now(),
     google: cleanGoogle,
     youtube: cleanYoutube,
@@ -247,12 +251,18 @@ async function stepScrape(env: any): Promise<{ detail: string; items: number }> 
 }
 
 /** Compose the brief with the AI and store it as workspace `brief_YYYY-MM-DD`. */
-async function stepBrief(env: any): Promise<{ key: string; detail: string }> {
+async function stepBrief(
+  env: any,
+  userId: string = OWNER_ID,
+): Promise<{ key: string; detail: string }> {
   const dateKey = dhakaDateKey();
   const key = `brief_${dateKey}`;
 
   const trends =
-    (await getWorkspace<any>(env, "last_trends")) ?? { google: [], youtube: [] };
+    (await getWorkspace<any>(env, userId, "last_trends")) ?? {
+      google: [],
+      youtube: [],
+    };
 
   let viral: any[] = [];
   let picks: any[] = [];
@@ -299,7 +309,7 @@ async function stepBrief(env: any): Promise<{ key: string; detail: string }> {
     throw new Error("The AI returned an empty brief");
   }
 
-  const saved = await putWorkspace(env, key, {
+  const saved = await putWorkspace(env, userId, key, {
     date: dateKey,
     generated_at: Date.now(),
     markdown,
@@ -317,9 +327,12 @@ async function stepBrief(env: any): Promise<{ key: string; detail: string }> {
 }
 
 /** Deliver today's brief to Telegram. */
-async function stepSend(env: any): Promise<{ detail: string; sent: number }> {
+async function stepSend(
+  env: any,
+  userId: string = OWNER_ID,
+): Promise<{ detail: string; sent: number }> {
   const dateKey = dhakaDateKey();
-  const brief = await getWorkspace<any>(env, `brief_${dateKey}`);
+  const brief = await getWorkspace<any>(env, userId, `brief_${dateKey}`);
   const text: string | undefined = brief?.markdown;
   if (!text) throw new Error(`No brief stored for ${dateKey} — run the "brief" step first`);
 

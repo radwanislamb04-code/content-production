@@ -1,3 +1,4 @@
+import { putWorkspaceFor } from "../../lib/workspace";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { callAi, extractJson } from "../../lib/ai";
@@ -87,7 +88,7 @@ export const Route = createFileRoute("/api/thumbnail-prompt")({
         };
 
         if (saveId) {
-          await putWorkspace(env, `thumb_prompt_${saveId}`, {
+          await putWorkspaceFor(request, context, `thumb_prompt_${saveId}`, {
             at: Date.now(),
             script: script.slice(0, 4000),
             style: style ?? "",

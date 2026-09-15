@@ -1,3 +1,5 @@
+import { logActivityFor } from "../../lib/activity";
+import { getWorkspaceFor, putWorkspaceFor } from "../../lib/workspace";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity";
@@ -127,7 +129,7 @@ export const Route = createFileRoute("/api/generate-plan")({
           warnings: buildWarnings(cleaned, pillars),
         };
 
-        const saved = await putWorkspace(env, `calendar_${month}`, calendar);
+        const saved = await putWorkspaceFor(request, context, `calendar_${month}`, calendar);
         if (!saved) {
           return Response.json(
             { ok: false, error: "Could not save the calendar" },
@@ -135,15 +137,16 @@ export const Route = createFileRoute("/api/generate-plan")({
           );
         }
 
-        await logActivity(
-          env,
+        await logActivityFor(
+          request,
+          context,
           "planner",
           "plan_generated",
           `calendar_${month} · ${cleaned.length} entries`,
         );
 
         // Read back so the client renders exactly what was stored.
-        const stored = await getWorkspace<any>(env, `calendar_${month}`);
+        const stored = await getWorkspaceFor<any>(request, context, `calendar_${month}`);
         return Response.json({ ok: true, calendar: stored ?? calendar });
       },
     },

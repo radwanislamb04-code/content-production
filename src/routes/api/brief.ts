@@ -1,7 +1,8 @@
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { dhakaDateKey, runPipeline } from "../../lib/pipeline";
 import { getEnv } from "../../lib/settings";
-import { getWorkspace } from "../../lib/workspace";
+import { getWorkspaceFor } from "../../lib/workspace";
 
 /** Readable one-liner for a stored brief, so the history list is not just dates. */
 const HEADINGS = [
@@ -63,16 +64,21 @@ export const Route = createFileRoute("/api/brief")({
         const wanted = url.searchParams.get("date");
         const dateKey = wanted && /^\d{4}-\d{2}-\d{2}$/.test(wanted) ? wanted : dhakaDateKey();
 
-        const brief = await getWorkspace<any>(env, `brief_${dateKey}`);
+        const brief = await getWorkspaceFor<any>(request, context, `brief_${dateKey}`);
 
         // History with a real preview — `listWorkspaceKeys` returns no values, so
         // the page could only ever show bare dates. A brief is small (~7 KB), so
         // reading the last 30 values is cheap.
         let history: { date: string; updated_at: number; preview: string }[] = [];
         try {
+          // The user id MUST be bound: adding the predicate without the argument
+          // silently returned zero history rows.
+          const uid = await currentUserId(request, context);
           const { results } = await env.DB.prepare(
-            "SELECT key, value, updated_at FROM workspace WHERE key LIKE 'brief_%' ORDER BY key DESC LIMIT 30",
-          ).all();
+            "SELECT key, value, updated_at FROM workspace WHERE user_id = ? AND key LIKE 'brief_%' ORDER BY key DESC LIMIT 30",
+          )
+            .bind(uid)
+            .all();
           history = (results ?? []).map((r: any) => ({
             date: String(r.key).replace(/^brief_/, ""),
             updated_at: Number(r.updated_at),
@@ -103,7 +109,7 @@ export const Route = createFileRoute("/api/brief")({
           );
         }
         const dateKey = dhakaDateKey();
-        const brief = await getWorkspace<any>(env, `brief_${dateKey}`);
+        const brief = await getWorkspaceFor<any>(request, context, `brief_${dateKey}`);
         return Response.json({ ok: true, date: dateKey, brief, detail: step.detail });
       },
     },

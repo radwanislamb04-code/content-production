@@ -1,3 +1,4 @@
+import { getWorkspaceFor, listWorkspaceKeysFor, putWorkspaceFor } from "../../lib/workspace";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { getEnv } from "../../lib/settings";
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/api/workspace")({
 
         const prefix = url.searchParams.get("prefix");
         if (prefix) {
-          return Response.json({ ok: true, keys: await listWorkspaceKeys(env, prefix, 60) });
+          return Response.json({ ok: true, keys: await listWorkspaceKeysFor(request, context, prefix, 60) });
         }
 
         const key = url.searchParams.get("key");
@@ -43,7 +44,7 @@ export const Route = createFileRoute("/api/workspace")({
           );
         }
 
-        const value = await getWorkspace(env, key);
+        const value = await getWorkspaceFor(request, context, key);
         return Response.json({ ok: true, key, value });
       },
 
@@ -64,7 +65,7 @@ export const Route = createFileRoute("/api/workspace")({
           );
         }
 
-        const saved = await putWorkspace(env, parsed.data.key, parsed.data.value);
+        const saved = await putWorkspaceFor(request, context, parsed.data.key, parsed.data.value);
         if (!saved) {
           return Response.json(
             { ok: false, error: "Could not write to the workspace table" },

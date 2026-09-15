@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity";
 import { getEnv } from "../../lib/settings";
-import { getWorkspace, putWorkspace } from "../../lib/workspace";
+import { getWorkspaceFor, putWorkspaceFor } from "../../lib/workspace";
 
 /**
  * /api/appearance — the Appearance preferences.
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/appearance")({
     handlers: {
       GET: async ({ request, context }) => {
         const env = getEnv(request, context);
-        const stored = await getWorkspace<Record<string, unknown>>(env, KEY);
+        const stored = await getWorkspaceFor<Record<string, unknown>>(request, context, KEY);
         const merged = { ...DEFAULTS, ...(stored ?? {}) };
         return Response.json({ ok: true, appearance: merged });
       },
@@ -61,9 +61,9 @@ export const Route = createFileRoute("/api/appearance")({
           );
         }
 
-        const stored = await getWorkspace<Record<string, unknown>>(env, KEY);
+        const stored = await getWorkspaceFor<Record<string, unknown>>(request, context, KEY);
         const merged = { ...DEFAULTS, ...(stored ?? {}), ...parsed.data };
-        const saved = await putWorkspace(env, KEY, merged);
+        const saved = await putWorkspaceFor(request, context, KEY, merged);
         if (!saved) {
           return Response.json(
             { ok: false, error: "Could not save appearance" },

@@ -83,6 +83,7 @@ import { Route as ApiVideoAnalyzerRouteImport } from './routes/api/video-analyze
 import { Route as ApiVideoGenPromptRouteImport } from './routes/api/video-gen-prompt'
 import { Route as ApiVisualStoryboardRouteImport } from './routes/api/visual-storyboard'
 import { Route as ApiWorkspaceRouteImport } from './routes/api/workspace'
+import { Route as ApiLegalPageRouteImport } from './routes/api/legal.$page'
 import { Route as ApiLibraryTypeRouteImport } from './routes/api/library.$type'
 import { Route as ApiResourcesIdRouteImport } from './routes/api/resources.$id'
 import { Route as ApiWorkspaceSelected_ideaRouteImport } from './routes/api/workspace.selected_idea'
@@ -457,6 +458,11 @@ const ApiWorkspaceRoute = ApiWorkspaceRouteImport.update({
   path: '/api/workspace',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLegalPageRoute = ApiLegalPageRouteImport.update({
+  id: '/api/legal/$page',
+  path: '/api/legal/$page',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLibraryTypeRoute = ApiLibraryTypeRouteImport.update({
   id: '/api/library/$type',
   path: '/api/library/$type',
@@ -553,6 +559,7 @@ export interface FileRoutesByFullPath {
   '/api/video-gen-prompt': typeof ApiVideoGenPromptRoute
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/workspace': typeof ApiWorkspaceRouteWithChildren
+  '/api/legal/$page': typeof ApiLegalPageRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/resources/$id': typeof ApiResourcesIdRoute
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -632,6 +639,7 @@ export interface FileRoutesByTo {
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/workspace': typeof ApiWorkspaceRouteWithChildren
   '/': typeof AppIndexRoute
+  '/api/legal/$page': typeof ApiLegalPageRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/resources/$id': typeof ApiResourcesIdRoute
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -713,6 +721,7 @@ export interface FileRoutesById {
   '/api/visual-storyboard': typeof ApiVisualStoryboardRoute
   '/api/workspace': typeof ApiWorkspaceRouteWithChildren
   '/_app/': typeof AppIndexRoute
+  '/api/legal/$page': typeof ApiLegalPageRoute
   '/api/library/$type': typeof ApiLibraryTypeRouteWithChildren
   '/api/resources/$id': typeof ApiResourcesIdRoute
   '/api/workspace/selected_idea': typeof ApiWorkspaceSelected_ideaRoute
@@ -794,6 +803,7 @@ export interface FileRouteTypes {
     | '/api/video-gen-prompt'
     | '/api/visual-storyboard'
     | '/api/workspace'
+    | '/api/legal/$page'
     | '/api/library/$type'
     | '/api/resources/$id'
     | '/api/workspace/selected_idea'
@@ -873,6 +883,7 @@ export interface FileRouteTypes {
     | '/api/visual-storyboard'
     | '/api/workspace'
     | '/'
+    | '/api/legal/$page'
     | '/api/library/$type'
     | '/api/resources/$id'
     | '/api/workspace/selected_idea'
@@ -953,6 +964,7 @@ export interface FileRouteTypes {
     | '/api/visual-storyboard'
     | '/api/workspace'
     | '/_app/'
+    | '/api/legal/$page'
     | '/api/library/$type'
     | '/api/resources/$id'
     | '/api/workspace/selected_idea'
@@ -1010,6 +1022,7 @@ export interface RootRouteChildren {
   ApiVideoGenPromptRoute: typeof ApiVideoGenPromptRoute
   ApiVisualStoryboardRoute: typeof ApiVisualStoryboardRoute
   ApiWorkspaceRoute: typeof ApiWorkspaceRouteWithChildren
+  ApiLegalPageRoute: typeof ApiLegalPageRoute
   ApiLibraryTypeRoute: typeof ApiLibraryTypeRouteWithChildren
 }
 
@@ -1533,6 +1546,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWorkspaceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/legal/$page': {
+      id: '/api/legal/$page'
+      path: '/api/legal/$page'
+      fullPath: '/api/legal/$page'
+      preLoaderRoute: typeof ApiLegalPageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/library/$type': {
       id: '/api/library/$type'
       path: '/api/library/$type'
@@ -1707,6 +1727,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVideoGenPromptRoute: ApiVideoGenPromptRoute,
   ApiVisualStoryboardRoute: ApiVisualStoryboardRoute,
   ApiWorkspaceRoute: ApiWorkspaceRouteWithChildren,
+  ApiLegalPageRoute: ApiLegalPageRoute,
   ApiLibraryTypeRoute: ApiLibraryTypeRouteWithChildren,
 }
 export const routeTree = rootRouteImport

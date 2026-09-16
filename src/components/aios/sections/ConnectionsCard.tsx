@@ -357,6 +357,45 @@ export function ConnectionsCard() {
                 checks use your app secret, so Instagram's events are verified here
                 before anything is answered.
               </div>
+
+              {/* Meta asks for these before an app can leave Development mode, and
+                  the Data Deletion callback is mandatory. They are already served by
+                  this Worker, so nothing has to be invented or borrowed. */}
+              {typeof window !== "undefined" && (
+                <div className="space-y-1 border-t border-line pt-2">
+                  <div className="text-[11px] uppercase tracking-wide text-mute">
+                    For App settings → Basic
+                  </div>
+                  {(
+                    [
+                      ["Privacy policy URL", `${window.location.origin}/api/legal/privacy`],
+                      ["Terms of service URL", `${window.location.origin}/api/legal/terms`],
+                      [
+                        "Data deletion callback",
+                        `${window.location.origin}/api/legal/data-deletion`,
+                      ],
+                    ] as const
+                  ).map(([label, url]) => (
+                    <div key={label} className="flex items-center gap-2">
+                      <span className="w-36 shrink-0 text-[11px] text-mute">{label}</span>
+                      <input
+                        readOnly
+                        value={url}
+                        onFocus={(e) => e.currentTarget.select()}
+                        className="min-w-0 flex-1 truncate rounded-md border border-line bg-card px-2 py-1 font-mono text-[10px] text-fg2"
+                      />
+                      <OutlineBtn onClick={() => copy(url, label)}>
+                        <Copy size={12} />
+                      </OutlineBtn>
+                    </div>
+                  ))}
+                  <div className="text-[11px] text-mute">
+                    Also click <em>Deauthorize callback</em> and paste the same data-deletion
+                    URL there — Meta requires both fields and only the first is on the Basic
+                    screen.
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

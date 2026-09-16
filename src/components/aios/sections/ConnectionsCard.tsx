@@ -72,6 +72,7 @@ export function ConnectionsCard() {
   const [appId, setAppId] = useState("");
   const [appSecret, setAppSecret] = useState("");
   const [verifyToken, setVerifyToken] = useState("");
+  const [pastedToken, setPastedToken] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -139,6 +140,28 @@ export function ConnectionsCard() {
       setShowAppForm(false);
     } catch (err: any) {
       setError(err?.message ?? "Could not save the credentials.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveToken = async () => {
+    setBusy("token");
+    setError(null);
+    setNote(null);
+    try {
+      const json = await post({ action: "token", token: pastedToken.trim() });
+      setNote(
+        `Connected @${json.account?.username ?? "?"}${
+          json.subscriptions?.fixed
+            ? ` · ${json.subscriptions.fixed} webhook subscription repaired`
+            : ""
+        }.`,
+      );
+      setPastedToken("");
+      await load();
+    } catch (err: any) {
+      setError(err?.message ?? "Instagram refused that token.");
     } finally {
       setBusy(null);
     }
@@ -397,6 +420,47 @@ export function ConnectionsCard() {
                 </div>
               )}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* The fast lane: a token generated in Meta's own dashboard works exactly like
+          one from the login flow, and means the account is live before the OAuth
+          pieces are finished. Shown only when nothing is connected yet. */}
+      {status?.app?.ready && !status.channels.length && (
+        <div className="space-y-2 rounded-md border border-line bg-surface p-3">
+          <div className="text-[12px] text-fg2">
+            <span className="text-fg">Fastest route for your own account:</span> in the App
+            Dashboard go to <span className="text-fg">Instagram → API setup with Instagram
+            business login</span> and press{" "}
+            <span className="text-fg">Generate token</span> next to your account. Paste it
+            here — it lasts 60 days and the cron keeps it alive from then on.
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              value={pastedToken}
+              onChange={(e) => setPastedToken(e.target.value)}
+              placeholder="IGQVJ… (the access token)"
+              type="password"
+              className={inputClass}
+            />
+            <PrimaryBtn
+              onClick={saveToken}
+              loading={busy === "token"}
+              disabled={!pastedToken.trim()}
+            >
+              Save token
+            </PrimaryBtn>
+          </div>
+          {typeof window !== "undefined" && (
+            <a
+              href="https://developers.facebook.com/apps/"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] text-lime hover:underline"
+            >
+              Open developers.facebook.com/apps <ExternalLink size={11} />
+            </a>
           )}
         </div>
       )}

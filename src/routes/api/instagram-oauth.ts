@@ -209,6 +209,66 @@ export const Route = createFileRoute("/api/instagram-oauth")({
           return Response.json({ ok: true, url: authUrl(creds, origin, state) });
         }
 
+        /**
+         * The App Dashboard route to a working connection, without the OAuth round
+         * trip: Meta lets you generate a long-lived (60-day) token for an account you
+         * manage, right there in the dashboard. Pasting it here stores it exactly like
+         * a business-login token — encrypted, refreshed by the cron, revocable — so
+         * the owner can be live today and add the full login flow later.
+         */
+        if (action === "token") {
+          const raw = String(body?.token ?? "").trim();
+          if (!raw) {
+            return Response.json(
+              { ok: false, error: "Paste the access token from the App Dashboard." },
+              { status: 400 },
+            );
+          }
+          const me = await fetchMe(raw);
+          if (!me.ok || !me.igUserId) {
+            return Response.json(
+              {
+                ok: false,
+                error:
+                  me.error ??
+                  "Instagram refused that token — copy it again from Instagram → API setup with Instagram business login.",
+              },
+              { status: 400 },
+            );
+          }
+          const stored = await saveChannel(env, userId, {
+            igUserId: me.igUserId,
+            username: me.username ?? null,
+            accountType: me.accountType ?? null,
+            token: raw,
+            // Dashboard tokens are the long-lived kind; the cron refreshes from here.
+            expiresIn: 5_184_000,
+            scopes: IG_SCOPES,
+          });
+          if (!stored.ok) {
+            return Response.json(
+              { ok: false, error: stored.error ?? "Could not store the token." },
+              { status: 500 },
+            );
+          }
+          // Try the webhook subscription straight away, so a problem with it shows up
+          // here rather than as silence later.
+          const subscriptions = await ensureSubscriptions(env);
+          await logActivity(
+            env,
+            "instagram",
+            "token_saved",
+            `@${me.username ?? me.igUserId}`,
+            userId,
+          );
+          return Response.json({
+            ok: true,
+            account: { username: me.username, id: me.igUserId, type: me.accountType },
+            subscriptions,
+            channels: await listChannels(env, userId),
+          });
+        }
+
         if (action === "disconnect") {
           const id = String(body?.id ?? "");
           const channel = await getChannel(env, userId, id || undefined);

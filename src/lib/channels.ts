@@ -252,6 +252,7 @@ type Exchange = {
   token?: string;
   expiresIn?: number;
   igUserId?: string;
+  permissions?: string;
   error?: string;
 };
 
@@ -275,17 +276,27 @@ export async function exchangeCode(
       body,
     });
     const json: any = await res.json().catch(() => null);
-    if (!res.ok || !json?.access_token) {
+    // Meta answers THIS endpoint with `{ data: [ { access_token, user_id, permissions } ] }`
+    // (verified against Meta's "Business Login for Instagram" docs, Mar 2026). Some
+    // older samples show a flat object, and this one call cannot be rehearsed
+    // locally — so accept both shapes rather than break on the day it matters.
+    const row = Array.isArray(json?.data) ? json.data[0] : json;
+    if (!res.ok || !row?.access_token) {
       return {
         ok: false,
-        error: json?.error_message ?? json?.error?.message ?? `HTTP ${res.status}`,
+        error:
+          json?.error_message ??
+          json?.error?.message ??
+          (typeof json?.error === "string" ? json.error : null) ??
+          `HTTP ${res.status}`,
       };
     }
     return {
       ok: true,
-      token: json.access_token,
-      expiresIn: Number(json.expires_in ?? 3600),
-      igUserId: json.user_id ? String(json.user_id) : undefined,
+      token: row.access_token,
+      expiresIn: Number(row.expires_in ?? 3600),
+      igUserId: row.user_id ? String(row.user_id) : undefined,
+      permissions: typeof row.permissions === "string" ? row.permissions : undefined,
     };
   } catch (err: any) {
     return { ok: false, error: err?.message ?? String(err) };

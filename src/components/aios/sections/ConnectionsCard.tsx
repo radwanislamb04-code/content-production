@@ -222,16 +222,28 @@ export function ConnectionsCard() {
       {/* Meta app credentials — the real prerequisite, not a disabled button. */}
       {!status?.app?.ready || showAppForm ? (
         <div className="space-y-3 rounded-md border border-line bg-surface p-3">
-          <div className="text-[12px] text-fg2">
-            Paste your Meta app credentials (developers.facebook.com → your app →
-            Instagram → <em>Instagram business login</em>). They are stored in your own
-            Cloudflare KV and used to sign the connection and to encrypt each token —
-            they never appear in a log or in the code.
+          <div className="space-y-1 text-[12px] text-fg2">
+            <div>
+              Where to find them:{" "}
+              <span className="text-fg">
+                App Dashboard → Instagram → API setup with Instagram login → 3. Set up
+                Instagram business login → Business login settings
+              </span>
+              . Those are the <span className="text-fg">Instagram</span> app ID and secret
+              — not the pair under App settings → Basic, which this API does not use.
+            </div>
+            <div className="text-mute">
+              On the same screen, paste the redirect URI shown below into{" "}
+              <em>OAuth redirect URIs</em>. For Standard Access (no review needed) also add
+              your own Instagram account to the app. Credentials live in your own
+              Cloudflare KV and are used to sign the connection and to encrypt each token
+              — they never appear in a log or in the code.
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="block space-y-1">
               <span className="block text-[11px] uppercase tracking-wide text-mute">
-                App ID
+                Instagram App ID
               </span>
               <input
                 value={appId}
@@ -242,7 +254,7 @@ export function ConnectionsCard() {
             </label>
             <label className="block space-y-1">
               <span className="block text-[11px] uppercase tracking-wide text-mute">
-                App Secret
+                Instagram App Secret
               </span>
               <input
                 value={appSecret}

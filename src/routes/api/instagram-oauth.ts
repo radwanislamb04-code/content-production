@@ -103,7 +103,8 @@ export const Route = createFileRoute("/api/instagram-oauth")({
             accountType: me.accountType ?? null,
             token: long.token,
             expiresIn: long.expiresIn ?? 5_184_000,
-            scopes: IG_SCOPES,
+            // Store what Instagram actually granted, not what we asked for.
+            scopes: short.permissions ? short.permissions.split(",") : IG_SCOPES,
           });
           if (!stored.ok) {
             return back(`connect_error=${encodeURIComponent(stored.error ?? "Could not store it.")}`);

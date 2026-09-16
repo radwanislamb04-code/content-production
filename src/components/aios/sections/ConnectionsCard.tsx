@@ -245,6 +245,28 @@ export function ConnectionsCard() {
       {/* Meta app credentials — the real prerequisite, not a disabled button. */}
       {!status?.app?.ready || showAppForm ? (
         <div className="space-y-3 rounded-md border border-line bg-surface p-3">
+          {/* Three different jobs live in this box, and they are needed at different
+              times. Saying so beats making someone guess which half to read. */}
+          <div className="space-y-1.5 rounded-md border border-line bg-card p-2.5 text-[12px] text-fg2">
+            <div className="font-semibold text-fg">What is in this box?</div>
+            <ol className="list-decimal space-y-1 pl-5">
+              <li>
+                <span className="text-fg">App credentials</span> — a one-time pair that
+                tells Meta which app is asking. Fill these two fields first.
+              </li>
+              <li>
+                <span className="text-fg">“Fastest route”</span>, further down — paste a
+                token that Meta's dashboard generates and your account is connected.
+                <span className="text-fg"> That alone is enough for today.</span>
+              </li>
+              <li>
+                <span className="text-fg">The URLs at the bottom</span> — only needed when
+                you later offer the full “Connect Instagram” button to other people.
+                Ignore them for now.
+              </li>
+            </ol>
+          </div>
+
           <div className="space-y-1 text-[12px] text-fg2">
             <div>
               Where to find them:{" "}

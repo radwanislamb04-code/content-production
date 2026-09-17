@@ -7,6 +7,8 @@ import {
   attachTag,
   cancelPendingRun,
   deleteAutomation,
+  deleteTag,
+  detachTag,
   dmAnalytics,
   drainDueRuns,
   getAutomation,
@@ -279,11 +281,39 @@ export const Route = createFileRoute("/api/dm")({
           const contactId = String(body?.contact_id ?? "");
           const name = String(body?.name ?? "").trim();
           if (!contactId || !name) {
-            return Response.json({ ok: false, error: "Pass contact_id and name." }, { status: 400 });
+            return Response.json(
+              { ok: false, error: "Pass contact_id and name." },
+              { status: 400 },
+            );
           }
           const tagId = await attachTag(env, userId, contactId, name);
           await logActivity(env, "dm", "tag_added", name, userId);
           return Response.json({ ok: !!tagId, tags: await listTags(env, userId) });
+        }
+
+        if (action === "untag") {
+          const contactId = String(body?.contact_id ?? "");
+          const name = String(body?.name ?? "").trim();
+          if (!contactId || !name) {
+            return Response.json(
+              { ok: false, error: "Pass contact_id and name." },
+              { status: 400 },
+            );
+          }
+          const ok = await detachTag(env, userId, contactId, name);
+          await logActivity(env, "dm", "tag_removed", name, userId);
+          return Response.json({ ok, tags: await listTags(env, userId) });
+        }
+
+        /** Removing a tag is a delete, not a rename: it disappears from everyone. */
+        if (action === "delete-tag") {
+          const tagId = String(body?.tag_id ?? "");
+          if (!tagId) {
+            return Response.json({ ok: false, error: "Pass tag_id." }, { status: 400 });
+          }
+          const ok = await deleteTag(env, userId, tagId);
+          await logActivity(env, "dm", "tag_deleted", tagId, userId);
+          return Response.json({ ok, tags: await listTags(env, userId) });
         }
 
         if (action === "field") {
@@ -322,7 +352,7 @@ export const Route = createFileRoute("/api/dm")({
           {
             ok: false,
             error:
-              "Unknown action. Use save, toggle, delete, simulate, pause, resume, tag, field, drain or cancel-run.",
+              "Unknown action. Use save, toggle, delete, simulate, pause, resume, tag, untag, delete-tag, field, drain or cancel-run.",
           },
           { status: 400 },
         );

@@ -1562,6 +1562,50 @@ export async function attachTag(
   }
 }
 
+/** Take one tag off one contact. The tag itself stays — other people may carry it. */
+export async function detachTag(
+  env: any,
+  userId: string,
+  contactId: string,
+  name: string,
+): Promise<boolean> {
+  const clean = name.trim();
+  if (!clean) return false;
+  try {
+    const res = await env.DB.prepare(
+      `DELETE FROM dm_contact_tags
+        WHERE contact_id = ?
+          AND tag_id IN (SELECT id FROM dm_tags WHERE user_id = ? AND lower(name) = lower(?))`,
+    )
+      .bind(contactId, userId, clean)
+      .run();
+    return Number(res?.meta?.changes ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Delete a tag for good — from the tag list, and from everyone who carried it.
+ * Scoped to the user who owns it, so one person's tag list can never empty another's.
+ */
+export async function deleteTag(env: any, userId: string, tagId: string): Promise<boolean> {
+  if (!tagId) return false;
+  try {
+    const owned = await env.DB.prepare("SELECT id FROM dm_tags WHERE id = ? AND user_id = ?")
+      .bind(tagId, userId)
+      .first();
+    if (!owned?.id) return false;
+    await env.DB.prepare("DELETE FROM dm_contact_tags WHERE tag_id = ?").bind(tagId).run();
+    const res = await env.DB.prepare("DELETE FROM dm_tags WHERE id = ? AND user_id = ?")
+      .bind(tagId, userId)
+      .run();
+    return Number(res?.meta?.changes ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function setContactField(
   env: any,
   userId: string,
@@ -1975,7 +2019,56 @@ export async function listContacts(env: any, userId: string, limit = 100) {
     )
       .bind(userId, limit)
       .all();
-    return (results ?? []) as any[];
+    const contacts = (results ?? []) as any[];
+    if (!contacts.length) return contacts;
+
+    // Tags and custom fields are what a flow writes, so this list has to be able to
+    // show them — otherwise `plan=pro` is a promise with nowhere to look.
+    //
+    // Two plain queries rather than one JSON aggregate on purpose: a `json_group_array`
+    // that quietly came back empty on an older SQLite would look exactly like "this
+    // person has no tags". If the enrichment fails, the contacts still show.
+    let tagRows: any[] = [];
+    let fieldRows: any[] = [];
+    try {
+      const [tagRes, fieldRes] = await env.DB.batch([
+        env.DB.prepare(
+          `SELECT ct.contact_id, t.name FROM dm_contact_tags ct
+             JOIN dm_tags t ON t.id = ct.tag_id
+             JOIN dm_contacts c ON c.id = ct.contact_id
+            WHERE c.user_id = ?`,
+        ).bind(userId),
+        env.DB.prepare(
+          `SELECT f.contact_id, f.key, f.value FROM dm_contact_fields f
+             JOIN dm_contacts c ON c.id = f.contact_id
+            WHERE c.user_id = ?`,
+        ).bind(userId),
+      ]);
+      tagRows = (tagRes?.results ?? []) as any[];
+      fieldRows = (fieldRes?.results ?? []) as any[];
+    } catch {
+      /* contacts still render; only the chips are missing */
+    }
+
+    const tagsBy = new Map<string, string[]>();
+    for (const row of tagRows) {
+      const id = String(row.contact_id);
+      tagsBy.set(id, [...(tagsBy.get(id) ?? []), String(row.name)]);
+    }
+    const fieldsBy = new Map<string, Record<string, string>>();
+    for (const row of fieldRows) {
+      const id = String(row.contact_id);
+      fieldsBy.set(id, {
+        ...(fieldsBy.get(id) ?? {}),
+        [String(row.key)]: String(row.value ?? ""),
+      });
+    }
+
+    return contacts.map((c) => ({
+      ...c,
+      tags: tagsBy.get(String(c.id)) ?? [],
+      fields: fieldsBy.get(String(c.id)) ?? {},
+    }));
   } catch {
     return [];
   }

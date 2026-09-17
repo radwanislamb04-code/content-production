@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, EmptyState, OutlineBtn, PrimaryBtn } from "../ui";
+import { Badge, Card, EmptyState, GhostBtn, OutlineBtn, PrimaryBtn } from "../ui";
 import { ConnectionsCard } from "./ConnectionsCard";
 import {
   AlertTriangle,
+  Ban,
   BarChart2,
   Check,
   Clock,
@@ -14,6 +15,8 @@ import {
   Plus,
   Power,
   RefreshCw,
+  Tag,
+  Timer,
   Trash2,
   Users,
   X,
@@ -107,7 +110,32 @@ type Contact = {
   dms: number;
   leads: number;
   last_seen_at: number | null;
+  /** S3: what a flow attached to this person — shown as chips, never invented. */
+  tags?: string[];
+  fields?: Record<string, string>;
 };
+
+/** A flow that is parked at a `delay` step, waiting for the ladder's clock. */
+type PendingRun = {
+  id: string;
+  automation_id: string;
+  conversation_id: string;
+  step_index: number;
+  status: string;
+  run_at: number;
+  note: string | null;
+  automation_name: string | null;
+};
+
+type DrainReport = {
+  due: number;
+  resumed: number;
+  cancelled: number;
+  failed: number;
+  simulated: boolean;
+};
+
+type TagRow = { id: string; name: string; created_at: number; contacts: number };
 
 type Analytics = {
   contacts: number;
@@ -134,6 +162,7 @@ const TABS = [
   { id: "simulate", label: "Simulate", Icon: Play },
   { id: "inbox", label: "Inbox", Icon: Inbox },
   { id: "contacts", label: "Contacts", Icon: Users },
+  { id: "tags", label: "Tags", Icon: Tag },
   { id: "analytics", label: "Analytics", Icon: BarChart2 },
 ] as const;
 
@@ -760,9 +789,15 @@ export function DMManager() {
         </>
       )}
 
-      {tab === "simulate" && <Simulator automations={automations} />}
+      {tab === "simulate" && (
+        <div className="space-y-4">
+          <Simulator automations={automations} />
+          <FollowUps />
+        </div>
+      )}
       {tab === "inbox" && <InboxView />}
       {tab === "contacts" && <ContactsView />}
+      {tab === "tags" && <TagsView />}
       {tab === "analytics" && <AnalyticsView />}
     </div>
   );
@@ -1050,6 +1085,172 @@ function FlowBuilder({
         </p>
       )}
     </div>
+  );
+}
+
+/** "in 3h 20m" / "due now" — the ladder's clock, in words. */
+function dueIn(ts?: number | null): string {
+  if (!ts) return "—";
+  const diff = ts - Date.now();
+  if (diff <= 0) return "due now";
+  const mins = Math.round(diff / 60_000);
+  if (mins < 60) return `in ${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const rest = mins % 60;
+  return rest ? `in ${hours}h ${rest}m` : `in ${hours}h`;
+}
+
+/**
+ * The follow-up ladder, made visible.
+ *
+ * A `delay` step parks a row in `dm_flow_runs` and the fifteen-minute cron picks it
+ * up — so until now the only way to see a waiting follow-up was to read the database.
+ * This shows the queue, lets one be cancelled, and runs the due ones on demand: dry by
+ * default, because a test must never be able to land in a real inbox.
+ */
+function FollowUps() {
+  const [runs, setRuns] = useState<PendingRun[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [report, setReport] = useState<DrainReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/dm?action=runs");
+      const json = await res.json();
+      setRuns(json.runs ?? []);
+    } catch {
+      setRuns([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const cancel = async (run: PendingRun) => {
+    setBusy(run.id);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "cancel-run",
+          conversation_id: run.conversation_id,
+          reason: "cancelled from the Simulate tab",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "Could not cancel it.");
+      setRuns(json.runs ?? []);
+    } catch (err: any) {
+      setError(err?.message ?? "Could not cancel it.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const drain = async (live: boolean) => {
+    setBusy(live ? "live" : "dry");
+    setError(null);
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "drain", live }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "The run failed.");
+      setReport(json as DrainReport);
+      await load();
+    } catch (err: any) {
+      setError(err?.message ?? "The run failed.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Timer size={14} className="text-mute" />
+        <span className="text-sm font-semibold text-fg">Follow-up ladder</span>
+        {runs.length > 0 && <Badge tone="info">{runs.length} waiting</Badge>}
+      </div>
+      <p className="text-[12px] text-mute">
+        A <span className="text-fg2">delay</span> step parks a row here and the{" "}
+        <span className="text-fg2">*/15</span> cron picks it up — the wait is a row, not a timer in
+        memory. The cron runs this same job every fifteen minutes; this button is so you do not have
+        to wait for it.
+      </p>
+
+      {loading ? (
+        <p className="text-sm text-mute">Loading…</p>
+      ) : runs.length === 0 ? (
+        <p className="text-[12px] text-mute">
+          Nothing is waiting. Add a <span className="text-fg2">delay</span> step to a flow and run a
+          simulation — the parked wait appears here.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {runs.map((run) => (
+            <div
+              key={run.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line px-3 py-2"
+            >
+              <div className="min-w-0">
+                <p className="text-[12px] text-fg">
+                  {run.automation_name ?? "an automation"} · step {run.step_index + 1}
+                </p>
+                <p className="text-[11px] text-mute">
+                  {run.status === "running" ? "running now" : dueIn(run.run_at)} ·{" "}
+                  {new Date(run.run_at).toLocaleString()}
+                </p>
+              </div>
+              <OutlineBtn
+                className="h-8 px-3 text-[12px]"
+                onClick={() => cancel(run)}
+                loading={busy === run.id}
+              >
+                <Ban size={13} /> Cancel
+              </OutlineBtn>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <OutlineBtn
+          className="h-8 px-3 text-[12px]"
+          onClick={() => drain(false)}
+          loading={busy === "dry"}
+        >
+          <RefreshCw size={13} /> Run due follow-ups (dry)
+        </OutlineBtn>
+        {report && report.due > 0 && (
+          <OutlineBtn
+            className="h-8 px-3 text-[12px]"
+            onClick={() => drain(true)}
+            loading={busy === "live"}
+          >
+            <Play size={13} /> Send these {report.due} for real
+          </OutlineBtn>
+        )}
+      </div>
+
+      {report && (
+        <p className="text-[11px] text-mute">
+          {report.due} due · {report.resumed} sent · {report.cancelled} cancelled · {report.failed}{" "}
+          failed
+          {report.simulated ? " — nothing was sent to Instagram" : ""}
+        </p>
+      )}
+      {error && <p className="text-[12px] text-err">{error}</p>}
+    </Card>
   );
 }
 
@@ -1430,20 +1631,49 @@ function InboxView() {
 function ContactsView() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tagFor, setTagFor] = useState<string | null>(null);
+  const [tagName, setTagName] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/dm?action=contacts");
+      const json = await res.json();
+      setContacts(json.contacts ?? []);
+    } catch {
+      setContacts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await apiFetch("/api/dm?action=contacts");
-        const json = await res.json();
-        setContacts(json.contacts ?? []);
-      } catch {
-        setContacts([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    void load();
+  }, [load]);
+
+  const addTag = async (contact: Contact) => {
+    const name = tagName.trim();
+    if (!name) return;
+    setBusy(contact.id);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "tag", contact_id: contact.id, name }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "Could not tag them.");
+      setTagFor(null);
+      setTagName("");
+      await load();
+    } catch (err: any) {
+      setError(err?.message ?? "Could not tag them.");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   if (loading) return <p className="text-sm text-mute">Loading…</p>;
   if (contacts.length === 0) {
@@ -1457,34 +1687,226 @@ function ContactsView() {
   }
 
   return (
-    <Card className="overflow-x-auto p-0">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-line text-[11px] uppercase tracking-wide text-mute">
-          <tr>
-            <th className="px-4 py-2">Person</th>
-            <th className="px-4 py-2">Handle</th>
-            <th className="px-4 py-2">Comments</th>
-            <th className="px-4 py-2">DMs in</th>
-            <th className="px-4 py-2">Leads</th>
-            <th className="px-4 py-2">Seen</th>
-          </tr>
-        </thead>
-        <tbody>
-          {contacts.map((c) => (
-            <tr key={c.id} className="border-b border-line/60 last:border-0">
-              <td className="px-4 py-2 text-fg">
-                {[c.first_name, c.last_name].filter(Boolean).join(" ") || "—"}
-              </td>
-              <td className="px-4 py-2 text-fg2">@{c.username ?? c.ig_user_id ?? "—"}</td>
-              <td className="px-4 py-2 text-fg2">{c.comments}</td>
-              <td className="px-4 py-2 text-fg2">{c.dms}</td>
-              <td className="px-4 py-2 text-fg2">{c.leads}</td>
-              <td className="px-4 py-2 text-mute">{when(c.last_seen_at)}</td>
+    <div className="space-y-3">
+      <Card className="overflow-x-auto p-0">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-line text-[11px] uppercase tracking-wide text-mute">
+            <tr>
+              <th className="px-4 py-2">Person</th>
+              <th className="px-4 py-2">Handle</th>
+              <th className="px-4 py-2">Tags</th>
+              <th className="px-4 py-2">Fields</th>
+              <th className="px-4 py-2">Comments</th>
+              <th className="px-4 py-2">DMs in</th>
+              <th className="px-4 py-2">Leads</th>
+              <th className="px-4 py-2">Seen</th>
             </tr>
+          </thead>
+          <tbody>
+            {contacts.map((c) => {
+              const tags = c.tags ?? [];
+              const fields = Object.entries(c.fields ?? {});
+              return (
+                <tr key={c.id} className="border-b border-line/60 align-top last:border-0">
+                  <td className="px-4 py-2 text-fg">
+                    {[c.first_name, c.last_name].filter(Boolean).join(" ") || "—"}
+                  </td>
+                  <td className="px-4 py-2 text-fg2">@{c.username ?? c.ig_user_id ?? "—"}</td>
+                  <td className="px-4 py-2">
+                    <div className="flex flex-wrap items-center gap-1">
+                      {tags.length === 0 && <span className="text-[11px] text-mute">none</span>}
+                      {tags.map((t) => (
+                        <Badge key={t} tone="info">
+                          {t}
+                        </Badge>
+                      ))}
+                      {tagFor === c.id ? (
+                        <span className="inline-flex items-center gap-1">
+                          <input
+                            autoFocus
+                            value={tagName}
+                            onChange={(e) => setTagName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") void addTag(c);
+                              if (e.key === "Escape") {
+                                setTagFor(null);
+                                setTagName("");
+                              }
+                            }}
+                            placeholder="tag"
+                            className="h-7 w-24 rounded border border-line bg-surface px-2 text-[12px] text-fg outline-none placeholder:text-mute focus:border-lime"
+                          />
+                          <GhostBtn
+                            className="h-7 px-2 text-[11px]"
+                            onClick={() => addTag(c)}
+                            loading={busy === c.id}
+                          >
+                            Save
+                          </GhostBtn>
+                          <GhostBtn
+                            className="h-7 px-2 text-[11px] text-mute"
+                            onClick={() => {
+                              setTagFor(null);
+                              setTagName("");
+                            }}
+                          >
+                            Cancel
+                          </GhostBtn>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setTagFor(c.id);
+                            setTagName("");
+                          }}
+                          className="text-[11px] text-mute transition-colors hover:text-lime"
+                        >
+                          + tag
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2">
+                    {fields.length === 0 ? (
+                      <span className="text-[11px] text-mute">none</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {fields.map(([k, v]) => (
+                          <Badge key={k} tone="neutral">
+                            {k}={v || "—"}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-fg2">{c.comments}</td>
+                  <td className="px-4 py-2 text-fg2">{c.dms}</td>
+                  <td className="px-4 py-2 text-fg2">{c.leads}</td>
+                  <td className="px-4 py-2 text-mute">{when(c.last_seen_at)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+      {error && <p className="text-[12px] text-err">{error}</p>}
+    </div>
+  );
+}
+
+/**
+ * Tags, on their own page.
+ *
+ * A tag is created one of two ways: by a flow's `tag` step, or by tagging somebody by
+ * hand from the Contacts tab. Until now it lived only inside a flow definition — there
+ * was no list, and no way to undo one.
+ */
+function TagsView() {
+  const [tags, setTags] = useState<TagRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/dm?action=tags");
+      const json = await res.json();
+      setTags(json.tags ?? []);
+    } catch {
+      setTags([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const remove = async (tag: TagRow) => {
+    setBusy(tag.id);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete-tag", tag_id: tag.id }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "Could not delete it.");
+      setConfirmId(null);
+      setTags(json.tags ?? []);
+    } catch (err: any) {
+      setError(err?.message ?? "Could not delete it.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (loading) return <p className="text-sm text-mute">Loading…</p>;
+  if (tags.length === 0) {
+    return (
+      <EmptyState
+        icon={<Tag size={20} />}
+        title="No tags yet"
+        description="A flow's tag step writes them, or tag somebody by hand from the Contacts tab. They appear here to be seen and removed."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="space-y-3 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Tag size={14} className="text-mute" />
+          <span className="text-sm font-semibold text-fg">Tags</span>
+          <Badge tone="neutral">{tags.length}</Badge>
+        </div>
+        <p className="text-[12px] text-mute">
+          Deleting a tag removes it from everyone who carries it. The people themselves are
+          untouched — only the label goes.
+        </p>
+        <div className="space-y-2">
+          {tags.map((tag) => (
+            <div
+              key={tag.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line px-3 py-2"
+            >
+              <div className="min-w-0">
+                <p className="text-[12px] text-fg">{tag.name}</p>
+                <p className="text-[11px] text-mute">
+                  {tag.contacts === 1 ? "1 contact" : `${tag.contacts} contacts`}
+                </p>
+              </div>
+              {confirmId === tag.id ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] text-warn">Remove it from everyone?</span>
+                  <OutlineBtn
+                    className="h-8 px-3 text-[12px]"
+                    onClick={() => remove(tag)}
+                    loading={busy === tag.id}
+                  >
+                    <Trash2 size={13} /> Delete
+                  </OutlineBtn>
+                  <GhostBtn
+                    className="h-8 px-2 text-[12px] text-mute"
+                    onClick={() => setConfirmId(null)}
+                  >
+                    Keep
+                  </GhostBtn>
+                </div>
+              ) : (
+                <OutlineBtn className="h-8 px-3 text-[12px]" onClick={() => setConfirmId(tag.id)}>
+                  <Trash2 size={13} /> Delete
+                </OutlineBtn>
+              )}
+            </div>
           ))}
-        </tbody>
-      </table>
-    </Card>
+        </div>
+      </Card>
+      {error && <p className="text-[12px] text-err">{error}</p>}
+    </div>
   );
 }
 

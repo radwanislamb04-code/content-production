@@ -501,6 +501,74 @@ export function matchAutomation(
 }
 
 /**
+ * Which post — and which rule — brought the leads.
+ *
+ * A blank `postId` is not a gap to paper over: it means the message was a DM, or Meta
+ * did not say which post the comment was on. The view reports that plainly instead of
+ * pretending every lead has a home.
+ */
+export async function dmAttribution(
+  env: any,
+  userId: string,
+): Promise<{
+  rows: Array<{
+    postId: string;
+    automation: string;
+    leads: number;
+    won: number;
+    dms: number;
+    latest: number;
+  }>;
+}> {
+  try {
+    const leadRows = await env.DB.prepare(
+      `SELECT COALESCE(l.source_post_id, '') AS postId,
+              COALESCE(a.name, '')           AS automation,
+              COUNT(*)                       AS leads,
+              SUM(CASE WHEN l.status = 'won' THEN 1 ELSE 0 END) AS won,
+              MAX(l.created_at)              AS latest
+         FROM dm_leads l
+         LEFT JOIN dm_automations a ON a.id = l.automation_id
+        WHERE l.user_id = ?
+        GROUP BY l.source_post_id, a.name
+        ORDER BY leads DESC, latest DESC
+        LIMIT 50`,
+    )
+      .bind(userId)
+      .all();
+
+    // Outbound messages sent to the people that post brought in — a coarse but honest
+    // read: `dm_leads` is the precise unit, this is the volume beside it.
+    const dmRows = await env.DB.prepare(
+      `SELECT COALESCE(c.source_post_id, '') AS postId, COUNT(*) AS dms
+         FROM dm_messages m
+         JOIN dm_contacts c ON c.id = m.contact_id
+        WHERE m.user_id = ? AND m.direction = 'out'
+        GROUP BY c.source_post_id`,
+    )
+      .bind(userId)
+      .all();
+
+    const dmsBy = new Map<string, number>();
+    for (const r of (dmRows.results ?? []) as any[]) {
+      dmsBy.set(String(r.postId), Number(r.dms) || 0);
+    }
+
+    const rows = ((leadRows.results ?? []) as any[]).map((r) => ({
+      postId: String(r.postId),
+      automation: String(r.automation),
+      leads: Number(r.leads) || 0,
+      won: Number(r.won) || 0,
+      latest: Number(r.latest) || 0,
+      dms: dmsBy.get(String(r.postId)) ?? 0,
+    }));
+    return { rows };
+  } catch {
+    return { rows: [] };
+  }
+}
+
+/**
  * Which rule did they mean?
  *
  * A rule can be marked `match_mode: "ai"`, which is the owner saying "I have no keyword
@@ -1097,6 +1165,24 @@ export async function runEngine(
 
   const contact = await upsertContact(env, userId, input.contact);
   result.contactId = contact?.id ?? null;
+
+  // Remember which post brought them. COALESCE on purpose: the FIRST post that
+  // acquired this person is what sticks, so a later comment on another reel cannot
+  // rewrite history — which is the whole reason "which reel brings leads?" is
+  // answerable at all.
+  if (contact?.id && input.postId) {
+    try {
+      await db
+        .prepare(
+          `UPDATE dm_contacts SET source_post_id = COALESCE(source_post_id, ?)
+            WHERE id = ? AND user_id = ?`,
+        )
+        .bind(String(input.postId), contact.id, userId)
+        .run();
+    } catch {
+      /* the person is stored; only the attribution is missing */
+    }
+  }
   const who = input.contact.first_name || input.contact.username || "this person";
   steps.push({
     kind: "contact",
@@ -1717,8 +1803,9 @@ export async function runEngine(
         try {
           await db
             .prepare(
-              `INSERT INTO dm_leads (id, user_id, contact_id, automation_id, goal, status, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, 'new', ?, ?)`,
+              `INSERT INTO dm_leads (id, user_id, contact_id, automation_id, goal,
+                                     source_post_id, status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, 'new', ?, ?)`,
             )
             .bind(
               crypto.randomUUID(),
@@ -1726,6 +1813,7 @@ export async function runEngine(
               contact.id,
               automation.id,
               automation.goal,
+              input.postId ? String(input.postId) : null,
               now,
               now,
             )

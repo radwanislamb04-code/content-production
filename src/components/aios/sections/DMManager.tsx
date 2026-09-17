@@ -2030,6 +2030,104 @@ function TagsView() {
   );
 }
 
+type AttributionRow = {
+  postId: string;
+  automation: string;
+  leads: number;
+  won: number;
+  dms: number;
+  latest: number;
+};
+
+/** A media id is long and opaque; enough of it to tell two reels apart is enough. */
+function shortPost(id: string): string {
+  if (!id) return "any post / DMs";
+  return id.length > 14 ? `${id.slice(0, 14)}…` : id;
+}
+
+/**
+ * Which post brought the leads.
+ *
+ * A blank post is not swept into an "other" bucket: it means the message was a DM, or a
+ * comment Meta did not tell us the post for. Saying that plainly is the point — an
+ * attribution table that hides its unknowns is one you end up trusting for the wrong
+ * reason.
+ */
+function Attribution() {
+  const [rows, setRows] = useState<AttributionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch("/api/dm?action=attribution");
+        const json = await res.json();
+        setRows(json.rows ?? []);
+      } catch {
+        setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const totalLeads = rows.reduce((n, r) => n + r.leads, 0);
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <BarChart2 size={14} className="text-mute" />
+        <span className="text-sm font-semibold text-fg">Where the DMs came from</span>
+        {totalLeads > 0 && <Badge tone="info">{totalLeads} lead(s)</Badge>}
+      </div>
+      <p className="text-[12px] text-mute">
+        The post a person was first seen on, and the rule that answered them. Recorded
+        from the comment that arrived, never inferred afterwards.
+      </p>
+
+      {loading ? (
+        <p className="text-sm text-mute">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-[12px] text-mute">
+          Nothing yet. A rule only records a lead when it has a goal, and a comment only
+          carries a post when Meta sends one.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-line text-[11px] uppercase tracking-wide text-mute">
+              <tr>
+                <th className="py-2 pr-4">Post</th>
+                <th className="py-2 pr-4">Rule</th>
+                <th className="py-2 pr-4">Leads</th>
+                <th className="py-2 pr-4">Won</th>
+                <th className="py-2">DMs out</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={`${r.postId}-${r.automation}-${i}`} className="border-b border-line/60 last:border-0">
+                  <td className="py-2 pr-4 text-fg2" title={r.postId || undefined}>
+                    {shortPost(r.postId)}
+                  </td>
+                  <td className="py-2 pr-4 text-fg2">{r.automation || "—"}</td>
+                  <td className="py-2 pr-4 text-fg2">{r.leads}</td>
+                  <td className="py-2 pr-4 text-fg2">{r.won}</td>
+                  <td className="py-2 text-mute">{r.dms}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="pt-2 text-[11px] text-mute">
+            “DMs out” counts every outbound message to the people that post brought in —
+            volume beside the leads, not the same thing.
+          </p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 /**
  * The questions nobody answered, and the Ideas they can become.
  *
@@ -2206,6 +2304,8 @@ function AnalyticsView() {
           Solid = public replies · light = DMs. Counted from stored messages only.
         </div>
       </Card>
+
+      <Attribution />
 
       <MineIdeas />
 

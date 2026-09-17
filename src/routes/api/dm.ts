@@ -9,6 +9,7 @@ import {
   deleteAutomation,
   deleteTag,
   detachTag,
+  dmAttribution,
   draftReplies,
   dmAnalytics,
   drainDueRuns,
@@ -143,11 +144,15 @@ export const Route = createFileRoute("/api/dm")({
         if (action === "runs") {
           return Response.json({ ok: true, runs: await listPendingRuns(env, userId) });
         }
+        /** Which post, and which rule, brought the leads. A read, so it lives here. */
+        if (action === "attribution") {
+          return Response.json({ ok: true, ...(await dmAttribution(env, userId)) });
+        }
         return Response.json(
           {
             ok: false,
             error:
-              "Unknown action. Use automations, inbox, conversation, contacts, analytics, tags or runs.",
+              "Unknown action. Use automations, inbox, conversation, contacts, analytics, tags, runs or attribution.",
           },
           { status: 400 },
         );
@@ -368,6 +373,8 @@ export const Route = createFileRoute("/api/dm")({
           return Response.json({ ok: true, drafts: out.drafts });
         }
 
+
+
         if (action === "field") {
           const contactId = String(body?.contact_id ?? "");
           const key = String(body?.key ?? "").trim();
@@ -404,7 +411,7 @@ export const Route = createFileRoute("/api/dm")({
           {
             ok: false,
             error:
-              "Unknown action. Use save, toggle, delete, simulate, pause, resume, tag, untag, delete-tag, field, drain, cancel-run, mine-ideas or drafts.",
+              "Unknown action. Use save, toggle, delete, simulate, pause, resume, tag, untag, delete-tag, field, drain, cancel-run, mine-ideas, drafts or attribution.",
           },
           { status: 400 },
         );

@@ -9,6 +9,7 @@ import {
   deleteAutomation,
   deleteTag,
   detachTag,
+  draftReplies,
   dmAnalytics,
   drainDueRuns,
   getAutomation,
@@ -46,7 +47,9 @@ const automationSchema = z.object({
   name: z.string().trim().min(1, "Give the automation a name.").max(120),
   trigger_type: z.enum(["comment", "dm"]),
   keywords: z.array(z.string().trim().min(1)).max(25).default([]),
-  match_mode: z.enum(["contains", "exact", "any_word"]).default("contains"),
+  // "ai" means the rule has no keyword of its own: the model reads the message and
+  // points at one of the owner's rules. It never writes the reply.
+  match_mode: z.enum(["contains", "exact", "any_word", "ai"]).default("contains"),
   post_scope: z.enum(["any", "post"]).default("any"),
   post_id: z.string().trim().max(120).nullish(),
   public_reply: z.string().trim().max(900).nullish(),
@@ -350,6 +353,21 @@ export const Route = createFileRoute("/api/dm")({
           return Response.json({ ok: true, questions, created });
         }
 
+        /**
+         * Two drafts for the owner to send. Nothing is sent by this — a draft is a
+         * suggestion, and the honest failure is an error message, not invented text.
+         */
+        if (action === "drafts") {
+          const conversationId = String(body?.conversation_id ?? "");
+          if (!conversationId) {
+            return Response.json({ ok: false, error: "Pass conversation_id." }, { status: 400 });
+          }
+          const out = await draftReplies(env, userId, conversationId);
+          if ("error" in out) return Response.json({ ok: false, error: out.error });
+          await logActivity(env, "dm", "drafts_written", `${out.drafts.length} draft(s)`, userId);
+          return Response.json({ ok: true, drafts: out.drafts });
+        }
+
         if (action === "field") {
           const contactId = String(body?.contact_id ?? "");
           const key = String(body?.key ?? "").trim();
@@ -386,7 +404,7 @@ export const Route = createFileRoute("/api/dm")({
           {
             ok: false,
             error:
-              "Unknown action. Use save, toggle, delete, simulate, pause, resume, tag, untag, delete-tag, field, drain, cancel-run or mine-ideas.",
+              "Unknown action. Use save, toggle, delete, simulate, pause, resume, tag, untag, delete-tag, field, drain, cancel-run, mine-ideas or drafts.",
           },
           { status: 400 },
         );

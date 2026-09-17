@@ -19,6 +19,7 @@
  */
 
 import { createTask, dhakaDate } from "./telegram-hook";
+import { callAi, extractJson } from "./ai";
 
 /**
  * Meta's three clocks — they are NOT interchangeable:
@@ -499,6 +500,130 @@ export function matchAutomation(
   return null;
 }
 
+/**
+ * Which rule did they mean?
+ *
+ * A rule can be marked `match_mode: "ai"`, which is the owner saying "I have no keyword
+ * for this one — read the message and tell me whether it is asking for me". The model
+ * can only ever pick from rules the owner already wrote, and the reply is always the
+ * owner's own text. If it is unsure, or the call fails, this is a no-match exactly as it
+ * was before: the model is never allowed to invent a reply.
+ */
+export async function chooseAutomationWithAi(
+  env: any,
+  automations: Automation[],
+  input: { text: string; kind: "comment" | "dm"; postId?: string | null },
+  userId: string,
+): Promise<{ automation: Automation; confidence: number } | null> {
+  try {
+    const candidates = automations
+      .filter((a) => Number(a.enabled) === 1)
+      .filter((a) => (a.trigger_type || "comment") === input.kind)
+      .filter((a) => a.match_mode === "ai")
+      .filter(
+        (a) => a.post_scope !== "post" || (!!a.post_id && a.post_id === (input.postId ?? null)),
+      )
+      .sort((a, b) => Number(a.created_at) - Number(b.created_at));
+    if (!candidates.length) return null;
+
+    const list = candidates
+      .map(
+        (a) =>
+          `- id: ${a.id}\n  name: ${a.name}\n  keywords: ${
+            keywordsOf(a).join(", ") || "(none)"
+          }\n  goal: ${a.goal ?? "(not set)"}`,
+      )
+      .join("\n");
+
+    const prompt = [
+      "Someone sent this message to a small business on Instagram.",
+      "",
+      `THEIR MESSAGE (${input.kind}):`,
+      String(input.text ?? "").slice(0, 600),
+      "",
+      "Below are automations the owner has already written. Choose the ONE whose intent",
+      "this message matches, or none. Do not write a reply — only choose.",
+      "",
+      list,
+      "",
+      'Answer with ONLY JSON and no prose: {"id": "<one of the ids above, or null>", "confidence": <0 to 1>}',
+    ].join("\n");
+
+    const raw = await callAi(env, prompt, { maxTokens: 200, userId });
+    const got = extractJson<{ id?: string | null; confidence?: number }>(raw);
+    const picked = candidates.find((a) => a.id === String(got?.id ?? ""));
+    if (!picked) return null;
+    return {
+      automation: picked,
+      confidence: Math.max(0, Math.min(1, Number(got?.confidence ?? 0))),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Two drafts for the owner to send themselves.
+ *
+ * Meant for a thread where the automation has stopped — a handoff, or a question no rule
+ * answered. It reads the thread and writes nothing: sending stays the owner's call, and
+ * this exists so that call takes ten seconds instead of two minutes.
+ */
+export async function draftReplies(
+  env: any,
+  userId: string,
+  conversationId: string,
+): Promise<{ drafts: string[] } | { error: string }> {
+  try {
+    const conversation = await env.DB.prepare(
+      "SELECT id FROM dm_conversations WHERE id = ? AND user_id = ?",
+    )
+      .bind(conversationId, userId)
+      .first();
+    if (!conversation) return { error: "That conversation does not exist." };
+
+    const { results } = await env.DB.prepare(
+      `SELECT direction, text, channel FROM dm_messages
+        WHERE conversation_id = ? AND text IS NOT NULL AND text != ''
+        ORDER BY created_at DESC LIMIT 12`,
+    )
+      .bind(conversationId)
+      .all();
+    const history = ((results ?? []) as any[]).reverse();
+    if (!history.length) return { error: "There is nothing in this thread to answer yet." };
+
+    const transcript = history
+      .map((m) => `${m.direction === "out" ? "US" : "THEM"}: ${String(m.text).slice(0, 300)}`)
+      .join("\n");
+    const lastChannel = String(history[history.length - 1]?.channel ?? "dm");
+
+    const prompt = [
+      "You are answering for a small business on Instagram, as the owner.",
+      `Write exactly 2 short reply drafts they could send as-is, as a ${lastChannel}.`,
+      "Write in the same language the person wrote in. No emoji unless the thread already",
+      "uses them. Keep each under 300 characters. Do not promise anything the thread has",
+      "not already offered.",
+      "",
+      "THE THREAD (oldest first):",
+      transcript,
+      "",
+      'Answer with ONLY a JSON array of 2 strings and no prose: ["first", "second"]',
+    ].join("\n");
+
+    const raw = await callAi(env, prompt, { maxTokens: 400, userId });
+    const parsed =
+      extractJson<string[]>(raw) ?? extractJson<{ drafts?: string[] }>(raw)?.drafts ?? [];
+    const drafts = (Array.isArray(parsed) ? parsed : [])
+      .map((d) => String(d ?? "").trim())
+      .filter(Boolean)
+      .slice(0, 2);
+    if (!drafts.length) return { error: "The AI did not come back with anything usable." };
+    return { drafts };
+  } catch (err: any) {
+    return { error: String(err?.message ?? "Could not write a draft.").slice(0, 200) };
+  }
+}
+
 /** `{{first_name}}` and friends. An unknown variable is left visible on purpose. */
 export function render(
   text: string | null | undefined,
@@ -553,7 +678,7 @@ export type AutomationInput = {
   name: string;
   trigger_type: "comment" | "dm";
   keywords: string[];
-  match_mode: "contains" | "exact" | "any_word";
+  match_mode: "contains" | "exact" | "any_word" | "ai";
   post_scope: "any" | "post";
   post_id?: string | null;
   public_reply?: string | null;
@@ -581,7 +706,9 @@ export async function saveAutomation(
     input.name.trim().slice(0, 120),
     input.trigger_type === "dm" ? "dm" : "comment",
     JSON.stringify((input.keywords ?? []).map((k) => String(k).trim()).filter(Boolean).slice(0, 25)),
-    ["contains", "exact", "any_word"].includes(input.match_mode) ? input.match_mode : "contains",
+    ["contains", "exact", "any_word", "ai"].includes(input.match_mode)
+      ? input.match_mode
+      : "contains",
     input.post_scope === "post" ? "post" : "any",
     input.post_scope === "post" ? (input.post_id ?? null) : null,
     input.public_reply?.slice(0, 900) ?? null,
@@ -981,12 +1108,30 @@ export async function runEngine(
   const automations = await listAutomations(env, userId);
   // A resumed follow-up names its rule instead of being matched again — the
   // keywords were already satisfied when the flow started.
-  const match = resumed
+  let match = resumed
     ? (() => {
         const a = automations.find((x) => x.id === input.automationId);
         return a ? { automation: a, keyword: null } : null;
       })()
     : matchAutomation(automations, input);
+
+  // Rules decide; the model only points. A rule marked `match_mode: "ai"` is the owner
+  // saying "I have no keyword for this one — read it and tell me whether it is for me".
+  // The model can only choose among rules the owner already wrote, and the reply text
+  // is still theirs. An unsure answer, or a failed call, is a no-match exactly as it
+  // was before — the model is never allowed to invent a reply.
+  if (!resumed && !match) {
+    const ai = await chooseAutomationWithAi(env, automations, input, userId);
+    if (ai) {
+      match = { automation: ai.automation, keyword: "ai" };
+      steps.push({
+        kind: "intent",
+        label: "Read by the AI",
+        detail: `${ai.automation.name} — confidence ${ai.confidence.toFixed(2)}`,
+        ok: true,
+      });
+    }
+  }
 
   if (!match) {
     steps.push({
@@ -1020,9 +1165,14 @@ export async function runEngine(
   steps.push({
     kind: "matched",
     label: "Matched",
-    detail: keyword
-      ? `“${keyword}” (${automation.match_mode}) in “${automation.name}”`
-      : `“${automation.name}” answers everything`,
+    // `keyword === "ai"` is not a keyword at all — saying «"ai" (ai)» would read like a
+    // bug rather than the routing decision it actually was.
+    detail:
+      keyword === "ai"
+        ? `The AI chose “${automation.name}” for this message`
+        : keyword
+          ? `“${keyword}” (${automation.match_mode}) in “${automation.name}”`
+          : `“${automation.name}” answers everything`,
     ok: true,
   });
 

@@ -16,8 +16,10 @@ import {
   Plus,
   Power,
   RefreshCw,
+  Sparkles,
   Tag,
   Timer,
+  Wand2,
   Trash2,
   Users,
   X,
@@ -261,7 +263,7 @@ const EMPTY_FORM = {
   name: "",
   trigger_type: "comment" as "comment" | "dm",
   keywords: "",
-  match_mode: "contains" as "contains" | "exact" | "any_word",
+  match_mode: "contains" as "contains" | "exact" | "any_word" | "ai",
   post_scope: "any" as "any" | "post",
   public_reply: "",
   dm_message: "",
@@ -454,7 +456,7 @@ export function DMManager() {
       name: a.name,
       trigger_type: (a.trigger_type === "dm" ? "dm" : "comment") as "comment" | "dm",
       keywords: keywordList(a).join(", "),
-      match_mode: (["contains", "exact", "any_word"].includes(a.match_mode)
+      match_mode: (["contains", "exact", "any_word", "ai"].includes(a.match_mode)
         ? a.match_mode
         : "contains") as Form["match_mode"],
       post_scope: (a.post_scope === "post" ? "post" : "any") as "any" | "post",
@@ -586,6 +588,7 @@ export function DMManager() {
                     <option value="contains">Contains the keyword</option>
                     <option value="exact">Is exactly the keyword</option>
                     <option value="any_word">Contains the word</option>
+                    <option value="ai">The AI reads it and decides</option>
                   </select>
                 </Field>
               </div>
@@ -658,7 +661,18 @@ export function DMManager() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Goal (a lead is recorded when the DM goes out)">
+                <Field
+                  label={
+                    form.match_mode === "ai"
+                      ? "Goal — this is what the AI reads to decide"
+                      : "Goal (a lead is recorded when the DM goes out)"
+                  }
+                  hint={
+                    form.match_mode === "ai"
+                      ? "With “the AI reads it and decides”, this line is the whole description the model gets. Leave it vague and the rule will rarely fire."
+                      : undefined
+                  }
+                >
                   <input
                     value={form.goal}
                     onChange={(e) => setForm({ ...form, goal: e.target.value })}
@@ -723,7 +737,7 @@ export function DMManager() {
                     </div>
                     <div className="mt-0.5 text-[11px] text-mute">
                       {a.trigger_type === "dm" ? "Direct message" : "Comment"} ·{" "}
-                      {a.match_mode.replace("_", " ")}
+                      {a.match_mode === "ai" ? "the AI decides" : a.match_mode.replace("_", " ")}
                       {a.daily_cap ? ` · cap ${a.daily_cap}/day` : ""}
                       {a.goal ? ` · goal: ${a.goal}` : ""}
                     </div>
@@ -1471,6 +1485,10 @@ function InboxView() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<string[]>([]);
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1492,6 +1510,8 @@ function InboxView() {
   const open = async (id: string) => {
     setOpenId(id);
     setMessages([]);
+    setDrafts([]);
+    setDraftError(null);
     try {
       const res = await apiFetch(`/api/dm?action=conversation&id=${encodeURIComponent(id)}`);
       const json = await res.json();
@@ -1520,6 +1540,41 @@ function InboxView() {
       /* the chip simply will not change */
     } finally {
       setBusy(null);
+    }
+  };
+
+  /**
+   * Drafts are suggestions, never sends. This asks for two and shows them; copying one
+   * out is the owner's job, which is the whole point — the thread stopped because it
+   * needed a human.
+   */
+  const draft = async () => {
+    if (!openId) return;
+    setDrafting(true);
+    setDraftError(null);
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "drafts", conversation_id: openId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "Could not write a draft.");
+      setDrafts(json.drafts ?? []);
+    } catch (err: any) {
+      setDrafts([]);
+      setDraftError(err?.message ?? "Could not write a draft.");
+    } finally {
+      setDrafting(false);
+    }
+  };
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(text);
+    } catch {
+      /* clipboard blocked — the text is still on screen to select by hand */
     }
   };
 
@@ -1651,6 +1706,42 @@ function InboxView() {
               <p className="whitespace-pre-wrap text-[12px] text-fg2">{m.text}</p>
             </div>
           ))
+        )}
+
+        {openId && (
+          <div className="space-y-2 border-t border-line pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Sparkles size={13} className="text-mute" />
+              <span className="text-[12px] text-fg">Reply drafts</span>
+              <OutlineBtn
+                className="h-8 px-3 text-[12px]"
+                onClick={draft}
+                loading={drafting}
+              >
+                <Wand2 size={13} /> Draft a reply
+              </OutlineBtn>
+            </div>
+            <p className="text-[11px] text-mute">
+              Two suggestions, in the thread's own language. Nothing is sent from here —
+              sending stays yours.
+            </p>
+            {drafts.length > 0 && (
+              <div className="space-y-2">
+                {drafts.map((d, i) => (
+                  <div key={i} className="rounded-md border border-line px-3 py-2">
+                    <p className="whitespace-pre-wrap text-[12px] text-fg2">{d}</p>
+                    <button
+                      onClick={() => void copy(d)}
+                      className="mt-1 text-[11px] text-mute transition-colors hover:text-lime"
+                    >
+                      {copied === d ? "copied" : "copy"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {draftError && <p className="text-[12px] text-err">{draftError}</p>}
+          </div>
         )}
       </Card>
     </div>

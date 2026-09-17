@@ -87,6 +87,10 @@ export type FlowStep = {
   field?: string;
   op?: string;
   value?: string;
+  /** library — hand over something real from the Library instead of a link */
+  library_type?: string;
+  library_id?: string;
+  library_pick?: string;
 };
 
 export type FlowContext = {
@@ -136,8 +140,166 @@ export function stepLabel(step: FlowStep): string {
       return `Tag ${step.label ?? step.text ?? ""}`.trim();
     case "field":
       return `Set ${step.field ?? step.label ?? ""}`.trim();
+    case "library":
+      return `Library ${step.library_type ?? step.library_id ?? "item"}`.trim();
     default:
       return step.kind;
+  }
+}
+
+/** The newest — or best-scoring — Library row of the requested type. */
+export async function pickLibraryItem(
+  env: any,
+  userId: string,
+  step: FlowStep,
+): Promise<{ id: string; title: string | null; type: string | null; content: string | null } | null> {
+  try {
+    if (step.library_id) {
+      return (
+        (await env.DB.prepare(
+          "SELECT id, title, type, content FROM library WHERE id = ? AND user_id = ?",
+        )
+          .bind(String(step.library_id), userId)
+          .first()) ?? null
+      );
+    }
+    const type = String(step.library_type ?? "").trim();
+    if (!type) return null;
+    // The ORDER BY is one of two literals chosen here, never the caller's string.
+    const order =
+      step.library_pick === "best"
+        ? "COALESCE(quality_score, 0) DESC, created_at DESC"
+        : "created_at DESC";
+    return (
+      (await env.DB.prepare(
+        `SELECT id, title, type, content FROM library
+          WHERE user_id = ? AND type = ? AND (status IS NULL OR status != 'archived')
+          ORDER BY ${order} LIMIT 1`,
+      )
+        .bind(userId, type)
+        .first()) ?? null
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A Library row's text, fit to be read in a chat.
+ *
+ * Script and hook rows store JSON, and a DM that is a wall of JSON is worse than no
+ * DM at all. This pulls out the parts a person actually reads. Anything it does not
+ * recognise comes back untouched — mangling real work would be worse than sending it.
+ */
+export function libraryText(content: unknown): string {
+  const raw = String(content ?? "").trim();
+  if (!raw.startsWith("{")) return raw;
+  try {
+    const j: any = JSON.parse(raw);
+    // A finished script has a formatted version; that *is* the readable text.
+    if (typeof j.formatted === "string" && j.formatted.trim()) return j.formatted.trim();
+    const parts: string[] = [];
+    const push = (v: unknown) => {
+      const s = String(v ?? "").trim();
+      if (s) parts.push(s);
+    };
+    if (Array.isArray(j.hooks) && j.hooks.length) {
+      const h = j.hooks[0];
+      if (typeof h === "string") push(h);
+      else if (h && typeof h === "object") push(h.spoken ?? h.text ?? h.text_overlay);
+    }
+    push(j.title);
+    push(j.why_it_works);
+    push(j.body);
+    push(j.voiceover_script);
+    push(j.cta);
+    return parts.length ? parts.join("\n\n") : raw;
+  } catch {
+    return raw;
+  }
+}
+
+export type MinedQuestion = { question: string; times: number; latest: number };
+
+/**
+ * Questions nobody answered.
+ *
+ * An unmatched comment is already recorded as a `no_match` event carrying its own
+ * text, so this reads what the engine wrote rather than guessing. The same question
+ * arriving again and again is the clearest brief an owner can be handed — and it is
+ * the one brief they cannot get by looking at the rules they already have.
+ */
+export async function mineUnansweredQuestions(
+  env: any,
+  userId: string,
+  min = 2,
+  days = 90,
+): Promise<MinedQuestion[]> {
+  try {
+    const since = Date.now() - Math.max(1, Math.floor(Number(days) || 90)) * 86_400_000;
+    const { results } = await env.DB.prepare(
+      `SELECT detail AS question, COUNT(*) AS times, MAX(created_at) AS latest
+         FROM dm_events
+        WHERE user_id = ? AND kind = 'no_match'
+          AND detail IS NOT NULL AND length(trim(detail)) >= 12
+          AND created_at >= ?
+        GROUP BY lower(trim(detail))
+       HAVING COUNT(*) >= ?
+        ORDER BY times DESC, latest DESC
+        LIMIT 25`,
+    )
+      .bind(userId, since, Math.max(2, Math.floor(Number(min)) || 2))
+      .all();
+    return (results ?? []) as MinedQuestion[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Turn a mined question into an Idea in the Library.
+ *
+ * The id is derived from the question, so asking twice the same thing does not leave
+ * two ideas behind — and a re-run updates the "asked N times" line instead.
+ */
+export async function mintIdeaFromQuestion(
+  env: any,
+  userId: string,
+  q: MinedQuestion,
+): Promise<string | null> {
+  const question = String(q?.question ?? "").trim();
+  if (!question) return null;
+  const slug =
+    question
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || String(Date.now());
+  const id = `idea_mined_${slug}`;
+  const now = Date.now();
+  const content = JSON.stringify({
+    id,
+    title: question.slice(0, 160),
+    why_it_works: `Asked ${Number(q.times) || 1} time(s) in comments and never answered.`,
+    tags: ["from-comments"],
+    format: "",
+    content_pillar: null,
+    status: "draft",
+  });
+  try {
+    await env.DB.prepare(
+      `INSERT INTO library (id, type, status, title, content, created_at, updated_at, user_id)
+       VALUES (?, 'idea', 'draft', ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         title = excluded.title,
+         content = excluded.content,
+         updated_at = excluded.updated_at`,
+    )
+      .bind(id, question.slice(0, 160), content, now, now, userId)
+      .run();
+    return id;
+  } catch {
+    return null;
   }
 }
 
@@ -449,6 +611,13 @@ export async function saveAutomation(
           field: s.field !== undefined ? String(s.field).slice(0, 40) : undefined,
           op: s.op !== undefined ? String(s.op).slice(0, 20) : undefined,
           value: s.value !== undefined ? String(s.value).slice(0, 200) : undefined,
+          library_type: s.library_type !== undefined
+            ? String(s.library_type).slice(0, 40)
+            : undefined,
+          library_id: s.library_id !== undefined ? String(s.library_id).slice(0, 60) : undefined,
+          library_pick: s.library_pick !== undefined
+            ? String(s.library_pick).slice(0, 10)
+            : undefined,
         })),
     ),
   ];
@@ -1173,6 +1342,29 @@ export async function runEngine(
           if (s.kind === "quick_reply") {
             const options = (s.options ?? []).map((o) => String(o).trim()).filter(Boolean);
             if (options.length) buffered.push(options.map((o) => `▫️ ${o}`).join("\n"));
+            continue;
+          }
+          if (s.kind === "library") {
+            // The Library is where finished work lives, so a flow can hand over the
+            // real thing instead of a link to it. When nothing is there the trace says
+            // so: inventing a script is the one thing this must never do.
+            const item = await pickLibraryItem(env, userId, s);
+            if (item && String(item.content ?? "").trim()) {
+              buffered.push(render(libraryText(item.content), vars));
+              steps.push({
+                kind: "library",
+                label: "From the Library",
+                detail: `${item.title ?? item.type ?? "item"}${item.type ? ` (${item.type})` : ""}`,
+                ok: true,
+              });
+            } else {
+              steps.push({
+                kind: "library",
+                label: "Nothing in the Library",
+                detail: `No ${s.library_type ?? s.library_id ?? "matching"} item yet — nothing was sent.`,
+                ok: false,
+              });
+            }
             continue;
           }
           if (s.kind === "delay") {

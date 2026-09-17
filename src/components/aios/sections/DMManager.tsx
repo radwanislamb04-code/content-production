@@ -9,6 +9,7 @@ import {
   Check,
   Clock,
   Inbox,
+  Lightbulb,
   Loader2,
   MessageSquare,
   Play,
@@ -210,6 +211,10 @@ type FlowStep = {
   field?: string;
   op?: string;
   value?: string;
+  /** `library` — hand over something real from the Library instead of a link. */
+  library_type?: string;
+  library_id?: string;
+  library_pick?: string;
 };
 
 const STEP_KINDS: Array<{ kind: string; label: string; hint: string }> = [
@@ -220,6 +225,11 @@ const STEP_KINDS: Array<{ kind: string; label: string; hint: string }> = [
   { kind: "condition", label: "Condition", hint: "Stop the flow unless something is true." },
   { kind: "tag", label: "Tag", hint: "Put a tag on the person." },
   { kind: "field", label: "Set field", hint: "Save a value on the person (plan, city…)." },
+  {
+    kind: "library",
+    label: "From the Library",
+    hint: "Send a real script or hook you already wrote — never a link to it.",
+  },
 ];
 
 /**
@@ -968,6 +978,25 @@ function FlowBuilder({
                     className={inputClass}
                   />
                 </div>
+              )}
+
+              {s.kind === "library" && (
+                <>
+                  <input
+                    value={s.library_type ?? "script"}
+                    onChange={(e) => patch(s.id, { library_type: e.target.value })}
+                    placeholder="script"
+                    className={inputClass}
+                  />
+                  <select
+                    value={s.library_pick ?? "newest"}
+                    onChange={(e) => patch(s.id, { library_pick: e.target.value })}
+                    className={inputClass}
+                  >
+                    <option value="newest">Newest of that type</option>
+                    <option value="best">Best scored</option>
+                  </select>
+                </>
               )}
 
               {s.kind === "delay" && (
@@ -1910,6 +1939,106 @@ function TagsView() {
   );
 }
 
+/**
+ * The questions nobody answered, and the Ideas they can become.
+ *
+ * Every unmatched comment is already recorded as a `no_match` event carrying its own
+ * text, so this reads what the engine wrote instead of guessing. A rule can only match
+ * what the owner already thought of — a question that keeps arriving is the one brief
+ * they cannot get from the rules they have.
+ */
+function MineIdeas() {
+  const [questions, setQuestions] = useState<Array<{ question: string; times: number }>>([]);
+  const [created, setCreated] = useState<string[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mine-ideas" }),
+      });
+      const json = await res.json();
+      setQuestions(json.questions ?? []);
+    } catch {
+      setQuestions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const create = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mine-ideas", create: true }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "Could not mint the ideas.");
+      setCreated(json.created ?? []);
+    } catch (err: any) {
+      setError(err?.message ?? "Could not mint the ideas.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) return <Card className="p-4 text-sm text-mute">Loading…</Card>;
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Lightbulb size={14} className="text-mute" />
+        <span className="text-sm font-semibold text-fg">Questions you did not answer</span>
+        {questions.length > 0 && <Badge tone="info">{questions.length}</Badge>}
+      </div>
+      <p className="text-[12px] text-mute">
+        Comments no rule matched, asked more than once. Nothing is sent to anyone from
+        here — an Idea is a note to yourself.
+      </p>
+
+      {questions.length === 0 ? (
+        <p className="text-[12px] text-mute">
+          Nothing repeating yet. Unmatched comments are recorded here as they arrive.
+        </p>
+      ) : (
+        <>
+          <div className="space-y-1">
+            {questions.map((q) => (
+              <div key={q.question} className="flex items-baseline justify-between gap-3">
+                <span className="min-w-0 truncate text-[12px] text-fg2">{q.question}</span>
+                <span className="shrink-0 text-[11px] text-mute">×{q.times}</span>
+              </div>
+            ))}
+          </div>
+          <OutlineBtn className="h-8 px-3 text-[12px]" onClick={create} loading={busy}>
+            <Plus size={13} /> Turn these into Ideas
+          </OutlineBtn>
+        </>
+      )}
+
+      {created && (
+        <p className="text-[11px] text-mute">
+          {created.length === 0
+            ? "Nothing new to add — those Ideas are already in the Library."
+            : `${created.length} Idea(s) added to the Library.`}
+        </p>
+      )}
+      {error && <p className="text-[12px] text-err">{error}</p>}
+    </Card>
+  );
+}
+
 function AnalyticsView() {
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1986,6 +2115,8 @@ function AnalyticsView() {
           Solid = public replies · light = DMs. Counted from stored messages only.
         </div>
       </Card>
+
+      <MineIdeas />
 
       <Card className="overflow-x-auto p-0">
         <table className="w-full text-left text-sm">

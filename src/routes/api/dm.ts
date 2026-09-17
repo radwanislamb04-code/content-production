@@ -18,6 +18,8 @@ import {
   listMessages,
   listPendingRuns,
   listTags,
+  mineUnansweredQuestions,
+  mintIdeaFromQuestion,
   pauseConversation,
   resumeConversation,
   runEngine,
@@ -73,6 +75,12 @@ const automationSchema = z.object({
         field: z.string().max(40).optional(),
         op: z.string().max(20).optional(),
         value: z.string().max(200).optional(),
+        // A `library` step. Zod drops keys it does not know, so a field missing here
+        // is a field the engine never sees — this file and `saveAutomation` have to
+        // agree or the step silently loses its target.
+        library_type: z.string().max(40).optional(),
+        library_id: z.string().max(60).optional(),
+        library_pick: z.string().max(10).optional(),
       }),
     )
     .max(40)
@@ -316,6 +324,32 @@ export const Route = createFileRoute("/api/dm")({
           return Response.json({ ok, tags: await listTags(env, userId) });
         }
 
+        /**
+         * The questions nobody answered — and, with `create: true`, the Ideas they
+         * become. Dry by default, because writing to someone's Library is not
+         * something a look-around should do.
+         */
+        if (action === "mine-ideas") {
+          const min = Number(body?.min ?? 2) || 2;
+          const questions = await mineUnansweredQuestions(env, userId, min);
+          if (body?.create !== true) {
+            return Response.json({ ok: true, questions, created: [] });
+          }
+          const created: string[] = [];
+          for (const q of questions) {
+            const ideaId = await mintIdeaFromQuestion(env, userId, q);
+            if (ideaId) created.push(ideaId);
+          }
+          await logActivity(
+            env,
+            "dm",
+            "ideas_mined",
+            `${created.length} idea(s) from repeated questions`,
+            userId,
+          );
+          return Response.json({ ok: true, questions, created });
+        }
+
         if (action === "field") {
           const contactId = String(body?.contact_id ?? "");
           const key = String(body?.key ?? "").trim();
@@ -352,7 +386,7 @@ export const Route = createFileRoute("/api/dm")({
           {
             ok: false,
             error:
-              "Unknown action. Use save, toggle, delete, simulate, pause, resume, tag, untag, delete-tag, field, drain or cancel-run.",
+              "Unknown action. Use save, toggle, delete, simulate, pause, resume, tag, untag, delete-tag, field, drain, cancel-run or mine-ideas.",
           },
           { status: 400 },
         );

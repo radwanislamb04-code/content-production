@@ -19,9 +19,12 @@ import {
   listConversations,
   listMessages,
   listPendingRuns,
+  listPostRefs,
   listTags,
   mineUnansweredQuestions,
   mintIdeaFromQuestion,
+  setPostRef,
+  testComments,
   pauseConversation,
   resumeConversation,
   runEngine,
@@ -51,7 +54,9 @@ const automationSchema = z.object({
   // "ai" means the rule has no keyword of its own: the model reads the message and
   // points at one of the owner's rules. It never writes the reply.
   match_mode: z.enum(["contains", "exact", "any_word", "ai"]).default("contains"),
-  post_scope: z.enum(["any", "post"]).default("any"),
+  // "next" means "the next post I publish, whichever it turns out to be": the first post
+  // the rule sees becomes its post.
+  post_scope: z.enum(["any", "post", "next"]).default("any"),
   post_id: z.string().trim().max(120).nullish(),
   public_reply: z.string().trim().max(900).nullish(),
   dm_message: z.string().trim().max(900).nullish(),
@@ -60,6 +65,8 @@ const automationSchema = z.object({
   counter_enabled: z.boolean().optional(),
   daily_cap: z.number().int().min(0).max(500).optional(),
   goal: z.string().trim().max(60).nullish(),
+  /** Free text for what a keyword cannot hold — e.g. what to say when it lands live. */
+  note: z.string().trim().max(300).nullish(),
   /**
    * S3. Deliberately permissive: `saveAutomation` is what sanitises and caps the
    * sequence, so a half-built step from the UI is dropped quietly instead of
@@ -147,6 +154,9 @@ export const Route = createFileRoute("/api/dm")({
         /** Which post, and which rule, brought the leads. A read, so it lives here. */
         if (action === "attribution") {
           return Response.json({ ok: true, ...(await dmAttribution(env, userId)) });
+        }
+        if (action === "post-refs") {
+          return Response.json({ ok: true, refs: await listPostRefs(env, userId) });
         }
         return Response.json(
           {
@@ -362,6 +372,32 @@ export const Route = createFileRoute("/api/dm")({
          * Two drafts for the owner to send. Nothing is sent by this — a draft is a
          * suggestion, and the honest failure is an error message, not invented text.
          */
+        /**
+         * Try comments against the rules WITHOUT running the engine: nothing stored,
+         * nothing sent. `lines` may be a string (split on newlines) or an array.
+         */
+        if (action === "test") {
+          const raw = Array.isArray(body?.lines)
+            ? (body.lines as unknown[]).map((l) => String(l))
+            : String(body?.lines ?? "").split("\n");
+          const automations = await listAutomations(env, userId);
+          return Response.json({ ok: true, results: testComments(automations, raw) });
+        }
+
+        /** Label a media id once, so attribution can say what the post was. */
+        if (action === "post-ref") {
+          const postId = String(body?.post_id ?? "").trim();
+          if (!postId) {
+            return Response.json({ ok: false, error: "Pass post_id." }, { status: 400 });
+          }
+          const ok = await setPostRef(env, userId, postId, {
+            url: body?.url ?? null,
+            label: body?.label ?? null,
+          });
+          await logActivity(env, "dm", "post_ref_saved", postId, userId);
+          return Response.json({ ok, refs: await listPostRefs(env, userId) });
+        }
+
         if (action === "drafts") {
           const conversationId = String(body?.conversation_id ?? "");
           if (!conversationId) {

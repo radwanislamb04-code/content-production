@@ -53,6 +53,8 @@ export type Automation = {
   counter_enabled: number;
   daily_cap: number;
   goal: string | null;
+  /** Free text for what a keyword cannot hold — what to say when the comment lands live. */
+  note?: string | null;
   enabled: number;
   /** S3: the sequence, as JSON. Empty ⇒ the stage-1 fields above are the whole flow. */
   flow_steps?: string | null;
@@ -475,8 +477,11 @@ export function matchAutomation(
     .filter((a) => Number(a.enabled) === 1)
     .filter((a) => (a.trigger_type || "comment") === input.kind)
     .filter((a) => {
-      if (a.post_scope !== "post") return true;
-      return !!a.post_id && a.post_id === (input.postId ?? null);
+      if (a.post_scope !== "post" && a.post_scope !== "next") return true;
+      // A `next` rule starts with no post of its own: the first post it sees becomes its
+      // post, and from then on it behaves exactly like a post rule.
+      if (!a.post_id) return a.post_scope === "next";
+      return a.post_id === (input.postId ?? null);
     })
     .sort((a, b) => Number(a.created_at) - Number(b.created_at));
 
@@ -498,6 +503,84 @@ export function matchAutomation(
   }
 
   return null;
+}
+
+/**
+ * Which rule would answer this — without answering it.
+ *
+ * The Simulate button runs the real engine, which means it writes real rows into the
+ * Inbox and the contacts. This is the cheap half: rule matching only, nothing stored,
+ * nothing sent. Tuning keywords should not litter your own data.
+ *
+ * It deliberately does NOT ask the model: an `ai`-mode rule is decided by the AI and can
+ * only be exercised through the Simulator, where the answer is recorded.
+ */
+export function testComments(
+  automations: Automation[],
+  lines: string[],
+): Array<{ text: string; matched: boolean; automation: string; keyword: string | null }> {
+  return lines
+    .map((l) => String(l ?? "").trim())
+    .filter(Boolean)
+    .slice(0, 25)
+    .map((text) => {
+      const m = matchAutomation(automations, { text, kind: "comment" });
+      return {
+        text,
+        matched: !!m,
+        automation: m?.automation.name ?? "",
+        keyword: m?.keyword ?? null,
+      };
+    });
+}
+
+/** Remember what a media id actually was, so attribution can say more than a number. */
+export async function setPostRef(
+  env: any,
+  userId: string,
+  postId: string,
+  input: { url?: string | null; label?: string | null },
+): Promise<boolean> {
+  const clean = String(postId ?? "").trim().slice(0, 120);
+  if (!clean) return false;
+  const now = Date.now();
+  try {
+    await env.DB.prepare(
+      `INSERT INTO dm_post_refs (id, user_id, post_id, url, label, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id, post_id) DO UPDATE SET
+         url = excluded.url, label = excluded.label, updated_at = excluded.updated_at`,
+    )
+      .bind(
+        crypto.randomUUID(),
+        userId,
+        clean,
+        input.url ? String(input.url).slice(0, 300) : null,
+        input.label ? String(input.label).slice(0, 120) : null,
+        now,
+        now,
+      )
+      .run();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function listPostRefs(
+  env: any,
+  userId: string,
+): Promise<Array<{ post_id: string; url: string | null; label: string | null }>> {
+  try {
+    const { results } = await env.DB.prepare(
+      "SELECT post_id, url, label FROM dm_post_refs WHERE user_id = ?",
+    )
+      .bind(userId)
+      .all();
+    return (results ?? []) as any[];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -554,14 +637,52 @@ export async function dmAttribution(
       dmsBy.set(String(r.postId), Number(r.dms) || 0);
     }
 
-    const rows = ((leadRows.results ?? []) as any[]).map((r) => ({
-      postId: String(r.postId),
-      automation: String(r.automation),
-      leads: Number(r.leads) || 0,
-      won: Number(r.won) || 0,
-      latest: Number(r.latest) || 0,
-      dms: dmsBy.get(String(r.postId)) ?? 0,
-    }));
+    // What the media id actually was, when the owner has told us once. Without this the
+    // table can only name a number, which is half an answer.
+    const refBy = new Map<string, { url: string; label: string }>();
+    for (const r of (await listPostRefs(env, userId)) as any[]) {
+      refBy.set(String(r.post_id), {
+        url: String(r.url ?? ""),
+        label: String(r.label ?? ""),
+      });
+    }
+
+    // `post_performance` keys a post by its URL, which is exactly what a reference gives
+    // us — this is the join that was missing.
+    const perfBy = new Map<string, { caption: string; likes: number; comments: number }>();
+    try {
+      const perf = await env.DB.prepare(
+        "SELECT url, caption, likes, comments FROM post_performance WHERE url IS NOT NULL AND url != ''",
+      ).all();
+      for (const r of (perf.results ?? []) as any[]) {
+        perfBy.set(String(r.url), {
+          caption: String(r.caption ?? ""),
+          likes: Number(r.likes) || 0,
+          comments: Number(r.comments) || 0,
+        });
+      }
+    } catch {
+      /* the table is optional; attribution does not depend on it */
+    }
+
+    const rows = ((leadRows.results ?? []) as any[]).map((r) => {
+      const postId = String(r.postId);
+      const ref = refBy.get(postId);
+      const perf = ref?.url ? perfBy.get(ref.url) : undefined;
+      return {
+        postId,
+        automation: String(r.automation),
+        leads: Number(r.leads) || 0,
+        won: Number(r.won) || 0,
+        latest: Number(r.latest) || 0,
+        dms: dmsBy.get(postId) ?? 0,
+        label: ref?.label ?? "",
+        url: ref?.url ?? "",
+        caption: perf?.caption ?? "",
+        likes: perf?.likes ?? null,
+        comments: perf?.comments ?? null,
+      };
+    });
     return { rows };
   } catch {
     return { rows: [] };
@@ -588,9 +709,11 @@ export async function chooseAutomationWithAi(
       .filter((a) => Number(a.enabled) === 1)
       .filter((a) => (a.trigger_type || "comment") === input.kind)
       .filter((a) => a.match_mode === "ai")
-      .filter(
-        (a) => a.post_scope !== "post" || (!!a.post_id && a.post_id === (input.postId ?? null)),
-      )
+      .filter((a) => {
+        if (a.post_scope !== "post" && a.post_scope !== "next") return true;
+        if (!a.post_id) return a.post_scope === "next";
+        return a.post_id === (input.postId ?? null);
+      })
       .sort((a, b) => Number(a.created_at) - Number(b.created_at));
     if (!candidates.length) return null;
 
@@ -747,7 +870,7 @@ export type AutomationInput = {
   trigger_type: "comment" | "dm";
   keywords: string[];
   match_mode: "contains" | "exact" | "any_word" | "ai";
-  post_scope: "any" | "post";
+  post_scope: "any" | "post" | "next";
   post_id?: string | null;
   public_reply?: string | null;
   dm_message?: string | null;
@@ -756,6 +879,7 @@ export type AutomationInput = {
   counter_enabled?: boolean;
   daily_cap?: number;
   goal?: string | null;
+  note?: string | null;
   /** S3. Absent or empty ⇒ the three stage-1 fields above are the whole flow. */
   flow_steps?: FlowStep[];
 };
@@ -777,7 +901,7 @@ export async function saveAutomation(
     ["contains", "exact", "any_word", "ai"].includes(input.match_mode)
       ? input.match_mode
       : "contains",
-    input.post_scope === "post" ? "post" : "any",
+    input.post_scope === "post" ? "post" : input.post_scope === "next" ? "next" : "any",
     input.post_scope === "post" ? (input.post_id ?? null) : null,
     input.public_reply?.slice(0, 900) ?? null,
     input.dm_message?.slice(0, 900) ?? null,
@@ -786,6 +910,7 @@ export async function saveAutomation(
     input.counter_enabled ? 1 : 0,
     Math.max(0, Math.min(500, Math.floor(Number(input.daily_cap ?? 0)) || 0)),
     input.goal?.slice(0, 60) ?? null,
+    input.note?.slice(0, 300) ?? null,
     // S3: sanitise before storing. A step with no kind would make the engine skip
     // the whole flow, and 40 steps is already far past what a DM thread should be.
     JSON.stringify(
@@ -824,7 +949,8 @@ export async function saveAutomation(
         .prepare(
           `UPDATE dm_automations SET name = ?, trigger_type = ?, keywords = ?, match_mode = ?,
              post_scope = ?, post_id = ?, public_reply = ?, dm_message = ?, dm_button_label = ?,
-             dm_button_url = ?, counter_enabled = ?, daily_cap = ?, goal = ?, flow_steps = ?,
+             dm_button_url = ?, counter_enabled = ?, daily_cap = ?, goal = ?, note = ?,
+             flow_steps = ?,
              updated_at = ?
            WHERE id = ? AND user_id = ?`,
         )
@@ -836,8 +962,8 @@ export async function saveAutomation(
           `INSERT INTO dm_automations
              (id, user_id, name, trigger_type, keywords, match_mode, post_scope, post_id,
                public_reply, dm_message, dm_button_label, dm_button_url, counter_enabled,
-               daily_cap, goal, flow_steps, enabled, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+               daily_cap, goal, note, flow_steps, enabled, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
         )
         .bind(id, userId, ...values, now, now)
         .run();
@@ -1261,6 +1387,33 @@ export async function runEngine(
           : `“${automation.name}” answers everything`,
     ok: true,
   });
+
+  // A `next` rule has just met the post it was written for: pin it, so the rule belongs
+  // to this reel from here on instead of drifting to whatever comes next.
+  if (
+    match &&
+    match.automation.post_scope === "next" &&
+    !match.automation.post_id &&
+    input.postId
+  ) {
+    try {
+      await db
+        .prepare(
+          `UPDATE dm_automations SET post_id = ?, updated_at = ?
+            WHERE id = ? AND user_id = ? AND post_id IS NULL`,
+        )
+        .bind(String(input.postId), Date.now(), match.automation.id, userId)
+        .run();
+      steps.push({
+        kind: "scope",
+        label: "Aimed at this post",
+        detail: `The rule now belongs to ${String(input.postId)}.`,
+        ok: true,
+      });
+    } catch {
+      /* the rule still works; it will simply try the next post again */
+    }
+  }
 
   // Conversation + the 7-day messaging window.
   const now = Date.now();

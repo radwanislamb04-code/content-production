@@ -8,6 +8,7 @@ import {
   BarChart2,
   Check,
   Clock,
+  FlaskConical,
   Inbox,
   Lightbulb,
   Loader2,
@@ -55,6 +56,7 @@ type Automation = {
   counter_enabled: number;
   daily_cap: number;
   goal: string | null;
+  note?: string | null;
   flow_steps?: string | null;
   enabled: number;
   created_at: number;
@@ -264,7 +266,8 @@ const EMPTY_FORM = {
   trigger_type: "comment" as "comment" | "dm",
   keywords: "",
   match_mode: "contains" as "contains" | "exact" | "any_word" | "ai",
-  post_scope: "any" as "any" | "post",
+  post_scope: "any" as "any" | "post" | "next",
+  post_id: "",
   public_reply: "",
   dm_message: "",
   dm_button_label: "",
@@ -272,6 +275,7 @@ const EMPTY_FORM = {
   counter_enabled: false,
   daily_cap: 0,
   goal: "",
+  note: "",
   flow_steps: [] as FlowStep[],
 };
 
@@ -408,6 +412,7 @@ export function DMManager() {
           .filter(Boolean),
         match_mode: form.match_mode,
         post_scope: form.post_scope,
+        post_id: form.post_scope === "post" ? form.post_id || null : null,
         public_reply: form.public_reply || null,
         dm_message: form.dm_message || null,
         dm_button_label: form.dm_button_label || null,
@@ -415,6 +420,7 @@ export function DMManager() {
         counter_enabled: form.counter_enabled,
         daily_cap: Number(form.daily_cap) || 0,
         goal: form.goal || null,
+        note: form.note || null,
         // An empty sequence means "just the message above", which is exactly how a
         // rule written before the flow builder behaves — so the two are one thing.
         flow_steps: form.flow_steps,
@@ -459,7 +465,42 @@ export function DMManager() {
       match_mode: (["contains", "exact", "any_word", "ai"].includes(a.match_mode)
         ? a.match_mode
         : "contains") as Form["match_mode"],
-      post_scope: (a.post_scope === "post" ? "post" : "any") as "any" | "post",
+      post_scope: (a.post_scope === "post"
+        ? "post"
+        : a.post_scope === "next"
+          ? "next"
+          : "any") as "any" | "post" | "next",
+      post_id: a.post_id ?? "",
+      note: a.note ?? "",
+      public_reply: a.public_reply ?? "",
+      dm_message: a.dm_message ?? "",
+      dm_button_label: a.dm_button_label ?? "",
+      dm_button_url: a.dm_button_url ?? "",
+      counter_enabled: !!a.counter_enabled,
+      daily_cap: a.daily_cap ?? 0,
+      goal: a.goal ?? "",
+      flow_steps: flowOf(a),
+    });
+
+  /**
+   * The same rule, ready for the next post.
+   *
+   * Everything the owner tuned is kept — keywords, the flow, the goal — with no id (so
+   * saving makes a new rule) and no post of its own yet, because the point of copying is
+   * that the next post is a different one.
+   */
+  const duplicate = (a: Automation) =>
+    setForm({
+      id: "",
+      name: `${a.name} (copy)`,
+      trigger_type: (a.trigger_type === "dm" ? "dm" : "comment") as "comment" | "dm",
+      keywords: keywordList(a).join(", "),
+      match_mode: (["contains", "exact", "any_word", "ai"].includes(a.match_mode)
+        ? a.match_mode
+        : "contains") as Form["match_mode"],
+      post_scope: "post",
+      post_id: "",
+      note: a.note ?? "",
       public_reply: a.public_reply ?? "",
       dm_message: a.dm_message ?? "",
       dm_button_label: a.dm_button_label ?? "",
@@ -526,6 +567,7 @@ export function DMManager() {
 
       {tab === "automations" && (
         <>
+          <KeywordTester />
           {form && (
             <Card className="space-y-3 p-4">
               <div className="flex items-center justify-between">
@@ -680,6 +722,46 @@ export function DMManager() {
                     className={inputClass}
                   />
                 </Field>
+                <Field
+                  label="Which posts?"
+                  hint="“The next post I publish” pins itself to the first post this rule ever sees — write the rule before you post."
+                >
+                  <select
+                    value={form.post_scope}
+                    onChange={(e) =>
+                      setForm({ ...form, post_scope: e.target.value as Form["post_scope"] })
+                    }
+                    className={inputClass}
+                  >
+                    <option value="any">Any post</option>
+                    <option value="post">One specific post</option>
+                    <option value="next">The next post I publish</option>
+                  </select>
+                </Field>
+                {form.post_scope === "post" && (
+                  <Field
+                    label="Post / media id"
+                    hint="The id of the post this rule belongs to."
+                  >
+                    <input
+                      value={form.post_id}
+                      onChange={(e) => setForm({ ...form, post_id: e.target.value })}
+                      placeholder="17912345678901234"
+                      className={inputClass}
+                    />
+                  </Field>
+                )}
+                <Field
+                  label="Note (for you — shown beside the rule)"
+                  hint="What a keyword cannot hold: what to say when this one lands while you are live."
+                >
+                  <input
+                    value={form.note}
+                    onChange={(e) => setForm({ ...form, note: e.target.value })}
+                    placeholder="Say the price out loud when this comes in live"
+                    className={inputClass}
+                  />
+                </Field>
                 <label className="flex items-end gap-2 pb-2 text-[12px] text-fg2">
                   <input
                     type="checkbox"
@@ -738,27 +820,46 @@ export function DMManager() {
                     <div className="mt-0.5 text-[11px] text-mute">
                       {a.trigger_type === "dm" ? "Direct message" : "Comment"} ·{" "}
                       {a.match_mode === "ai" ? "the AI decides" : a.match_mode.replace("_", " ")}
-                      {a.daily_cap ? ` · cap ${a.daily_cap}/day` : ""}
-                      {a.goal ? ` · goal: ${a.goal}` : ""}
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      onClick={() => void toggle(a)}
-                      title={a.enabled ? "Turn off" : "Turn on"}
-                      className={`grid h-6 w-6 place-items-center rounded border border-line ${
-                        a.enabled ? "text-lime" : "text-mute"
-                      } hover:border-lime`}
-                    >
-                      <Power size={12} />
-                    </button>
-                    <button
-                      onClick={() => edit(a)}
-                      title="Edit"
-                      className="h-6 rounded border border-line px-1.5 text-[11px] text-fg2 hover:border-lime hover:text-lime"
-                    >
-                      Edit
-                    </button>
+                       {a.daily_cap ? ` · cap ${a.daily_cap}/day` : ""}
+                       {a.goal ? ` · goal: ${a.goal}` : ""}
+                       {a.post_scope === "next"
+                         ? " · the next post"
+                         : a.post_scope === "post"
+                           ? " · one post"
+                           : ""}
+                     </div>
+                     {a.note ? (
+                       <p className="mt-1 text-[11px] text-fg2">📝 {a.note}</p>
+                     ) : null}
+                   </div>
+                   <div className="flex shrink-0 items-center gap-1">
+                     <button
+                       onClick={() => void toggle(a)}
+                       title={a.enabled ? "Turn off" : "Turn on"}
+                       className={`grid h-6 w-6 place-items-center rounded border border-line ${
+                         a.enabled ? "text-lime" : "text-mute"
+                       } hover:border-lime`}
+                     >
+                       <Power size={12} />
+                     </button>
+                     {/*
+                       A template, not a copy: same rules and flow, a new name, and — for
+                       the common case — aimed at a post of its own.
+                     */}
+                     <button
+                       onClick={() => duplicate(a)}
+                       title="Use as a template for another post"
+                       className="h-6 rounded border border-line px-1.5 text-[11px] text-fg2 hover:border-lime hover:text-lime"
+                     >
+                       Copy
+                     </button>
+                     <button
+                       onClick={() => edit(a)}
+                       title="Edit"
+                       className="h-6 rounded border border-line px-1.5 text-[11px] text-fg2 hover:border-lime hover:text-lime"
+                     >
+                       Edit
+                     </button>
                     <button
                       onClick={() => void remove(a)}
                       title="Delete"
@@ -1141,6 +1242,86 @@ function dueIn(ts?: number | null): string {
   const hours = Math.floor(mins / 60);
   const rest = mins % 60;
   return rest ? `in ${hours}h ${rest}m` : `in ${hours}h`;
+}
+
+/**
+ * Try comments against the rules without running anything.
+ *
+ * The Simulator runs the real engine, which means it writes real rows — a contact, an
+ * Inbox thread, events. That is the right way to prove behaviour and the wrong way to
+ * tune a keyword list. This only matches: nothing stored, nothing sent.
+ *
+ * It does not consult the model, so an `ai`-mode rule never appears here — that one has
+ * to go through the Simulator, where the decision is recorded and can be read back.
+ */
+function KeywordTester() {
+  const [text, setText] = useState("");
+  const [rows, setRows] = useState<
+    Array<{ text: string; matched: boolean; automation: string; keyword: string | null }>
+  >([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async () => {
+    const lines = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (!lines.length) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "test", lines }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "Could not test those.");
+      setRows(json.results ?? []);
+    } catch (err: any) {
+      setRows([]);
+      setError(err?.message ?? "Could not test those.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <FlaskConical size={14} className="text-mute" />
+        <span className="text-sm font-semibold text-fg">Keyword tester</span>
+      </div>
+      <p className="text-[12px] text-mute">
+        One comment per line. Matching only — nothing is stored and nothing is sent, so you
+        can tune a rule without filling your own Inbox.
+      </p>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={3}
+        placeholder={"send me the guide\ndam koto bhai"}
+        className={`${inputClass} resize-y`}
+      />
+      <OutlineBtn className="h-8 px-3 text-[12px]" onClick={run} loading={busy}>
+        Test these
+      </OutlineBtn>
+      {rows.length > 0 && (
+        <div className="space-y-1">
+          {rows.map((r, i) => (
+            <div key={i} className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 truncate text-[12px] text-fg2">{r.text}</span>
+              <span className="shrink-0 text-[11px] text-mute">
+                {r.matched ? `${r.automation} · “${r.keyword ?? "any"}”` : "no rule"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {error && <p className="text-[12px] text-err">{error}</p>}
+    </Card>
+  );
 }
 
 /**
@@ -2037,6 +2218,12 @@ type AttributionRow = {
   won: number;
   dms: number;
   latest: number;
+  /** What the media id actually was, once the owner has said so. */
+  label?: string;
+  url?: string;
+  caption?: string;
+  likes?: number | null;
+  comments?: number | null;
 };
 
 /** A media id is long and opaque; enough of it to tell two reels apart is enough. */
@@ -2056,20 +2243,59 @@ function shortPost(id: string): string {
 function Attribution() {
   const [rows, setRows] = useState<AttributionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editorFor, setEditorFor] = useState<string | null>(null);
+  const [urlDraft, setUrlDraft] = useState("");
+  const [labelDraft, setLabelDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/dm?action=attribution");
+      const json = await res.json();
+      setRows(json.rows ?? []);
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await apiFetch("/api/dm?action=attribution");
-        const json = await res.json();
-        setRows(json.rows ?? []);
-      } catch {
-        setRows([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    void load();
+  }, [load]);
+
+  /**
+   * Say what a post was, once. A media id is not something a person can read, so without
+   * this the table is accurate and useless — and the URL is also what joins the row to
+   * `post_performance`, which is where the likes and comments come from.
+   */
+  const saveRef = async (postId: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "post-ref",
+          post_id: postId,
+          url: urlDraft.trim() || null,
+          label: labelDraft.trim() || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "Could not save that.");
+      setEditorFor(null);
+      setUrlDraft("");
+      setLabelDraft("");
+      await load();
+    } catch (err: any) {
+      setError(err?.message ?? "Could not save that.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const totalLeads = rows.reduce((n, r) => n + r.leads, 0);
 
@@ -2101,27 +2327,88 @@ function Attribution() {
                 <th className="py-2 pr-4">Rule</th>
                 <th className="py-2 pr-4">Leads</th>
                 <th className="py-2 pr-4">Won</th>
-                <th className="py-2">DMs out</th>
+                <th className="py-2 pr-4">DMs out</th>
+                <th className="py-2">Post stats</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={`${r.postId}-${r.automation}-${i}`} className="border-b border-line/60 last:border-0">
                   <td className="py-2 pr-4 text-fg2" title={r.postId || undefined}>
-                    {shortPost(r.postId)}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span>{r.label || shortPost(r.postId)}</span>
+                      {r.url && (
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-mute underline transition-colors hover:text-lime"
+                        >
+                          open
+                        </a>
+                      )}
+                      {!r.postId ? null : editorFor === r.postId ? (
+                        <span className="flex flex-wrap items-center gap-1">
+                          <input
+                            autoFocus
+                            value={urlDraft}
+                            onChange={(e) => setUrlDraft(e.target.value)}
+                            placeholder="https://instagram.com/p/…"
+                            className="h-7 w-56 rounded border border-line bg-surface px-2 text-[12px] text-fg outline-none placeholder:text-mute focus:border-lime"
+                          />
+                          <input
+                            value={labelDraft}
+                            onChange={(e) => setLabelDraft(e.target.value)}
+                            placeholder="name this reel"
+                            className="h-7 w-40 rounded border border-line bg-surface px-2 text-[12px] text-fg outline-none placeholder:text-mute focus:border-lime"
+                          />
+                          <GhostBtn
+                            className="h-7 px-2 text-[11px]"
+                            onClick={() => void saveRef(r.postId)}
+                            loading={busy}
+                          >
+                            Save
+                          </GhostBtn>
+                          <GhostBtn
+                            className="h-7 px-2 text-[11px] text-mute"
+                            onClick={() => setEditorFor(null)}
+                          >
+                            Cancel
+                          </GhostBtn>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setEditorFor(r.postId);
+                            setUrlDraft(r.url ?? "");
+                            setLabelDraft(r.label ?? "");
+                          }}
+                          className="text-[11px] text-mute transition-colors hover:text-lime"
+                        >
+                          {r.url ? "edit link" : "+ link this post"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="py-2 pr-4 text-fg2">{r.automation || "—"}</td>
                   <td className="py-2 pr-4 text-fg2">{r.leads}</td>
                   <td className="py-2 pr-4 text-fg2">{r.won}</td>
-                  <td className="py-2 text-mute">{r.dms}</td>
+                  <td className="py-2 pr-4 text-mute">{r.dms}</td>
+                  <td className="py-2 text-mute">
+                    {r.likes === null || r.likes === undefined
+                      ? "—"
+                      : `${r.likes} likes · ${r.comments ?? 0} comments`}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
           <p className="pt-2 text-[11px] text-mute">
             “DMs out” counts every outbound message to the people that post brought in —
-            volume beside the leads, not the same thing.
+            volume beside the leads, not the same thing. “Post stats” come from
+            <span className="text-fg2"> post_performance</span> once a post has a link.
           </p>
+          {error && <p className="pt-2 text-[12px] text-err">{error}</p>}
         </div>
       )}
     </Card>

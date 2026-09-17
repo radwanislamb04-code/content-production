@@ -1,4 +1,4 @@
-import { OWNER_ID, currentUserId } from "../../lib/users";
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
@@ -440,7 +440,7 @@ export const Route = createFileRoute("/api/hook-script-writer")({
                  updated_at = excluded.updated_at`,
             )
             .bind(scriptId, "script", "draft", contentPillar, scriptTitle, scriptContent, ideaId, now, now,
-              OWNER_ID)
+              await currentUserId(request, context))
             .run();
         } catch (err: any) {
           return Response.json(

@@ -1,4 +1,4 @@
-import { OWNER_ID, currentUserId } from "../../lib/users";
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
 
@@ -106,7 +106,7 @@ export const Route = createFileRoute("/api/characters")({
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             )
             .bind(id, "character", "active", name, content, now, now,
-              OWNER_ID)
+              await currentUserId(request, context))
             .run();
         } catch (err: any) {
           return Response.json(

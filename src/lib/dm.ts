@@ -652,8 +652,11 @@ export async function dmAttribution(
     const perfBy = new Map<string, { caption: string; likes: number; comments: number }>();
     try {
       const perf = await env.DB.prepare(
-        "SELECT url, caption, likes, comments FROM post_performance WHERE url IS NOT NULL AND url != ''",
-      ).all();
+        `SELECT url, caption, likes, comments FROM post_performance
+          WHERE user_id = ? AND url IS NOT NULL AND url != ''`,
+      )
+        .bind(userId)
+        .all();
       for (const r of (perf.results ?? []) as any[]) {
         perfBy.set(String(r.url), {
           caption: String(r.caption ?? ""),

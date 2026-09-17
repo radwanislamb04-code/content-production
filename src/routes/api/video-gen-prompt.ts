@@ -1,4 +1,4 @@
-import { OWNER_ID, currentUserId } from "../../lib/users";
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
@@ -474,7 +474,7 @@ Generate shot-by-shot video generation prompts. Incorporate model=${model}, aspe
               storyboardRow.project_id ?? null,
               now,
               now,
-            OWNER_ID,
+            await currentUserId(request, context),
               )
             .run();
         } catch (err: any) {

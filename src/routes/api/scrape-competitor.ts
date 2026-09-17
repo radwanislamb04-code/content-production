@@ -1,4 +1,4 @@
-import { OWNER_ID, currentUserId } from "../../lib/users";
+import { currentUserId } from "../../lib/users";
 ﻿import { createFileRoute } from "@tanstack/react-router";
 
 import { logActivity } from "../../lib/activity";
@@ -135,7 +135,7 @@ export const Route = createFileRoute("/api/scrape-competitor")({
                 post.timestamp ?? "",
                 (body as any)?.project_id ?? null,
                 Date.now(),
-              OWNER_ID,
+              await currentUserId(request, context),
                 )
               .run();
           }

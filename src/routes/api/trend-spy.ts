@@ -26,7 +26,8 @@ export const Route = createFileRoute("/api/trend-spy")({
     handlers: {
       POST: async ({ request, context }) => {
         const env = getEnv(request, context);
-        const { apiKey, baseUrl } = await readAiConfig(env, await currentUserId(request, context));
+        const userId = await currentUserId(request, context);
+        const { apiKey, baseUrl } = await readAiConfig(env, userId);
         const kv = env?.KV;
 
         if (!apiKey || !baseUrl) {
@@ -69,8 +70,9 @@ export const Route = createFileRoute("/api/trend-spy")({
         // --- Fetch raw trend data by calling trends.ts logic directly ---
         // Pass category through so YouTube uses search.list (q=category) instead of chart=mostPopular
         let rawTrends: TrendItem[] = [];
-        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube, await currentUserId(request, context));
-        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi, await currentUserId(request, context));
+        // See trends.ts: the user id belongs in the FOURTH argument, not the third.
+        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube, undefined, userId);
+        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi, undefined, userId);
 
         try {
           const youtubeResults = await fetchYouTubeTrends(youtubeApiKey, category);

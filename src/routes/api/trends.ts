@@ -13,8 +13,12 @@ export const Route = createFileRoute("/api/trends")({
       GET: async ({ request, context }) => {
         const env = getEnv(request, context);
         const kv = env?.KV;
-        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi, await currentUserId(request, context));
-        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube, await currentUserId(request, context));
+        const userId = await currentUserId(request, context);
+        // `readSetting(env, key, envVarName?, userId)` — the third argument is an env
+        // var NAME, so a user id passed there both killed the env fallback and left the
+        // read on the owner's KV entry. The id belongs fourth.
+        const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi, undefined, userId);
+        const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube, undefined, userId);
 
         const url = new URL(request.url);
         const platform = url.searchParams.get("platform") ?? "google";

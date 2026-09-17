@@ -14,7 +14,13 @@ import {
   publicReply,
   sendDm,
 } from "../../lib/instagram-api";
-import { runEngine, type Delivery } from "../../lib/dm";
+import {
+  conversationIdForContact,
+  pauseThreadForContact,
+  runEngine,
+  wasSentByUs,
+  type Delivery,
+} from "../../lib/dm";
 
 /**
  * /api/instagram-webhook — where Instagram delivers comments and DMs (M2).
@@ -205,7 +211,9 @@ export const Route = createFileRoute("/api/instagram-webhook")({
             if (!res.ok) {
               await markChannel(env, channel.id, { error: res.error ?? "send failed" });
             }
-            return { ok: res.ok, error: res.error };
+            // The id travels with the result so the engine can write it down; that
+            // is what later tells our own echo apart from the owner typing.
+            return { ok: res.ok, error: res.error, messageId: res.messageId };
           };
 
           /* --------------------------------------------------- comments */
@@ -275,6 +283,49 @@ export const Route = createFileRoute("/api/instagram-webhook")({
             const mid = String(event?.message?.mid ?? "");
             const senderId = String(event?.sender?.id ?? "");
             const text = String(event?.message?.text ?? "");
+
+            /**
+             * An echo is a message the ACCOUNT sent. Two completely different things
+             * produce one: our own automation, and the owner typing in the Instagram
+             * app. Only the second means "a human has taken over", so the decision is
+             * made on evidence — the stored message id first, the text second — and
+             * never on the hope that echoes are rare.
+             */
+            if (event?.message?.is_echo === true) {
+              const recipientId = String(event?.recipient?.id ?? "");
+              if (!mid || !recipientId || recipientId === igUserId) continue;
+
+              const fresh = await claimEvent(env, `echo:${mid}`, {
+                user_id: channel.user_id,
+                ig_user_id: igUserId,
+                field: FIELD_MESSAGES,
+                kind: "echo",
+                detail: text.slice(0, 200),
+              });
+              if (!fresh) {
+                results.push({ echo: mid, duplicate: true });
+                continue;
+              }
+
+              const conversationId = await conversationIdForContact(
+                env,
+                channel.user_id,
+                recipientId,
+              );
+              const ours = await wasSentByUs(env, channel.user_id, conversationId, mid, text);
+              const paused = ours
+                ? false
+                : await pauseThreadForContact(
+                    env,
+                    channel.user_id,
+                    recipientId,
+                    "you answered this thread by hand",
+                  );
+              await markHandled(env, `echo:${mid}`);
+              results.push({ echo: mid, ours, paused });
+              continue;
+            }
+
             if (!mid || !senderId || senderId === igUserId) continue;
 
             const fresh = await claimEvent(env, `message:${mid}`, {

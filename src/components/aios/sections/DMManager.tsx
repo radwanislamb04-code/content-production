@@ -49,6 +49,7 @@ type Automation = {
   counter_enabled: number;
   daily_cap: number;
   goal: string | null;
+  flow_steps?: string | null;
   enabled: number;
   created_at: number;
 };
@@ -63,6 +64,7 @@ type SimResult = {
   dm: string | null;
   dmVia: "private_reply" | "conversation" | null;
   handoff: boolean;
+  paused: boolean;
   contactId: string | null;
   conversationId: string | null;
   withinWindow: boolean;
@@ -81,6 +83,9 @@ type Conversation = {
   first_name: string | null;
   ig_user_id: string | null;
   last_text: string | null;
+  /** 1 when the owner has taken the thread over and the bot is silent. */
+  bot_paused?: number;
+  paused_reason?: string | null;
 };
 
 type Message = {
@@ -163,6 +168,55 @@ function windowHoursLeft(lastInboundAt?: number | null): number | null {
   return Math.max(0, Math.round(left * 10) / 10);
 }
 
+/** One step of the sequence the engine will run — see `FlowStep` in src/lib/dm.ts. */
+type FlowStep = {
+  id: string;
+  kind: string;
+  text?: string;
+  label?: string;
+  url?: string;
+  options?: string[];
+  amount?: number;
+  unit?: string;
+  field?: string;
+  op?: string;
+  value?: string;
+};
+
+const STEP_KINDS: Array<{ kind: string; label: string; hint: string }> = [
+  { kind: "message", label: "Message", hint: "Text to send. {{first_name}} and friends work." },
+  { kind: "button", label: "Button", hint: "A labelled link on its own line." },
+  { kind: "quick_reply", label: "Quick replies", hint: "Up to three short options." },
+  { kind: "delay", label: "Wait", hint: "Pause here, then carry on. The cron resumes it." },
+  { kind: "condition", label: "Condition", hint: "Stop the flow unless something is true." },
+  { kind: "tag", label: "Tag", hint: "Put a tag on the person." },
+  { kind: "field", label: "Set field", hint: "Save a value on the person (plan, city…)." },
+];
+
+/**
+ * The 4h / 23h ladder, as one click. Both rungs live inside Meta's 24-hour window,
+ * which is the entire reason 23 and not 24.
+ */
+const LADDER_STEPS = (): FlowStep[] => [
+  {
+    id: crypto.randomUUID(),
+    kind: "message",
+    text: "Hey {{first_name}}! Did the guide land okay? Reply here if anything is unclear 🙌",
+  },
+  { id: crypto.randomUUID(), kind: "delay", amount: 4, unit: "hours" },
+  {
+    id: crypto.randomUUID(),
+    kind: "message",
+    text: "Still there? One thing people ask me most about {{keyword}} — want me to send that too?",
+  },
+  { id: crypto.randomUUID(), kind: "delay", amount: 19, unit: "hours" },
+  {
+    id: crypto.randomUUID(),
+    kind: "message",
+    text: "Last note from me, {{first_name}} — the link stays open whenever you need it.",
+  },
+];
+
 const EMPTY_FORM = {
   id: "" as string | undefined,
   name: "",
@@ -177,9 +231,45 @@ const EMPTY_FORM = {
   counter_enabled: false,
   daily_cap: 0,
   goal: "",
+  flow_steps: [] as FlowStep[],
 };
 
 type Form = typeof EMPTY_FORM;
+
+/** Parse `flow_steps` off a stored automation — malformed JSON is an empty flow. */
+function flowOf(a: { flow_steps?: string | null }): FlowStep[] {
+  try {
+    const list = JSON.parse(a?.flow_steps || "[]");
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((s) => s && typeof s.kind === "string")
+      .map((s) => ({ ...s, id: String(s.id ?? crypto.randomUUID()) })) as FlowStep[];
+  } catch {
+    return [];
+  }
+}
+
+/** One line per step, for the card and the builder's header. */
+function describeStep(s: FlowStep): string {
+  switch (s.kind) {
+    case "message":
+      return s.text ? s.text.slice(0, 70) : "empty message";
+    case "button":
+      return `${s.label ?? "Open"}${s.url ? ` → ${s.url}` : ""}`;
+    case "quick_reply":
+      return (s.options ?? []).join(" · ") || "no options";
+    case "delay":
+      return `wait ${s.amount ?? 0} ${s.unit ?? "minutes"}`;
+    case "condition":
+      return `${s.field ?? "?"} ${s.op ?? "is"} ${s.value ?? ""}`.trim();
+    case "tag":
+      return s.label ?? s.text ?? "";
+    case "field":
+      return `${s.field ?? ""} = ${s.value ?? ""}`;
+    default:
+      return s.kind;
+  }
+}
 
 const TEMPLATES: Array<{ label: string; hint: string; patch: Partial<Form> }> = [
   {
@@ -284,6 +374,9 @@ export function DMManager() {
         counter_enabled: form.counter_enabled,
         daily_cap: Number(form.daily_cap) || 0,
         goal: form.goal || null,
+        // An empty sequence means "just the message above", which is exactly how a
+        // rule written before the flow builder behaves — so the two are one thing.
+        flow_steps: form.flow_steps,
       });
       setForm(null);
       setToastOk("Automation saved");
@@ -333,6 +426,7 @@ export function DMManager() {
       counter_enabled: !!a.counter_enabled,
       daily_cap: a.daily_cap ?? 0,
       goal: a.goal ?? "",
+      flow_steps: flowOf(a),
     });
 
   return (
@@ -543,6 +637,12 @@ export function DMManager() {
                 </label>
               </div>
 
+              <FlowBuilder
+                steps={form.flow_steps}
+                fallbackMessage={form.dm_message}
+                onChange={(steps) => setForm({ ...form, flow_steps: steps })}
+              />
+
               <div className="flex justify-end gap-2">
                 <OutlineBtn onClick={() => setForm(null)}>Cancel</OutlineBtn>
                 <PrimaryBtn onClick={save} loading={busy === "save"} disabled={!form.name.trim()}>
@@ -641,6 +741,19 @@ export function DMManager() {
                     <span className="text-mute">DM:</span> {a.dm_message}
                   </p>
                 )}
+                {flowOf(a).length > 0 && (
+                  <div className="space-y-0.5 border-l-2 border-line pl-2">
+                    <span className="text-[11px] text-mute">
+                      Flow · {flowOf(a).length} step(s)
+                    </span>
+                    {flowOf(a).map((s, i) => (
+                      <p key={s.id} className="text-[11px] text-fg2">
+                        {i + 1}. {STEP_KINDS.find((k) => k.kind === s.kind)?.label ?? s.kind} —{" "}
+                        {describeStep(s)}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </Card>
             ))}
           </div>
@@ -675,6 +788,268 @@ function Field({
       {children}
       {hint && <span className="block text-[11px] text-mute">{hint}</span>}
     </label>
+  );
+}
+
+/**
+ * The flow builder.
+ *
+ * An empty sequence is not a broken flow — it means "just send the DM message
+ * above", which is what every rule written before this existed already did. The
+ * builder says so out loud instead of showing an empty box, because "nothing here"
+ * and "nothing will happen" are very different promises.
+ */
+function FlowBuilder({
+  steps,
+  fallbackMessage,
+  onChange,
+}: {
+  steps: FlowStep[];
+  fallbackMessage: string;
+  onChange: (steps: FlowStep[]) => void;
+}) {
+  const patch = (id: string, next: Partial<FlowStep>) =>
+    onChange(steps.map((s) => (s.id === id ? { ...s, ...next } : s)));
+
+  const move = (index: number, by: number) => {
+    const target = index + by;
+    if (target < 0 || target >= steps.length) return;
+    const copy = [...steps];
+    [copy[index], copy[target]] = [copy[target], copy[index]];
+    onChange(copy);
+  };
+
+  const add = (kind: string) =>
+    onChange([
+      ...steps,
+      { id: crypto.randomUUID(), kind, amount: kind === "delay" ? 4 : undefined, unit: kind === "delay" ? "hours" : undefined },
+    ]);
+
+  const waits = steps.filter((s) => s.kind === "delay").length;
+
+  return (
+    <div className="space-y-2 rounded-md border border-line bg-surface/40 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <span className="text-[11px] uppercase tracking-wide text-mute">
+            Flow — the sequence the bot runs
+          </span>
+          <p className="text-[11px] text-mute">
+            {steps.length === 0
+              ? "Empty: the DM message above is the whole flow."
+              : `${steps.length} step(s)${waits ? `, ${waits} wait(s) — the cron resumes those` : ""}.`}
+          </p>
+        </div>
+        {steps.length > 0 && (
+          <button
+            onClick={() => onChange([])}
+            className="rounded border border-line px-2 py-1 text-[11px] text-mute hover:border-err hover:text-err"
+          >
+            Clear flow
+          </button>
+        )}
+      </div>
+
+      {steps.map((s, i) => {
+        const meta = STEP_KINDS.find((k) => k.kind === s.kind);
+        return (
+          <div key={s.id} className="rounded border border-line bg-surface p-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-[11px] text-fg2">
+                <span className="grid h-5 w-5 place-items-center rounded-full border border-line text-[10px] text-mute">
+                  {i + 1}
+                </span>
+                <span className="font-semibold text-fg">{meta?.label ?? s.kind}</span>
+                <span className="text-mute">{describeStep(s)}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1">
+                <button
+                  onClick={() => move(i, -1)}
+                  disabled={i === 0}
+                  className="rounded border border-line px-1.5 text-[11px] text-fg2 disabled:opacity-30 hover:border-lime"
+                >
+                  ↑
+                </button>
+                <button
+                  onClick={() => move(i, 1)}
+                  disabled={i === steps.length - 1}
+                  className="rounded border border-line px-1.5 text-[11px] text-fg2 disabled:opacity-30 hover:border-lime"
+                >
+                  ↓
+                </button>
+                <button
+                  onClick={() => onChange(steps.filter((x) => x.id !== s.id))}
+                  className="grid h-5 w-5 place-items-center rounded border border-line text-mute hover:border-err hover:text-err"
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            </div>
+
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {s.kind === "message" && (
+                <div className="sm:col-span-2">
+                  <textarea
+                    value={s.text ?? ""}
+                    onChange={(e) => patch(s.id, { text: e.target.value })}
+                    rows={2}
+                    placeholder="Hey {{first_name}} — here is what you asked for:"
+                    className={inputClass}
+                  />
+                </div>
+              )}
+
+              {s.kind === "button" && (
+                <>
+                  <input
+                    value={s.label ?? ""}
+                    onChange={(e) => patch(s.id, { label: e.target.value })}
+                    placeholder="Open the guide"
+                    className={inputClass}
+                  />
+                  <input
+                    value={s.url ?? ""}
+                    onChange={(e) => patch(s.id, { url: e.target.value })}
+                    placeholder="https://…"
+                    className={inputClass}
+                  />
+                </>
+              )}
+
+              {s.kind === "quick_reply" && (
+                <div className="sm:col-span-2">
+                  <input
+                    value={(s.options ?? []).join(", ")}
+                    onChange={(e) =>
+                      patch(s.id, {
+                        options: e.target.value
+                          .split(",")
+                          .map((o) => o.trim())
+                          .filter(Boolean)
+                          .slice(0, 3),
+                      })
+                    }
+                    placeholder="Yes please, Tell me more, Not now"
+                    className={inputClass}
+                  />
+                </div>
+              )}
+
+              {s.kind === "delay" && (
+                <>
+                  <input
+                    type="number"
+                    min={0}
+                    value={s.amount ?? 0}
+                    onChange={(e) => patch(s.id, { amount: Number(e.target.value) })}
+                    className={inputClass}
+                  />
+                  <select
+                    value={s.unit ?? "minutes"}
+                    onChange={(e) => patch(s.id, { unit: e.target.value })}
+                    className={inputClass}
+                  >
+                    <option value="minutes">minutes</option>
+                    <option value="hours">hours</option>
+                    <option value="days">days</option>
+                  </select>
+                </>
+              )}
+
+              {s.kind === "condition" && (
+                <>
+                  <select
+                    value={s.field ?? "keyword"}
+                    onChange={(e) => patch(s.id, { field: e.target.value })}
+                    className={inputClass}
+                  >
+                    <option value="keyword">the matched keyword</option>
+                    <option value="text">what they wrote</option>
+                    <option value="count">how many times they triggered it</option>
+                    <option value="tag">their tags</option>
+                    <option value="field:plan">their “plan” field</option>
+                    <option value="field:city">their “city” field</option>
+                  </select>
+                  <select
+                    value={s.op ?? "is"}
+                    onChange={(e) => patch(s.id, { op: e.target.value })}
+                    className={inputClass}
+                  >
+                    <option value="is">is</option>
+                    <option value="is_not">is not</option>
+                    <option value="contains">contains</option>
+                    <option value="not_contains">does not contain</option>
+                    <option value="has_tag">has the tag</option>
+                    <option value="not_has_tag">does not have the tag</option>
+                    <option value="gt">is more than</option>
+                    <option value="lt">is less than</option>
+                  </select>
+                  <input
+                    value={s.value ?? ""}
+                    onChange={(e) => patch(s.id, { value: e.target.value })}
+                    placeholder="guide"
+                    className={`${inputClass} sm:col-span-2`}
+                  />
+                </>
+              )}
+
+              {s.kind === "tag" && (
+                <input
+                  value={s.label ?? ""}
+                  onChange={(e) => patch(s.id, { label: e.target.value })}
+                  placeholder="asked-for-guide"
+                  className={`${inputClass} sm:col-span-2`}
+                />
+              )}
+
+              {s.kind === "field" && (
+                <>
+                  <input
+                    value={s.field ?? ""}
+                    onChange={(e) => patch(s.id, { field: e.target.value })}
+                    placeholder="plan"
+                    className={inputClass}
+                  />
+                  <input
+                    value={s.value ?? ""}
+                    onChange={(e) => patch(s.id, { value: e.target.value })}
+                    placeholder="pro"
+                    className={inputClass}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <span className="text-[11px] text-mute">Add step</span>
+        {STEP_KINDS.map((k) => (
+          <button
+            key={k.kind}
+            onClick={() => add(k.kind)}
+            title={k.hint}
+            className="rounded-full border border-line px-2.5 py-1 text-[11px] text-fg2 hover:border-lime hover:text-lime"
+          >
+            {k.label}
+          </button>
+        ))}
+        <button
+          onClick={() => onChange([...steps, ...LADDER_STEPS()])}
+          className="rounded-full border border-line px-2.5 py-1 text-[11px] text-lime hover:border-lime"
+        >
+          + 4h / 23h follow-up ladder
+        </button>
+      </div>
+
+      {steps.length > 0 && fallbackMessage.trim() && (
+        <p className="text-[11px] text-mute">
+          The flow replaces the “DM message” box — that box is only used while the flow is
+          empty.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -865,6 +1240,7 @@ function InboxView() {
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -895,7 +1271,31 @@ function InboxView() {
     }
   };
 
+  /**
+   * Hand the thread to the bot, or take it back. The same call the Instagram echo
+   * makes when you answer from the app, so the button and reality agree.
+   */
+  const setPaused = async (id: string, paused: boolean) => {
+    setBusy(id);
+    try {
+      const res = await apiFetch("/api/dm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: paused ? "pause" : "resume", conversation_id: id }),
+      });
+      const json = await res.json().catch(() => null);
+      if (json?.conversations) setConversations(json.conversations);
+      else await load();
+    } catch {
+      /* the chip simply will not change */
+    } finally {
+      setBusy(null);
+    }
+  };
+
   if (loading) return <p className="text-sm text-mute">Loading…</p>;
+
+  const current = conversations.find((c) => c.id === openId) ?? null;
 
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,320px)_1fr]">
@@ -927,9 +1327,13 @@ function InboxView() {
                     </span>
                   </div>
                   <div className="truncate text-[11px] text-mute">{c.last_text ?? "—"}</div>
-                  <div className="mt-1 flex items-center gap-1">
-                    {c.status !== "open" && <Badge tone="warning">{c.status}</Badge>}
-                    {left !== null && left <= 6 && (
+                   <div className="mt-1 flex flex-wrap items-center gap-1">
+                     {c.bot_paused ? (
+                       <Badge tone="warning">Bot paused</Badge>
+                     ) : (
+                       c.status !== "open" && <Badge tone="warning">{c.status}</Badge>
+                     )}
+                     {left !== null && left <= 6 && (
                       <span className="text-[10px] text-warn">
                         <Clock size={9} className="mr-0.5 inline" />
                         {left > 0
@@ -946,6 +1350,53 @@ function InboxView() {
       </Card>
 
       <Card className="space-y-2 p-4">
+        {current && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-sm text-fg">
+                  {current.first_name || current.username || "Unknown"}
+                </span>
+                {current.bot_paused ? (
+                  <Badge tone="warning">Bot paused</Badge>
+                ) : (
+                  <Badge tone="success">Bot answering</Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-mute">
+                {current.bot_paused
+                  ? current.paused_reason ?? "You took this thread over by hand."
+                  : "Automation is live on this thread."}
+              </p>
+            </div>
+            {current.bot_paused ? (
+              <OutlineBtn
+                onClick={() => void setPaused(current.id, false)}
+                disabled={busy === current.id}
+              >
+                {busy === current.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+                Resume the bot
+              </OutlineBtn>
+            ) : (
+              <OutlineBtn
+                onClick={() => void setPaused(current.id, true)}
+                disabled={busy === current.id}
+              >
+                {busy === current.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Power className="h-4 w-4" />
+                )}
+                Take over
+              </OutlineBtn>
+            )}
+          </div>
+        )}
+
         {!openId ? (
           <p className="text-sm text-mute">Pick a conversation.</p>
         ) : messages.length === 0 ? (

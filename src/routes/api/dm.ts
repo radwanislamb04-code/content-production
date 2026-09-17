@@ -4,15 +4,23 @@ import { getEnv } from "../../lib/settings";
 import { currentUserId } from "../../lib/users";
 import { logActivity } from "../../lib/activity";
 import {
+  attachTag,
+  cancelPendingRun,
   deleteAutomation,
   dmAnalytics,
+  drainDueRuns,
   getAutomation,
   listAutomations,
   listContacts,
   listConversations,
   listMessages,
+  listPendingRuns,
+  listTags,
+  pauseConversation,
+  resumeConversation,
   runEngine,
   saveAutomation,
+  setContactField,
   setAutomationEnabled,
 } from "../../lib/dm";
 
@@ -44,6 +52,29 @@ const automationSchema = z.object({
   counter_enabled: z.boolean().optional(),
   daily_cap: z.number().int().min(0).max(500).optional(),
   goal: z.string().trim().max(60).nullish(),
+  /**
+   * S3. Deliberately permissive: `saveAutomation` is what sanitises and caps the
+   * sequence, so a half-built step from the UI is dropped quietly instead of
+   * making the whole rule unsavable.
+   */
+  flow_steps: z
+    .array(
+      z.object({
+        id: z.string().max(40).optional(),
+        kind: z.string().trim().min(1).max(20),
+        text: z.string().max(900).optional(),
+        label: z.string().max(60).optional(),
+        url: z.string().max(300).optional(),
+        options: z.array(z.string().max(40)).max(3).optional(),
+        amount: z.number().int().min(0).max(43200).optional(),
+        unit: z.string().max(10).optional(),
+        field: z.string().max(40).optional(),
+        op: z.string().max(20).optional(),
+        value: z.string().max(200).optional(),
+      }),
+    )
+    .max(40)
+    .optional(),
 });
 
 const simulateSchema = z.object({
@@ -93,8 +124,18 @@ export const Route = createFileRoute("/api/dm")({
         if (action === "analytics") {
           return Response.json({ ok: true, ...(await dmAnalytics(env, userId)) });
         }
+        if (action === "tags") {
+          return Response.json({ ok: true, tags: await listTags(env, userId) });
+        }
+        if (action === "runs") {
+          return Response.json({ ok: true, runs: await listPendingRuns(env, userId) });
+        }
         return Response.json(
-          { ok: false, error: "Unknown action. Use automations, inbox, conversation, contacts or analytics." },
+          {
+            ok: false,
+            error:
+              "Unknown action. Use automations, inbox, conversation, contacts, analytics, tags or runs.",
+          },
           { status: 400 },
         );
       },
@@ -191,8 +232,98 @@ export const Route = createFileRoute("/api/dm")({
           return Response.json({ ok: true, result });
         }
 
+        /* ------------------------------------------- S3: handoff, tags, fields */
+
+        if (action === "pause" || action === "resume") {
+          const conversationId = String(body?.conversation_id ?? "");
+          if (!conversationId) {
+            return Response.json({ ok: false, error: "Pass conversation_id." }, { status: 400 });
+          }
+          const paused = action === "pause";
+          const ok = paused
+            ? await pauseConversation(
+                env,
+                userId,
+                conversationId,
+                String(body?.reason ?? "You took the thread over by hand"),
+              )
+            : await resumeConversation(env, userId, conversationId);
+          await logActivity(
+            env,
+            "dm",
+            paused ? "bot_paused" : "bot_resumed",
+            conversationId,
+            userId,
+          );
+          return Response.json({
+            ok,
+            conversations: await listConversations(env, userId),
+          });
+        }
+
+        if (action === "cancel-run") {
+          const conversationId = String(body?.conversation_id ?? "");
+          if (!conversationId) {
+            return Response.json({ ok: false, error: "Pass conversation_id." }, { status: 400 });
+          }
+          const cancelled = await cancelPendingRun(
+            env,
+            userId,
+            conversationId,
+            String(body?.reason ?? "cancelled from the Inbox"),
+          );
+          return Response.json({ ok: true, cancelled, runs: await listPendingRuns(env, userId) });
+        }
+
+        if (action === "tag") {
+          const contactId = String(body?.contact_id ?? "");
+          const name = String(body?.name ?? "").trim();
+          if (!contactId || !name) {
+            return Response.json({ ok: false, error: "Pass contact_id and name." }, { status: 400 });
+          }
+          const tagId = await attachTag(env, userId, contactId, name);
+          await logActivity(env, "dm", "tag_added", name, userId);
+          return Response.json({ ok: !!tagId, tags: await listTags(env, userId) });
+        }
+
+        if (action === "field") {
+          const contactId = String(body?.contact_id ?? "");
+          const key = String(body?.key ?? "").trim();
+          if (!contactId || !key) {
+            return Response.json({ ok: false, error: "Pass contact_id and key." }, { status: 400 });
+          }
+          const ok = await setContactField(env, userId, contactId, key, String(body?.value ?? ""));
+          return Response.json({ ok });
+        }
+
+        /**
+         * Run the follow-ups that are due right now. The cron does this on its own
+         * schedule; the button exists so the ladder can be proved without waiting
+         * four hours, and it defaults to a dry run so a test can never land in a
+         * real person's inbox.
+         */
+        if (action === "drain") {
+          const live = body?.live === true;
+          const report = await drainDueRuns(env, () => Promise.resolve(null), {
+            simulated: !live,
+            limit: 25,
+          });
+          await logActivity(
+            env,
+            "dm",
+            live ? "followups_drained" : "followups_drained_dry",
+            `${report.due} due · ${report.resumed} sent · ${report.cancelled} cancelled · ${report.failed} failed`,
+            userId,
+          );
+          return Response.json({ ok: true, ...report, simulated: !live });
+        }
+
         return Response.json(
-          { ok: false, error: "Unknown action. Use save, toggle, delete or simulate." },
+          {
+            ok: false,
+            error:
+              "Unknown action. Use save, toggle, delete, simulate, pause, resume, tag, field, drain or cancel-run.",
+          },
           { status: 400 },
         );
       },

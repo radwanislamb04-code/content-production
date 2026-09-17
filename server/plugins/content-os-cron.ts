@@ -33,13 +33,55 @@
 import { logActivity } from "../../src/lib/activity";
 import { runPipeline } from "../../src/lib/pipeline";
 import { queuePendingWork } from "../../src/lib/autoqueue";
-import { ensureSubscriptions, refreshDueChannels } from "../../src/lib/channels";
+import {
+  decryptToken,
+  ensureSubscriptions,
+  listChannels,
+  markChannel,
+  refreshDueChannels,
+} from "../../src/lib/channels";
+import { privateReply, publicReply, sendDm } from "../../src/lib/instagram-api";
+import { drainDueRuns, type Delivery } from "../../src/lib/dm";
 import { sendTelegram } from "../../src/lib/telegram";
 
 // Must match `[triggers].crons` in wrangler.toml exactly. Cron expressions are
 // ALWAYS UTC; the Dhaka times above are what the user asked for.
 const MORNING_BRIEF_CRON = "0 2 * * *";
 const COMPETITOR_CHECK_CRON = "0 14 * * *";
+
+// S3: the follow-up ladder needs a clock finer than twice a day — a 4-hour follow-up
+// that fires up to twelve hours late is not a follow-up. Every 15 minutes is 96
+// fires a day, which is nothing next to the request budget, and it is what makes
+// "wait 4 hours" mean four hours.
+const FOLLOWUP_CRON = "*/15 * * * *";
+
+/**
+ * The wire the ladder sends over. It is built here and handed to `drainDueRuns`
+ * rather than imported by it, which is why `src/lib/dm.ts` still knows nothing about
+ * Instagram: the engine decides, this decides how the decision leaves the building.
+ */
+async function resolveDelivery(env: any, userId: string): Promise<Delivery | null> {
+  const channels = await listChannels(env, userId);
+  const channel =
+    channels.find((c) => c.status === "connected" && !!c.token_enc) ??
+    channels.find((c) => !!c.token_enc);
+  if (!channel?.ig_user_id) return null;
+  const token = await decryptToken(env, channel.token_enc);
+  if (!token) return null;
+
+  return async (args) => {
+    const res =
+      args.channel === "comment"
+        ? await publicReply(token, channel.ig_user_id!, String(args.commentId ?? ""), args.text)
+        : args.via === "private_reply"
+          ? await privateReply(token, channel.ig_user_id!, String(args.commentId ?? ""), args.text)
+          : await sendDm(token, channel.ig_user_id!, String(args.igsid ?? ""), args.text);
+    if (!res.ok) {
+      await markChannel(env, channel.id, { error: res.error ?? "send failed" });
+    }
+    return { ok: res.ok, error: res.error };
+  };
+}
 
 // 08:00 — fresh trends + competitor data, compose the brief, deliver it.
 const MORNING_STEPS = ["trends", "scrape", "brief", "send"];
@@ -59,6 +101,28 @@ export default function contentOsCron(nitroApp: {
     "cloudflare:scheduled",
     async ({ controller, env }: any) => {
       const cron: string = (controller && controller.cron) || "";
+
+      // The ladder runs on its own trigger, before any of the daily work: a person
+      // waiting on a 4-hour follow-up should not be held up by the morning brief.
+      if (cron === FOLLOWUP_CRON) {
+        try {
+          const report = await drainDueRuns(env, (userId) => resolveDelivery(env, userId), {
+            limit: 30,
+          });
+          if (report.due) {
+            await logActivity(
+              env,
+              "dm",
+              report.failed ? "followups_partial" : "followups",
+              `${report.due} due · ${report.resumed} sent · ${report.cancelled} cancelled · ${report.failed} failed`,
+            );
+          }
+        } catch (err: any) {
+          await logActivity(env, "dm", "followups_failed", String(err?.message ?? err));
+        }
+        return;
+      }
+
       const steps = CRON_TASKS[cron];
 
       if (!steps) {

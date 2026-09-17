@@ -1935,6 +1935,7 @@ export async function listConversations(env: any, userId: string, limit = 40) {
   try {
     const { results } = await env.DB.prepare(
       `SELECT c.id, c.status, c.source, c.last_message_at, c.last_inbound_at, c.unread,
+              c.bot_paused, c.paused_at, c.paused_reason,
               ct.username, ct.first_name, ct.ig_user_id,
               (SELECT text FROM dm_messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_text
          FROM dm_conversations c

@@ -109,8 +109,8 @@ export function Sidebar({
           className="mb-1 flex items-center gap-2 rounded-md pb-3 pl-4 pr-4 pt-4 text-left transition-opacity hover:opacity-80"
         >
           <img
-            src="/jepy-logo.webp"
-            alt="JepyLabs logo"
+            src="/content-os-logo.webp"
+            alt="Content OS logo"
             width={32}
             height={32}
             className="h-8 w-8 shrink-0 rounded-lg"

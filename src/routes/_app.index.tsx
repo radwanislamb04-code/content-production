@@ -5,9 +5,9 @@ import { Dashboard } from "@/components/aios/sections/Dashboard";
 export const Route = createFileRoute("/_app/")({
   head: () => ({
     meta: [
-      { title: "JepyLabs — Dashboard" },
+      { title: "Content OS — Dashboard" },
       { name: "description", content: "Your content pipeline, daily tasks and AI activity in one dark workspace." },
-      { property: "og:title", content: "JepyLabs — Dashboard" },
+      { property: "og:title", content: "Content OS — Dashboard" },
       { property: "og:description", content: "Your content pipeline, daily tasks and AI activity in one dark workspace." },
     ],
   }),

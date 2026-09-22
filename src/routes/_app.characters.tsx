@@ -4,9 +4,9 @@ import { Characters } from "@/components/aios/sections/Characters";
 export const Route = createFileRoute("/_app/characters")({
   head: () => ({
     meta: [
-      { title: "JepyLabs — Characters" },
+      { title: "Content OS — Characters" },
       { name: "description", content: "Recurring on-screen characters and personas for your content." },
-      { property: "og:title", content: "JepyLabs — Characters" },
+      { property: "og:title", content: "Content OS — Characters" },
       { property: "og:description", content: "Recurring on-screen characters and personas for your content." },
     ],
   }),

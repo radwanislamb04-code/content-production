@@ -5,9 +5,9 @@ import { Storyboard } from "@/components/aios/sections/Storyboard";
 export const Route = createFileRoute("/_app/storyboard")({
   head: () => ({
     meta: [
-      { title: "JepyLabs — Storyboard" },
+      { title: "Content OS — Storyboard" },
       { name: "description", content: "Break your script into shot-by-shot visual direction." },
-      { property: "og:title", content: "JepyLabs — Storyboard" },
+      { property: "og:title", content: "Content OS — Storyboard" },
       { property: "og:description", content: "Break your script into shot-by-shot visual direction." },
     ],
   }),

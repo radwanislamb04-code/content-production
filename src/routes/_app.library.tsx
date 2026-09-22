@@ -4,9 +4,9 @@ import { Library } from "@/components/aios/sections/Library";
 export const Route = createFileRoute("/_app/library")({
   head: () => ({
     meta: [
-      { title: "JepyLabs — Library" },
+      { title: "Content OS — Library" },
       { name: "description", content: "Every idea, script, storyboard and prompt you have saved." },
-      { property: "og:title", content: "JepyLabs — Library" },
+      { property: "og:title", content: "Content OS — Library" },
       { property: "og:description", content: "Every idea, script, storyboard and prompt you have saved." },
     ],
   }),

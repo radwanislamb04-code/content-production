@@ -4,9 +4,9 @@ import { Sources } from "@/components/aios/sections/Placeholders";
 export const Route = createFileRoute("/_app/sources")({
   head: () => ({
     meta: [
-      { title: "JepyLabs — Sources" },
+      { title: "Content OS — Sources" },
       { name: "description", content: "Connected content data sources, coming soon." },
-      { property: "og:title", content: "JepyLabs — Sources" },
+      { property: "og:title", content: "Content OS — Sources" },
       { property: "og:description", content: "Connected content data sources, coming soon." },
     ],
   }),

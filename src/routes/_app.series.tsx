@@ -4,9 +4,9 @@ import { SeriesScreen } from "@/components/aios/sections/SeriesScreen";
 export const Route = createFileRoute("/_app/series")({
   head: () => ({
     meta: [
-      { title: "JepyLabs — Series" },
+      { title: "Content OS — Series" },
       { name: "description", content: "Group recurring content — not built yet, and what it needs." },
-      { property: "og:title", content: "JepyLabs — Series" },
+      { property: "og:title", content: "Content OS — Series" },
       { property: "og:description", content: "Group recurring content — not built yet, and what it needs." },
     ],
   }),

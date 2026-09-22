@@ -4,9 +4,9 @@ import { ThumbnailStudio } from "@/components/aios/sections/Placeholders";
 export const Route = createFileRoute("/_app/thumbnail-studio")({
   head: () => ({
     meta: [
-      { title: "JepyLabs — Thumbnail Studio" },
+      { title: "Content OS — Thumbnail Studio" },
       { name: "description", content: "Thumbnail generation and testing, coming soon." },
-      { property: "og:title", content: "JepyLabs — Thumbnail Studio" },
+      { property: "og:title", content: "Content OS — Thumbnail Studio" },
       { property: "og:description", content: "Thumbnail generation and testing, coming soon." },
     ],
   }),

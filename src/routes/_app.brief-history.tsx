@@ -4,9 +4,9 @@ import { BriefHistoryScreen } from "@/components/aios/sections/BriefHistoryScree
 export const Route = createFileRoute("/_app/brief-history")({
   head: () => ({
     meta: [
-      { title: "JepyLabs — Brief History" },
+      { title: "Content OS — Brief History" },
       { name: "description", content: "Archive of past daily content briefs." },
-      { property: "og:title", content: "JepyLabs — Brief History" },
+      { property: "og:title", content: "Content OS — Brief History" },
       { property: "og:description", content: "Archive of past daily content briefs." },
     ],
   }),

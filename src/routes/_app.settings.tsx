@@ -4,9 +4,9 @@ import { Settings } from "@/components/aios/sections/Settings";
 export const Route = createFileRoute("/_app/settings")({
   head: () => ({
     meta: [
-      { title: "JepyLabs — Settings" },
+      { title: "Content OS — Settings" },
       { name: "description", content: "API keys, integrations, schedule and appearance." },
-      { property: "og:title", content: "JepyLabs — Settings" },
+      { property: "og:title", content: "Content OS — Settings" },
       { property: "og:description", content: "API keys, integrations, schedule and appearance." },
     ],
   }),

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getEnv } from "../../lib/settings";
 import { currentUserId } from "../../lib/users";
 import { logActivity } from "../../lib/activity";
+import { resolveDelivery } from "../../lib/channels";
 import {
   attachTag,
   cancelPendingRun,
@@ -429,15 +430,21 @@ export const Route = createFileRoute("/api/dm")({
          */
         if (action === "drain") {
           const live = body?.live === true;
-          const report = await drainDueRuns(env, () => Promise.resolve(null), {
+          // It used to pass `() => Promise.resolve(null)` as the wire, which meant the
+          // "send for real" button could never send anything — every wait it touched was
+          // marked failed for want of a delivery that this call had refused to look for.
+          // Now it uses the same wire as the cron, and only its own user's waits.
+          const report = await drainDueRuns(env, (uid) => resolveDelivery(env, uid), {
             simulated: !live,
             limit: 25,
+            userId,
           });
           await logActivity(
             env,
             "dm",
             live ? "followups_drained" : "followups_drained_dry",
-            `${report.due} due · ${report.resumed} sent · ${report.cancelled} cancelled · ${report.failed} failed`,
+            `${report.due} due · ${report.resumed} sent · ${report.cancelled} cancelled · ` +
+              `${report.failed} failed · ${report.waiting} waiting (no account)`,
             userId,
           );
           return Response.json({ ok: true, ...report, simulated: !live });

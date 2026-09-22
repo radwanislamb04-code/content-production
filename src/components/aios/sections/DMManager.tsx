@@ -137,6 +137,8 @@ type DrainReport = {
   resumed: number;
   cancelled: number;
   failed: number;
+  /** Still waiting only because no Instagram account is connected yet. */
+  waiting: number;
   simulated: boolean;
 };
 
@@ -1468,9 +1470,14 @@ function FollowUps() {
 
       {report && (
         <p className="text-[11px] text-mute">
-          {report.due} due · {report.resumed} sent · {report.cancelled} cancelled · {report.failed}{" "}
-          failed
-          {report.simulated ? " — nothing was sent to Instagram" : ""}
+          {report.due} due ·{" "}
+          {report.simulated
+            ? `${report.resumed} would go out — a dry run sends nothing and keeps every wait`
+            : `${report.resumed} sent`}{" "}
+          · {report.cancelled} cancelled · {report.failed} failed
+          {report.waiting > 0
+            ? ` · ${report.waiting} still waiting for a connected account`
+            : ""}
         </p>
       )}
       {error && <p className="text-[12px] text-err">{error}</p>}

@@ -2403,9 +2403,25 @@ export type RunDeliveryFactory = (userId: string) => Promise<Delivery | null>;
 export async function drainDueRuns(
   env: any,
   resolveDelivery: RunDeliveryFactory,
-  opts: { limit?: number; simulated?: boolean } = {},
-): Promise<{ due: number; resumed: number; cancelled: number; failed: number; details: string[] }> {
-  const summary = { due: 0, resumed: 0, cancelled: 0, failed: 0, details: [] as string[] };
+  // `userId` is optional on purpose: the cron drains every user's due waits and resolves
+  // delivery per run's owner, while a signed-in request must only ever touch its own.
+  opts: { limit?: number; simulated?: boolean; userId?: string | null } = {},
+): Promise<{
+  due: number;
+  resumed: number;
+  cancelled: number;
+  failed: number;
+  waiting: number;
+  details: string[];
+}> {
+  const summary = {
+    due: 0,
+    resumed: 0,
+    cancelled: 0,
+    failed: 0,
+    waiting: 0,
+    details: [] as string[],
+  };
   const db = env?.DB;
   if (!db) return summary;
 
@@ -2424,11 +2440,12 @@ export async function drainDueRuns(
            LEFT JOIN dm_automations a ON a.id = r.automation_id
            LEFT JOIN dm_conversations c ON c.id = r.conversation_id
            LEFT JOIN dm_contacts ct ON ct.id = r.contact_id
-          WHERE r.status = 'pending' AND r.run_at <= ?
-          ORDER BY r.run_at ASC
-          LIMIT ?`,
+           WHERE r.status = 'pending' AND r.run_at <= ?
+                 ${opts.userId ? "AND r.user_id = ?" : ""}
+           ORDER BY r.run_at ASC
+           LIMIT ?`,
       )
-      .bind(now, Math.max(1, Math.min(100, limit)))
+      .bind(now, ...(opts.userId ? [String(opts.userId)] : []), Math.max(1, Math.min(100, limit)))
       .all();
     runs = (results ?? []) as any[];
   } catch {
@@ -2437,6 +2454,10 @@ export async function drainDueRuns(
   summary.due = runs.length;
 
   const finish = async (id: string, status: string, note: string) => {
+    // A dry run must not touch the ladder. Finishing the row is exactly what used to
+    // consume a real follow-up when the dry button was pressed: the wait was marked
+    // `done`, the note claimed "sent", and the person never received anything.
+    if (simulated) return;
     try {
       await db
         .prepare("UPDATE dm_flow_runs SET status = ?, note = ?, updated_at = ? WHERE id = ?")
@@ -2447,21 +2468,52 @@ export async function drainDueRuns(
     }
   };
 
+  /** Hand a claimed wait back, so a later drain still sees it as waiting. */
+  const release = async (id: string) => {
+    if (simulated) return;
+    try {
+      await db
+        .prepare("UPDATE dm_flow_runs SET status = 'pending', updated_at = ? WHERE id = ?")
+        .bind(Date.now(), id)
+        .run();
+    } catch {
+      /* the next drain will find it either way */
+    }
+  };
+
+  /** Write the reason onto a wait without changing whether it is still waiting. */
+  const note = async (id: string, text: string) => {
+    if (simulated) return;
+    try {
+      await db
+        .prepare("UPDATE dm_flow_runs SET note = ?, updated_at = ? WHERE id = ?")
+        .bind(text.slice(0, 300), Date.now(), id)
+        .run();
+    } catch {
+      /* the note is a courtesy */
+    }
+  };
+
   for (const run of runs) {
     // Claim it first: two overlapping cron fires must not resume the same wait, and
     // a later `delay` step — which deletes PENDING rows for this conversation — must
     // not be able to cancel the run that is executing right now.
-    let claimed = false;
-    try {
-      const res = await db
-        .prepare(
-          "UPDATE dm_flow_runs SET status = 'running', updated_at = ? WHERE id = ? AND status = 'pending'",
-        )
-        .bind(Date.now(), run.id)
-        .run();
-      claimed = Number(res?.meta?.changes ?? 0) > 0;
-    } catch {
-      claimed = false;
+    // A dry run claims nothing: there is nothing to guard against, and a claim that is
+    // never finished (see `finish`) would leave the wait stuck in `running`, where no
+    // later drain would ever pick it up again.
+    let claimed = simulated;
+    if (!simulated) {
+      try {
+        const res = await db
+          .prepare(
+            "UPDATE dm_flow_runs SET status = 'running', updated_at = ? WHERE id = ? AND status = 'pending'",
+          )
+          .bind(Date.now(), run.id)
+          .run();
+        claimed = Number(res?.meta?.changes ?? 0) > 0;
+      } catch {
+        claimed = false;
+      }
     }
     if (!claimed) continue;
 
@@ -2495,9 +2547,21 @@ export async function drainDueRuns(
     // real person receiving a test follow-up.
     const deliver = simulated ? null : await resolveDelivery(String(run.user_id));
     if (!simulated && !deliver) {
-      await finish(String(run.id), "failed", "no connected Instagram account to send through");
-      summary.failed++;
-      summary.details.push(`${run.automation_name ?? run.automation_id}: failed — no account`);
+      // No connected account is a temporary state, not a failed follow-up. Marking the
+      // wait `failed` here would destroy it: nothing retries a failed run, so the person
+      // would never receive it even after Instagram was finally connected. It stays
+      // waiting, and the note says why.
+      await note(
+        String(run.id),
+        "waiting — no connected Instagram account to send through yet",
+      );
+      // Give the claim back. Without this the wait would sit in `running` forever —
+      // which the harness caught on the first run of this very fix.
+      await release(String(run.id));
+      summary.waiting++;
+      summary.details.push(
+        `${run.automation_name ?? run.automation_id}: waiting — no account connected`,
+      );
       continue;
     }
 

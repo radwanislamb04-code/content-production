@@ -15,7 +15,14 @@
  */
 
 import { readSetting, SETTINGS_KEYS, writeSetting } from "./settings";
-import { subscribeFields, subscribedApps } from "./instagram-api";
+import {
+  privateReply,
+  publicReply,
+  sendDm,
+  subscribeFields,
+  subscribedApps,
+} from "./instagram-api";
+import type { Delivery } from "./dm";
 
 export const IG_PLATFORM = "instagram";
 
@@ -737,4 +744,39 @@ export async function refreshDueChannels(
   }
 
   return outcome;
+}
+
+/**
+ * The wire the follow-up ladder sends over.
+ *
+ * Built here and handed to `drainDueRuns` rather than imported by it, which is why
+ * `dm.ts` still knows nothing about Instagram: the engine decides, this decides how the
+ * decision leaves the building.
+ *
+ * It moved out of the cron so that the manual "run due follow-ups" route uses the same
+ * wire as the clock. Two copies would drift, and the manual one had drifted all the way
+ * to a stub that returned null — so its "send for real" could never send anything, and
+ * only ever marked the waits it touched as failed.
+ */
+export async function resolveDelivery(env: any, userId: string): Promise<Delivery | null> {
+  const channels = await listChannels(env, userId);
+  const channel =
+    channels.find((c) => c.status === "connected" && !!c.token_enc) ??
+    channels.find((c) => !!c.token_enc);
+  if (!channel?.ig_user_id) return null;
+  const token = await decryptToken(env, channel.token_enc);
+  if (!token) return null;
+
+  return async (args) => {
+    const res =
+      args.channel === "comment"
+        ? await publicReply(token, channel.ig_user_id!, String(args.commentId ?? ""), args.text)
+        : args.via === "private_reply"
+          ? await privateReply(token, channel.ig_user_id!, String(args.commentId ?? ""), args.text)
+          : await sendDm(token, channel.ig_user_id!, String(args.igsid ?? ""), args.text);
+    if (!res.ok) {
+      await markChannel(env, channel.id, { error: res.error ?? "send failed" });
+    }
+    return { ok: res.ok, error: res.error };
+  };
 }

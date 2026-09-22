@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppAutopilotRouteImport } from './routes/_app.autopilot'
 import { Route as AppBoardRouteImport } from './routes/_app.board'
@@ -91,6 +92,11 @@ import { Route as ApiLibraryTypeIdRouteImport } from './routes/api/library.$type
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -487,6 +493,7 @@ const ApiLibraryTypeIdRoute = ApiLibraryTypeIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/privacy': typeof PrivacyRoute
   '/autopilot': typeof AppAutopilotRoute
   '/board': typeof AppBoardRoute
   '/brief-history': typeof AppBriefHistoryRoute
@@ -566,6 +573,7 @@ export interface FileRoutesByFullPath {
   '/api/library/$type/$id': typeof ApiLibraryTypeIdRoute
 }
 export interface FileRoutesByTo {
+  '/privacy': typeof PrivacyRoute
   '/autopilot': typeof AppAutopilotRoute
   '/board': typeof AppBoardRoute
   '/brief-history': typeof AppBriefHistoryRoute
@@ -648,6 +656,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/_app/autopilot': typeof AppAutopilotRoute
   '/_app/board': typeof AppBoardRoute
   '/_app/brief-history': typeof AppBriefHistoryRoute
@@ -731,6 +740,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/privacy'
     | '/autopilot'
     | '/board'
     | '/brief-history'
@@ -810,6 +820,7 @@ export interface FileRouteTypes {
     | '/api/library/$type/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/privacy'
     | '/autopilot'
     | '/board'
     | '/brief-history'
@@ -891,6 +902,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/privacy'
     | '/_app/autopilot'
     | '/_app/board'
     | '/_app/brief-history'
@@ -973,6 +985,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
   ApiActivityRoute: typeof ApiActivityRoute
   ApiApifyUsageRoute: typeof ApiApifyUsageRoute
   ApiAppearanceRoute: typeof ApiAppearanceRoute
@@ -1033,6 +1046,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -1678,6 +1698,7 @@ const ApiLibraryTypeRouteWithChildren = ApiLibraryTypeRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
   ApiActivityRoute: ApiActivityRoute,
   ApiApifyUsageRoute: ApiApifyUsageRoute,
   ApiAppearanceRoute: ApiAppearanceRoute,

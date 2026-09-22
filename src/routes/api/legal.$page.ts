@@ -2,6 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
 import { pathSegments } from "../../lib/route-params";
 import { appCreds } from "../../lib/channels";
+import {
+  DATA_DELETION_BODY,
+  PRIVACY_BODY,
+  TERMS_BODY,
+  legalResponse,
+  today,
+} from "../../lib/legal";
 
 /**
  * /api/legal/privacy · /api/legal/terms · /api/legal/data-deletion
@@ -20,25 +27,8 @@ import { appCreds } from "../../lib/channels";
  * matching channel and everything filed under it.
  */
 
-const STYLE = `
-  :root { color-scheme: dark }
-  body { margin:0; background:#0b0d0c; color:#e8ece9; font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif }
-  main { max-width:44rem; margin:0 auto; padding:3rem 1.25rem 5rem }
-  h1 { font-size:1.6rem; margin:0 0 .25rem } h2 { font-size:1.05rem; margin:2rem 0 .5rem; color:#c9f7c0 }
-  p, li { color:#b9c2bc } a { color:#7dff5a } code { background:#141815; padding:.1rem .3rem; border-radius:4px; color:#d8e6dd }
-  .meta { color:#7b857e; font-size:.85rem }
-  ul { padding-left:1.1rem }
-`;
-
-function page(title: string, body: string, updated: string): Response {
-  return new Response(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} — Content OS</title><style>${STYLE}</style></head>
-<body><main>${body}<p class="meta">Last updated: ${updated}.</p></main></body></html>`,
-    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
-  );
-}
+// The page shell and the three bodies live in `src/lib/legal.ts` — `/privacy` serves the
+// same policy, and two copies of a privacy policy is two policies.
 
 // `Uint8Array<ArrayBuffer>` on purpose: WebCrypto's BufferSource rejects a view that
 // might be backed by a SharedArrayBuffer.
@@ -55,58 +45,18 @@ export const Route = createFileRoute("/api/legal/$page")({
     handlers: {
       GET: async ({ request, context }) => {
         const pageName = String(pathSegments(request, "/api/legal")[0] ?? "").toLowerCase();
-        const today = new Date().toISOString().slice(0, 10);
         getEnv(request, context); // keep the env contract identical to the other routes
 
         if (pageName === "privacy" || pageName === "privacy-policy") {
-          return page(
-            "Privacy",
-            `<h1>Privacy</h1>
-<p class="meta">Content OS is a private tool for a small number of Instagram creators.</p>
-<h2>What is stored</h2>
-<ul>
-  <li>The Instagram account id and username of each account that authorises the app.</li>
-  <li>An access token for that account, encrypted at rest (AES-GCM); it is never shown back to anyone.</li>
-  <li>The comments and direct messages that account receives while the app is connected, plus the answers the app produced. This is what makes an automation work and what the tool's inbox displays.</li>
-  <li>Nothing else is collected: no passwords, no contacts, no data from accounts other than the connected ones.</li>
-</ul>
-<h2>Where it is stored</h2>
-<p>In the operator's own Cloudflare account (Workers, D1 and KV), not in a shared third-party database. Instagram's platform is contacted only to send the replies the account owner configured.</p>
-<h2>Deleting it</h2>
-<p>The account owner can disconnect an account at any time, which deletes the stored token. A deletion request can also be made through the Data Deletion callback described below.</p>
-<p>Data deletion instructions: <a href="/api/legal/data-deletion">/api/legal/data-deletion</a>.</p>`,
-            today,
-          );
+          return legalResponse("Privacy", PRIVACY_BODY, today());
         }
 
         if (pageName === "terms" || pageName === "terms-of-service") {
-          return page(
-            "Terms",
-            `<h1>Terms</h1>
-<p class="meta">By connecting an Instagram account to Content OS you agree to the following.</p>
-<ul>
-  <li>You may connect only accounts you own or are authorised to manage.</li>
-  <li>The tool replies to comments and direct messages on your behalf, only as you configured and only inside the windows Instagram allows.</li>
-  <li>You are responsible for what those replies say, and for complying with Instagram's terms and any law that applies to you.</li>
-  <li>The software is provided as-is, without warranty. Automated replies can fail — for example when a token expires — and the tool reports those failures rather than hiding them.</li>
-  <li>You can disconnect at any time; the stored token is deleted with the connection.</li>
-</ul>`,
-            today,
-          );
+          return legalResponse("Terms", TERMS_BODY, today());
         }
 
         if (pageName === "data-deletion" || pageName === "deletion-status") {
-          return page(
-            "Data deletion",
-            `<h1>Data deletion</h1>
-<p>When you remove Content OS from your Instagram account (Instagram → Settings → Apps and websites, or a deletion request from Instagram), this endpoint receives Instagram's signed request and deletes what belongs to that account:</p>
-<ul>
-  <li>the connection itself and the encrypted access token,</li>
-  <li>the stored comments, messages, contacts and automation events for that account.</li>
-</ul>
-<p>Instagram receives a confirmation code in reply. No other account's data is touched.</p>`,
-            today,
-          );
+          return legalResponse("Data deletion", DATA_DELETION_BODY, today());
         }
 
         return new Response("Not found", { status: 404 });

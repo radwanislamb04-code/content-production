@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { getEnv } from "../../lib/settings";
+import { currentUserId } from "../../lib/users";
 
 const bodySchema = z.object({
   ideas: z.array(z.string().min(1).max(500)).max(50),
@@ -19,36 +20,25 @@ export const Route = createFileRoute("/api/workspace/selected_idea")({
         if (!parsed.success) {
           return new Response("Invalid body", { status: 400 });
         }
+        const userId = await currentUserId(request, context);
         const now = Date.now();
-        const values: any[] = [];
-        const sets: string[] = [];
-        parsed.data.ideas.forEach((idea, i) => {
-          const idx = i * 3;
-          values.push(`idea_${i}`, idea, now);
-          if (i > 0) {
-            sets.push("WHEN ? THEN ?");
-          }
-        });
-
-        // Insert or update each idea as a workspace row
-        const rows = parsed.data.ideas.map((idea, i) => ({
-          key: `idea_${i}`,
-          value: idea,
-          updated_at: now,
-        }));
 
         try {
-          // Use UPSERT approach: INSERT with ON CONFLICT UPDATE
-          for (const row of rows) {
+          // Every workspace row is per-user: since migration 009 the primary key is
+          // (user_id, key) and user_id is NOT NULL. This handler still wrote the old way —
+          // no user_id, and `ON CONFLICT(key)`, which no longer matches any constraint — so
+          // every call answered 500 and selecting an idea stored nothing at all.
+          for (const [i, idea] of parsed.data.ideas.entries()) {
             await db
               .prepare(
-                `INSERT INTO workspace (key, value, updated_at) VALUES (?, ?, ?)
-                 ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = ?`
+                `INSERT INTO workspace (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)
+                 ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value,
+                                                        updated_at = excluded.updated_at`,
               )
-              .bind(row.key, row.value, row.updated_at, row.value, row.updated_at)
+              .bind(userId, `idea_${i}`, idea, now)
               .run();
           }
-          return Response.json({ ok: true, count: rows.length });
+          return Response.json({ ok: true, count: parsed.data.ideas.length });
         } catch {
           return new Response("Internal server error", { status: 500 });
         }
@@ -62,8 +52,9 @@ export const Route = createFileRoute("/api/workspace/selected_idea")({
         try {
           const { results } = await db
             .prepare(
-              "SELECT key, value FROM workspace WHERE key LIKE 'idea_%' ORDER BY key"
+              "SELECT key, value FROM workspace WHERE user_id = ? AND key LIKE 'idea_%' ORDER BY key",
             )
+            .bind(await currentUserId(request, context))
             .all();
           return Response.json(results ?? []);
         } catch {

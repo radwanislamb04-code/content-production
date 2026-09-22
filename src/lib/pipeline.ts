@@ -184,12 +184,17 @@ async function stepScrape(
   env: any,
   userId: string = OWNER_ID,
 ): Promise<{ detail: string; items: number }> {
-  const token = await readApifyToken(env, "Instagram competitor");
+  // Both of these belong to the signed-in user. `competitors` two lines below was already
+  // read per-user, so reading the token and the handle as the OWNER meant a second user's
+  // scrape spent the owner's Apify quota and treated the owner's account as its own.
+  const token = await readApifyToken(env, "Instagram competitor", userId);
   if (!token) {
     throw new Error("Apify token not configured — add it in Settings → Apify slots");
   }
 
-  const own = normalizeHandle(await readSetting(env, SETTINGS_KEYS.instagramHandle));
+  const own = normalizeHandle(
+    await readSetting(env, SETTINGS_KEYS.instagramHandle, undefined, userId),
+  );
   const competitors = (
     await readJsonSetting<string[]>(env, SETTINGS_KEYS.instagramCompetitors, [], userId)
   )

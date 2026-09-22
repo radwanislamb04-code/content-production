@@ -74,12 +74,15 @@ export const Route = createFileRoute("/api/resources")({
           description: parsed.description ?? null,
           category: parsed.category,
           created_at: Date.now(),
+          // The list below filters on user_id, so a row saved without one is a row the
+          // author can never see again: POST answered 201 and the list stayed as it was.
+          user_id: await currentUserId(request, context),
         };
 
         try {
           await db
             .prepare(
-              "INSERT INTO resources (id, name, url, description, category, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+              "INSERT INTO resources (id, name, url, description, category, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
             )
             .bind(
               row.id,
@@ -88,6 +91,7 @@ export const Route = createFileRoute("/api/resources")({
               row.description,
               row.category,
               row.created_at,
+              row.user_id,
             )
             .run();
         } catch (err: any) {

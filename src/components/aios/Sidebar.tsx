@@ -109,14 +109,14 @@ export function Sidebar({
           className="mb-1 flex items-center gap-2 rounded-md pb-3 pl-4 pr-4 pt-4 text-left transition-opacity hover:opacity-80"
         >
           <img
-            src="/content-os-logo.webp"
+            src="/content-os-logo.png"
             alt="Content OS logo"
             width={32}
             height={32}
             className="h-8 w-8 shrink-0 rounded-lg"
           />
           <span className="truncate text-[15px] font-semibold text-fg">
-            Jepy<span className="text-lime">Labs</span>
+            Content<span className="text-lime"> OS</span>
           </span>
         </Link>
 

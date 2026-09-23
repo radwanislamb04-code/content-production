@@ -406,7 +406,11 @@ YouTube trending: ${list(
 Competitor posts by likes: ${list(
     d.viral.map(
       (p: any) =>
-        `${p.handle} — ${p.likes} likes, ${p.comments} comments: ${String(p.caption ?? "").slice(0, 90)}`,
+        // The caption is the evidence for "how are they writing this" — the hook lives in
+        // the first line and the style in the body. 90 characters showed neither, so the
+        // brief could only ever talk about likes. 400 covers a whole caption; only the
+        // hashtag tail of the very longest ones is dropped.
+        `${p.handle} — ${p.likes} likes, ${p.comments} comments: ${String(p.caption ?? "").slice(0, 400)}`,
     ),
   )}
 My content in the library: ${list(

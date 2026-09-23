@@ -233,7 +233,7 @@ function buildPrompt(d: {
   times: { reel: string; story: string; carousel: string };
   notes?: string;
 }): string {
-  return `You are the content planner for a solo short-form video creator (Instagram Reels / YouTube Shorts, brand "JepyLabs", handle @enzorico.ai). Plan the month ${d.month}.
+  return `You are the content planner for a solo short-form video creator (Instagram Reels / YouTube Shorts, brand "Content OS", handle @enzorico.ai). Plan the month ${d.month}.
 
 Return ONLY JSON:
 {"entries":[{"date":"YYYY-MM-DD","type":"Reel|Carousel|Story","topic":"specific post idea","pillar":"one of the pillars","time":"HH:MM"}]}

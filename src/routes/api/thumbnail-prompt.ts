@@ -105,7 +105,7 @@ export const Route = createFileRoute("/api/thumbnail-prompt")({
 });
 
 function buildPrompt(script: string, style?: string): string {
-  return `You write thumbnail art direction for a solo creator's short-form videos (brand "JepyLabs", handle @enzorico.ai). Produce ONE image-generation prompt that a designer or an image model can follow.
+  return `You write thumbnail art direction for a solo creator's short-form videos (brand "Content OS", handle @enzorico.ai). Produce ONE image-generation prompt that a designer or an image model can follow.
 
 Return ONLY JSON, no prose, exactly these keys:
 {"headline":"3-5 words that go on the thumbnail","subline":"max 6 words, or an empty string","background_prompt":"the scene only, no text","character_note":"how the person should look/pose, or an empty string","text_style":"font weight/placement advice","colour_notes":"palette and contrast","full_prompt":"one paragraph: subject, framing, lighting, palette, background, mood, text placement, lens, 3:2 thumbnail"}

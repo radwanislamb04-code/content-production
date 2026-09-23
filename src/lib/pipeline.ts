@@ -376,7 +376,7 @@ function buildBriefPrompt(d: {
   tasks: any[];
 }): string {
   const list = (rows: string[]) => (rows.length ? rows.join("\n") : "(none)");
-  return `You are the daily brief writer for a solo short-form video creator (Instagram Reels / YouTube Shorts, brand "JepyLabs", handle @enzorico.ai).
+  return `You are the daily brief writer for a solo short-form video creator (Instagram Reels / YouTube Shorts, brand "Content OS", handle @enzorico.ai).
 
 Write the brief for ${d.dateKey} in plain text (no tables, no markup other than "-" bullets) with EXACTLY these section headings, in this order:
 

@@ -88,7 +88,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      // The ?v= is not decoration. Browsers keep favicons in a store of their own and
+      // are slow to revalidate them — the served file was already the new, brighter one
+      // while the tab kept showing the old icon. Changing the URL is what makes a new
+      // favicon actually appear; bump this when public/favicon.png changes.
+      { rel: "icon", type: "image/png", href: "/favicon.png?v=2" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },

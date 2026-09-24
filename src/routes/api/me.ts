@@ -4,6 +4,7 @@ import {
   OWNER_ID,
   UNINVITED_ID,
   currentUser,
+  effectiveUser,
   emailFromAssertion,
 } from "../../lib/users";
 
@@ -28,7 +29,11 @@ export const Route = createFileRoute("/api/me")({
         const rawEmail = request.headers.get("cf-access-authenticated-user-email");
         const assertionEmail = emailFromAssertion(request);
         const jwt = request.headers.get("cf-access-jwt-assertion");
-        const user = await currentUser(request, context);
+        // The identity actually being acted as: a switched profile wins. `currentUser`
+        // ignores x-profile-id, so this route used to report the signed-in owner while
+        // every other route scoped queries to the switched member — the menu then showed
+        // owner-only controls that the API answered with 403.
+        const user = await effectiveUser(request, context);
 
         return Response.json({
           ok: true,

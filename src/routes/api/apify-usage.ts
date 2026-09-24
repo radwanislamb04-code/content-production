@@ -47,9 +47,17 @@ export type Usage = {
 const TIMEOUT_MS = 12_000;
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
-// Module-level cache: a Worker isolate keeps this between requests, which is
-// enough to stop the settings page hammering Apify. `?fresh=1` re-reads.
-let cache: { at: number; payload: Usage[] } | null = null;
+/**
+ * Module-level cache, **keyed by user**: a Worker isolate keeps it between requests, which
+ * is enough to stop the settings page hammering Apify. `?fresh=1` re-reads.
+ *
+ * It has to be keyed. A single shared cache was read *before* the caller was resolved
+ * (`GET` below), so when two accounts' requests landed on the same isolate within the
+ * TTL, the second one was served the first one's slots — names, masked tokens and
+ * remaining credit. Reading per user and caching per user are two halves of the same
+ * rule; having only the first half is what put another account's Apify credit on screen.
+ */
+const cache = new Map<string, { at: number; payload: Usage[] }>();
 
 function num(v: unknown): number | null {
   const n = Number(v);
@@ -158,13 +166,14 @@ export const Route = createFileRoute("/api/apify-usage")({
       GET: async ({ request, context }) => {
         const env = getEnv(request, context);
         const fresh = new URL(request.url).searchParams.get("fresh") === "1";
-        if (!fresh && cache && Date.now() - cache.at < CACHE_TTL_MS) {
-          return Response.json({ ok: true, cached: true, slots: cache.payload });
+        // Resolve the caller FIRST, then look in that caller's cache entry — never a
+        // shared one, and never before we know whose slots are being asked about.
+        const uid = await currentUserId(request, context);
+        const hit = cache.get(uid);
+        if (!fresh && hit && Date.now() - hit.at < CACHE_TTL_MS) {
+          return Response.json({ ok: true, cached: true, slots: hit.payload });
         }
 
-        // The caller's own slots: this route used to read the owner's, which would
-        // have shown one user another's tokens and remaining credit.
-        const uid = await currentUserId(request, context);
         const slots = await readJsonSetting<ApifySlot[]>(
           env,
           SETTINGS_KEYS.apifySlots,
@@ -172,7 +181,7 @@ export const Route = createFileRoute("/api/apify-usage")({
           uid,
         );
         const payload = await Promise.all(slots.map((s, i) => usageFor(s, i)));
-        cache = { at: Date.now(), payload };
+        cache.set(uid, { at: Date.now(), payload });
         return Response.json({ ok: true, cached: false, slots: payload });
       },
     },

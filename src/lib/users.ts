@@ -137,6 +137,27 @@ export async function currentUserId(
 }
 
 /**
+ * The user row this request is actually acting as: the switched profile when one is set,
+ * otherwise the signed-in identity.
+ *
+ * Use this for any "may I?" check. `currentUser` alone answers a different question — it
+ * ignores `x-profile-id`, so a caller who switched to a member profile still comes back as
+ * the owner. That is exactly how the first version of the `/api/users` gate let a member
+ * through: the row it inspected was the owner's.
+ */
+export async function effectiveUser(
+  request: Request,
+  context: any,
+): Promise<AppUser | null> {
+  const switched = await requestedProfileId(request, context);
+  if (switched) {
+    const env = getEnv(request, context);
+    return loadById(env, switched);
+  }
+  return currentUser(request, context);
+}
+
+/**
  * The profile a request asks to act as, if that profile exists.
  *
  * Switching is a deliberate choice by the owner: everyone signed in may look at any

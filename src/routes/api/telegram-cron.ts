@@ -1,4 +1,4 @@
-import { OWNER_ID, currentUserId } from "../../lib/users";
+import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { readTelegramConfig } from "../../lib/settings";
@@ -12,8 +12,27 @@ export const Route = createFileRoute("/api/telegram-cron")({
       POST: async ({ request, context }) => {
       const env = getEnv(request, context);
       const db = env?.DB;
-      const kv = env?.KV;
       const now = new Date().toISOString();
+
+      // One identity for the whole handler: the caller's. This route used to take its
+      // Telegram credentials from the caller and its *tasks* from OWNER_ID, so a second
+      // account's chat received the owner's to-do list and then marked the owner's rows
+      // done — while its own list never emptied.
+      const uid = await currentUserId(request, context);
+
+      const logActivity = async (action: string, detail: string) => {
+        if (!db) return;
+        try {
+          await db
+            .prepare(
+              "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+            )
+            .bind(crypto.randomUUID(), "telegram-sync", action, detail, Date.now(), uid)
+            .run();
+        } catch {
+          /* the log is best-effort; the send result is what the caller is told */
+        }
+      };
 
       // --- Load credentials ---
       // Settings → Notifications (KV) is the source of truth; the legacy
@@ -22,45 +41,16 @@ export const Route = createFileRoute("/api/telegram-cron")({
       let botToken: string;
       let chatId: string;
       try {
-        const cfg = await readTelegramConfig(env, await currentUserId(request, context));
+        const cfg = await readTelegramConfig(env, uid);
         botToken = cfg.botToken ?? "";
         chatId = cfg.chatId ?? "";
       } catch {
-        // KV not available — log and return
-        if (db) {
-          await db
-            .prepare(
-              "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)"
-            )
-            .bind(
-              crypto.randomUUID(),
-              "telegram-sync",
-              "error",
-              "KV keys unavailable",
-              Date.now()
-            ,
-              OWNER_ID)
-            .run();
-        }
+        await logActivity("error", "KV keys unavailable");
         return Response.json({ error: "KV keys unavailable" }, { status: 500 });
       }
 
       if (!botToken || !chatId) {
-        if (db) {
-          await db
-            .prepare(
-              "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)"
-            )
-            .bind(
-              crypto.randomUUID(),
-              "telegram-sync",
-              "error",
-              "Missing telegram_bot_token or telegram_chat_id in KV",
-              Date.now()
-            ,
-              OWNER_ID)
-            .run();
-        }
+        await logActivity("error", "Missing telegram_bot_token or telegram_chat_id in KV");
         return Response.json({ error: "Missing KV keys" }, { status: 500 });
       }
 
@@ -69,9 +59,9 @@ export const Route = createFileRoute("/api/telegram-cron")({
       try {
         const { results } = await db
           .prepare(
-            `SELECT * FROM telegram_tasks WHERE done = 0 AND user_id = ? ORDER BY created_at ASC LIMIT ?`
+            `SELECT * FROM telegram_tasks WHERE done = 0 AND user_id = ? ORDER BY created_at ASC LIMIT ?`,
           )
-          .bind(OWNER_ID, BATCH_LIMIT)
+          .bind(uid, BATCH_LIMIT)
           .all();
         tasks = results ?? [];
       } catch {
@@ -79,19 +69,7 @@ export const Route = createFileRoute("/api/telegram-cron")({
       }
 
       if (!tasks.length) {
-        await db
-          .prepare(
-            "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)"
-          )
-          .bind(
-            crypto.randomUUID(),
-            "telegram-sync",
-            "no_tasks",
-            "No pending tasks",
-            Date.now()
-          ,
-            OWNER_ID)
-          .run();
+        await logActivity("no_tasks", "No pending tasks");
         return Response.json({ sent: 0, message: "No pending tasks" });
       }
 
@@ -106,7 +84,7 @@ export const Route = createFileRoute("/api/telegram-cron")({
 <span>Time: ${task.time || "—"}</span>`;
 
         try {
-          await fetch(tgUrl, {
+          const res = await fetch(tgUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -115,14 +93,20 @@ export const Route = createFileRoute("/api/telegram-cron")({
               parse_mode: "HTML",
             }),
           });
+          // Telegram answers 200 with `ok:false` when it refuses (bad chat id, blocked
+          // bot). Counting the call instead of the answer is how "Sent 10 of 10" used to
+          // be printed for messages that never arrived — and the task was marked done.
+          const body: any = await res.json().catch(() => null);
+          if (!res.ok || body?.ok === false) {
+            failed.push(task.id);
+            continue;
+          }
           sent++;
 
           // Mark task as sent
           await db
-            .prepare(
-              "UPDATE telegram_tasks SET done = 1 WHERE id = ? AND user_id = ?",
-            )
-            .bind(task.id, OWNER_ID)
+            .prepare("UPDATE telegram_tasks SET done = 1 WHERE id = ? AND user_id = ?")
+            .bind(task.id, uid)
             .run();
         } catch {
           failed.push(task.id);
@@ -130,21 +114,10 @@ export const Route = createFileRoute("/api/telegram-cron")({
       }
 
       // --- Log to activity ---
-      await db
-        .prepare(
-          "INSERT INTO activity (id, module, action, detail, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)"
-        )
-        .bind(
-          crypto.randomUUID(),
-          "telegram-sync",
-          "tasks_sent",
-          `Sent ${sent} tasks to Telegram at ${now}${
-            failed.length ? ` | ${failed.length} failed` : ""
-          }`,
-          Date.now()
-        ,
-          OWNER_ID)
-        .run();
+      await logActivity(
+        failed.length ? "tasks_partial" : "tasks_sent",
+        `Sent ${sent} tasks to Telegram at ${now}${failed.length ? ` | ${failed.length} failed` : ""}`,
+      );
 
       return Response.json({
         sent,

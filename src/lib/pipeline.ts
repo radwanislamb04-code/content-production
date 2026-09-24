@@ -13,7 +13,8 @@ import {
 import { sendTelegramLong } from "./telegram";
 import { getWorkspace, putWorkspace } from "./workspace";
 import { fetchGoogleTrends, fetchYouTubeTrends } from "../routes/api/trends";
-import { fetchInstagramPosts } from "../routes/api/scrape-competitor";
+import { scrapeHandleWithSlots } from "../routes/api/scrape-competitor";
+import { scrapeStepOutcome } from "./apify-slots";
 import { storePosts } from "./post-performance";
 
 /**
@@ -87,8 +88,15 @@ export async function runPipeline(
     if (disabled.includes("ig-competitors")) {
       wanted = wanted.filter((s) => s !== "scrape");
     }
-  } catch {
-    /* never block a run because a settings read failed */
+  } catch (err: any) {
+    // Fail closed. Swallowing this meant "cannot tell which sources are on" was treated
+    // as "every source is on", so a run would fetch — and spend money on — sources the
+    // owner had switched off. A run that stops with a readable reason is the lesser evil.
+    throw new Error(
+      `Could not read which sources are enabled (sources:disabled): ${
+        err?.message ?? String(err)
+      } — run aborted rather than fetching sources you may have turned off`,
+    );
   }
 
   const steps: StepResult[] = [];
@@ -104,8 +112,15 @@ export async function runPipeline(
         await logActivity(env, "trends", "fetch_ok", r.detail);
       } else if (id === "scrape") {
         const r = await stepScrape(env, userId);
-        steps.push({ step: id, ok: true, detail: r.detail, items: r.items, ms: Date.now() - t0 });
-        await logActivity(env, "scrape-competitor", "scrape_ok", r.detail);
+        // `ok: r.ok`, not the `true` this used to hardcode — which is why a run that
+        // stored zero posts could still be logged as `scrape_ok` and shown green.
+        steps.push({ step: id, ok: r.ok, detail: r.detail, items: r.items, ms: Date.now() - t0 });
+        await logActivity(
+          env,
+          "scrape-competitor",
+          r.ok ? "scrape_ok" : "scrape_degraded",
+          r.detail,
+        );
       } else if (id === "brief") {
         const r = await stepBrief(env, userId);
         briefKey = r.key;
@@ -187,15 +202,10 @@ async function stepTrends(
 async function stepScrape(
   env: any,
   userId: string = OWNER_ID,
-): Promise<{ detail: string; items: number }> {
-  // Both of these belong to the signed-in user. `competitors` two lines below was already
-  // read per-user, so reading the token and the handle as the OWNER meant a second user's
+): Promise<{ detail: string; items: number; ok: boolean }> {
+  // Both of these belong to the signed-in user. `competitors` below was already read
+  // per-user, so reading the token and the handle as the OWNER meant a second user's
   // scrape spent the owner's Apify quota and treated the owner's account as its own.
-  const token = await readApifyToken(env, "Instagram competitor", userId);
-  if (!token) {
-    throw new Error("Apify token not configured — add it in Settings → Apify slots");
-  }
-
   const own = normalizeHandle(
     await readSetting(env, SETTINGS_KEYS.instagramHandle, undefined, userId),
   );
@@ -218,29 +228,44 @@ async function stepScrape(
 
   let stored = 0;
   const notes: string[] = [];
+  const failures: string[] = [];
+  const slotsUsed = new Set<string>();
 
   for (const handle of targets) {
-    const posts = await fetchInstagramPosts(token, handle);
-    const real = posts.filter(
-      (p) => p.url && !/apify|not configured|error/i.test(p.caption),
+    // Walks the caller's slots and hands over to the next one when a token is out of
+    // allowance. This is the piece that was promised and missing: with the first slot
+    // spent, every run got a 402, stored nothing, and the second slot was never tried.
+    const scrape = await scrapeHandleWithSlots(
+      env,
+      "Instagram competitor",
+      userId,
+      handle,
     );
-    if (real.length === 0) {
-      notes.push(`${handle}: 0${posts[0]?.caption ? ` (${posts[0].caption.slice(0, 50)})` : ""}`);
+
+    if (scrape.error) {
+      failures.push(`${handle}: ${scrape.error}`);
       continue;
     }
+    if (scrape.via) slotsUsed.add(scrape.via);
+
+    // Zero posts with no error is a real answer (a quiet account), not a failure.
+    if (scrape.posts.length === 0) {
+      notes.push(`${handle}: 0`);
+      continue;
+    }
+
     // This used to DELETE every row for the handle and insert the newest ten, so the
     // brief could never see anything older than the last scrape — the "7-day window"
     // had nothing to look at. Now each post is matched by URL: seen before → updated,
     // new → inserted. History accumulates, duplicates cannot.
-    //
-    // `userId`, not the OWNER_ID constant it used to bind: the scrape resolves a token
-    // per user, so attributing every row to the owner was simply wrong for anyone else.
-    // storePosts also drops scraper error text, which used to be stored as a "post".
-    stored += await storePosts(env, userId, handle, real, own === handle);
-    notes.push(`${handle}: ${real.length}`);
+    stored += await storePosts(env, userId, handle, scrape.posts, own === handle);
+    notes.push(`${handle}: ${scrape.posts.length}`);
   }
 
-  return { detail: `${stored} posts stored — ${notes.join(" · ")}`, items: stored };
+  // A failed handle fails the step, so the caller logs `scrape_degraded` instead of
+  // `scrape_ok`: a run that brought back nothing must not look healthy.
+  const { detail, ok } = scrapeStepOutcome(notes, failures, slotsUsed);
+  return { detail, items: stored, ok };
 }
 
 /** Compose the brief with the AI and store it as workspace `brief_YYYY-MM-DD`. */

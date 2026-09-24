@@ -70,6 +70,8 @@ export const Route = createFileRoute("/api/trend-spy")({
         // --- Fetch raw trend data by calling trends.ts logic directly ---
         // Pass category through so YouTube uses search.list (q=category) instead of chart=mostPopular
         let rawTrends: TrendItem[] = [];
+        /** Which feeds answered. A failed feed must not be dressed up as data. */
+        const failedSources: string[] = [];
         // See trends.ts: the user id belongs in the FOURTH argument, not the third.
         const youtubeApiKey = await readSetting(env, SETTINGS_KEYS.youtube, undefined, userId);
         const serApiKey = await readSetting(env, SETTINGS_KEYS.serpapi, undefined, userId);
@@ -77,18 +79,33 @@ export const Route = createFileRoute("/api/trend-spy")({
         try {
           const youtubeResults = await fetchYouTubeTrends(youtubeApiKey, category);
           rawTrends.push(...youtubeResults);
-        } catch {
-          // YouTube fetch failed - continue
+        } catch (err: any) {
+          failedSources.push(`youtube: ${err?.message ?? String(err)}`);
         }
         try {
           const googleResults = await fetchGoogleTrends(serApiKey);
           rawTrends.push(...googleResults);
-        } catch {
-          // Google fetch failed - continue
+        } catch (err: any) {
+          failedSources.push(`google: ${err?.message ?? String(err)}`);
         }
 
         if (rawTrends.length === 0) {
-          rawTrends = [{ title: "No trend data available", metric: "", source: "none" }];
+          // This used to hand the model a single row reading "No trend data available"
+          // as if it were a trend, so an analysis of nothing came back looking real.
+          // Now it says what happened and stops.
+          return Response.json(
+            {
+              ok: false,
+              category,
+              error:
+                failedSources.length > 0
+                  ? `No trend data could be fetched (${failedSources.join("; ")})`
+                  : "No trend data was returned by the configured sources",
+              failed_sources: failedSources,
+              insights: [],
+            },
+            { status: 502 },
+          );
         }
 
         // --- Build system prompt for trend analysis ---

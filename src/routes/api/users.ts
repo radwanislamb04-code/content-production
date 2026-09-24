@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivityFor } from "../../lib/activity";
 import { getEnv } from "../../lib/settings";
-import { currentUser, isOwner } from "../../lib/users";
+import { currentUser, effectiveUser, isOwner } from "../../lib/users";
 
 /**
  * /api/users — who may use this Content OS.
@@ -27,7 +27,20 @@ export const Route = createFileRoute("/api/users")({
     handlers: {
       GET: async ({ request, context }) => {
         const env = getEnv(request, context);
-        const me = await currentUser(request, context);
+        // Owner-only. This listed every user's email, name and role to anyone who could
+        // reach the route — the POST below was already gated, the read was not.
+        //
+        // `effectiveUser`, not `currentUser`: the latter ignores a switched profile, so
+        // the first version of this gate inspected the owner's row even when the caller
+        // had switched to a member profile. Verified by calling it with a member profile
+        // and watching it answer 200 with the full list.
+        const me = await effectiveUser(request, context);
+        if (!me || !isOwner(me)) {
+          return Response.json(
+            { ok: false, error: "Only the owner can list users" },
+            { status: 403 },
+          );
+        }
         if (!env?.DB) return Response.json({ ok: true, users: [], me: null });
 
         const { results } = await env.DB.prepare(

@@ -27,6 +27,9 @@ type Calendar = {
   entries: Entry[];
   /** Soft rules the model missed when it built the plan. */
   warnings?: string[];
+  /** Written by the generator; an edit must carry these through, not drop them. */
+  posting_times?: { reel?: string; story?: string; carousel?: string };
+  notes?: string;
 };
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -133,7 +136,11 @@ export function Planner() {
   /** Write an edited calendar straight back to the workspace table. */
   const persist = useCallback(
     async (entries: Entry[]) => {
+      // Everything the generator wrote is carried over. This rebuilt the row from four
+      // fields and silently dropped `posting_times`, `notes` and `warnings` — editing one
+      // card's caption destroyed the schedule and the notes that came with the plan.
       const next: Calendar = {
+        ...(calendar ?? {}),
         month,
         generated_at: calendar?.generated_at ?? Date.now(),
         pillars: calendar?.pillars,

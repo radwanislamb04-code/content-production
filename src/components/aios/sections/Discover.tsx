@@ -9,6 +9,11 @@ import type { SectionId } from "../Sidebar";
 import { useSidebarOpen } from "@/lib/sidebar";
 
 const SOURCES = [
+  {
+    id: "brief",
+    label: "From Today's Brief",
+    hint: "One click: the brief where your trends, your competitors' recent posts and your own picks were already analysed together.",
+  },
   { id: "my_posts", label: "My Posts", hint: "Ideas derived from your best performing posts." },
   { id: "competitor", label: "Competitors", hint: "Add competitor handles to mine for angles." },
   { id: "trend", label: "Trends", hint: "Add trending keywords or hashtags." },
@@ -130,7 +135,12 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
     setLoading(true);
     try {
       let sourceData: unknown[] = [];
-      if (source !== "my_posts") {
+      if (source === "brief") {
+        // Nothing to collect: the brief already holds the analysis. This is the button the
+        // owner kept asking for — one click instead of generating trends and competitors
+        // separately and reading them side by side.
+        setStep("sourcing");
+      } else if (source !== "my_posts") {
         setStep("sourcing");
         sourceData =
           source === "competitor" ? await collectCompetitorData() : await collectTrendData();
@@ -232,7 +242,14 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
           </div>
         )}
 
-        {source !== "my_posts" && (
+        {source === "brief" && (
+          <div className="mt-3 rounded-lg border border-line bg-surface p-3 text-xs text-mute">
+            Reads the latest saved brief — no handles or keywords to add. Ideas come out
+            tagged with the trend and competitor evidence behind them.
+          </div>
+        )}
+
+        {source !== "my_posts" && source !== "brief" && (
           <div className="mt-4 space-y-3">
             <div className="flex gap-2">
               <Input
@@ -276,14 +293,18 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
           className="mt-5 w-full"
           onClick={generate}
           loading={loading}
-          disabled={source !== "my_posts" && entries.length === 0}
+          disabled={
+            (source === "competitor" || source === "trend") && entries.length === 0
+          }
         >
           {step === "sourcing"
             ? source === "competitor"
               ? "Fetching competitor data…"
               : source === "my_posts"
                 ? "Loading your posts…"
-                : "Fetching trend data…"
+                : source === "brief"
+                  ? "Reading the brief…"
+                  : "Fetching trend data…"
             : step === "generating"
               ? "Generating ideas…"
               : "Generate Ideas"}

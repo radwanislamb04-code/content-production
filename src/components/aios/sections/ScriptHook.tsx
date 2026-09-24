@@ -1,16 +1,97 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, EmptyState } from "../ui";
 import { PenLine, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { apiPost, errorMessage } from "@/lib/api";
+import { apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { ScriptResult } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";
+
+/** A row of `/api/scripts-list` — enough to show a dated list without loading the bodies. */
+type SavedScript = {
+  id: string;
+  title: string;
+  content_pillar: string | null;
+  created_at: number;
+};
+
+/** "24 Sep, 9:15 PM" — the list is browsed by when it was written. */
+function stamp(ms: number): string {
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return "unknown date";
+  return d.toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 export function ScriptHook({ onNav }: { onNav: (id: SectionId) => void }) {
   const { selectedIdea, script, setScript } = usePipeline();
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<"Script" | "Voiceover">("Script");
+  const [saved, setSaved] = useState<SavedScript[]>([]);
+  const [savedLoading, setSavedLoading] = useState(true);
+  const [openingId, setOpeningId] = useState<string | null>(null);
+
+  /**
+   * Open a script that was written on an earlier day.
+   *
+   * The library held seventeen scripts while this screen insisted "No script yet": the only
+   * way to see one was to hold its idea in memory from the Ideator. The list is the missing
+   * door — the row's `content` is the same JSON the writer returned, so it reopens exactly
+   * as it was.
+   */
+  const openScript = async (id: string) => {
+    setOpeningId(id);
+    try {
+      const row = await apiGet<any>(`/api/library/script/${id}`);
+      const parsed = typeof row?.content === "string" ? JSON.parse(row.content) : row?.content;
+      setScript({
+        id: row.id,
+        title: row.title,
+        content_pillar: row.content_pillar ?? null,
+        script: parsed,
+      } as ScriptResult);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setOpeningId(null);
+    }
+  };
+
+  useEffect(() => {
+    let alive = true;
+    apiGet<SavedScript[]>("/api/scripts-list?type=script")
+      .then((rows) => {
+        const list = Array.isArray(rows) ? rows : [];
+        if (!alive) return;
+        setSaved(list);
+        // Show the latest one rather than an empty page — there is no reason to make the
+        // owner click before seeing their own most recent script.
+        if (!script && list.length > 0) void openScript(list[0].id);
+      })
+      .catch(() => {
+        /* the generate flow still works if the list cannot be read */
+      })
+      .finally(() => {
+        if (alive) setSavedLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refreshSaved = async () => {
+    try {
+      const rows = await apiGet<SavedScript[]>("/api/scripts-list?type=script");
+      setSaved(Array.isArray(rows) ? rows : []);
+    } catch {
+      /* the list is a convenience; a failure here must not look like a failed generation */
+    }
+  };
 
   const generate = async () => {
     if (!selectedIdea) return;
@@ -20,6 +101,7 @@ export function ScriptHook({ onNav }: { onNav: (id: SectionId) => void }) {
         idea_id: selectedIdea.id,
       });
       setScript(res);
+      void refreshSaved();
       toast.success("Script generated");
     } catch (err) {
       toast.error(errorMessage(err));
@@ -45,6 +127,43 @@ export function ScriptHook({ onNav }: { onNav: (id: SectionId) => void }) {
           Turn a selected idea into hooks, body and CTA.
         </p>
       </div>
+
+      {savedLoading ? (
+        <div className="text-sm text-mute">Loading your saved scripts…</div>
+      ) : saved.length > 0 ? (
+        <Card className="p-5">
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] uppercase tracking-wide text-mute">
+              Saved scripts ({saved.length})
+            </div>
+            <GhostBtn onClick={() => void refreshSaved()}>
+              <RefreshCw size={13} /> Refresh
+            </GhostBtn>
+          </div>
+          <div className="mt-3 max-h-56 space-y-1 overflow-y-auto">
+            {saved.map((s) => {
+              const isOpen = script?.id === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => void openScript(s.id)}
+                  disabled={openingId === s.id}
+                  className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                    isOpen
+                      ? "border-lime text-lime"
+                      : "border-line text-fg2 hover:border-lime hover:text-lime"
+                  }`}
+                >
+                  <span className="truncate">{s.title}</span>
+                  <span className="shrink-0 text-xs text-mute">
+                    {openingId === s.id ? "opening…" : stamp(s.created_at)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="p-5">
         {selectedIdea ? (

@@ -237,7 +237,10 @@ export function ThumbnailStudioScreen() {
     };
   }, []);
 
-  const hasCharacter = false;
+  // Was hardcoded `false`, which made the Character layer switch dead: it could be turned on
+  // and nothing ever appeared. It now means what it says — a character with a photo is on
+  // file, so the layer has something real to show.
+  const hasCharacter = Boolean(characterRef);
   const colorValue = SWATCHES.find((s) => s.id === color)?.value ?? SWATCHES[0]!.value;
   const row = Math.floor(pos / 3);
   const col = pos % 3;
@@ -494,7 +497,12 @@ export function ThumbnailStudioScreen() {
                     }`,
                   }}
                 >
-                  <div className="h-full w-[40cqw] rounded-t-full bg-cardhi" />
+                  {/* The character's own photo, not a grey stand-in. */}
+                  <img
+                    src={characterRef ?? ""}
+                    alt={characterName || "Character"}
+                    className="h-full w-[40cqw] rounded-t-full object-cover object-top"
+                  />
                 </div>
               )}
 

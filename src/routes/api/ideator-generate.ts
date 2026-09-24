@@ -2,8 +2,9 @@ import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
+import { getWorkspaceFor } from "../../lib/workspace";
 
-type Source = "my_posts" | "competitor" | "trend";
+type Source = "my_posts" | "competitor" | "trend" | "brief";
 
 type Idea = {
   title: string;
@@ -43,15 +44,61 @@ function autoTagPillar(idea: Idea): string {
   return bestPillar;
 }
 
+/**
+ * The newest stored Daily Brief, whichever day it is for.
+ *
+ * Briefs live in `workspace` as `brief_YYYY-MM-DD`. Asking the database for the highest key
+ * avoids re-deriving "today" in Dhaka here and quietly disagreeing with the pipeline about
+ * which day it is. The brief already holds trends and competitor posts *analysed together*,
+ * which is exactly what the owner kept asking for instead of clicking through the separate
+ * trend and competitor tabs.
+ */
+async function loadLatestBrief(request: Request, context: any): Promise<any | null> {
+  const env = getEnv(request, context);
+  const db = env?.DB;
+  if (!db) return null;
+  try {
+    const row = (await db
+      .prepare(
+        "SELECT key FROM workspace WHERE user_id = ? AND key LIKE 'brief_%' ORDER BY key DESC LIMIT 1",
+      )
+      .bind(await currentUserId(request, context))
+      .first()) as { key?: string } | null;
+    if (!row?.key) return null;
+    return await getWorkspaceFor<any>(request, context, row.key);
+  } catch {
+    return null;
+  }
+}
+
+/** The brief is prose plus signals, not a JSON array — send it as the writer wrote it. */
+function briefBlock(sourceData: unknown[]): string {
+  const brief = (sourceData?.[0] ?? {}) as Record<string, any>;
+  const markdown = String(brief.markdown ?? "").slice(0, 9000);
+  const signals = JSON.stringify(brief.context ?? {}, null, 1).slice(0, 4000);
+  return [
+    `DAILY BRIEF — ${brief.date ?? "latest"}`,
+    markdown || "(the brief has no body)",
+    "",
+    "SIGNALS IT WAS BUILT FROM (trends, competitor posts, the owner's own picks):",
+    signals || "(none)",
+  ].join("\n");
+}
+
 function buildPrompt(source: Source, sourceData: unknown[]): string {
   const sourceLabel =
     source === "my_posts"
       ? "the user's own recent posts"
       : source === "competitor"
       ? "recent posts from a competitor account"
-      : "current trending topics";
+      : source === "brief"
+        ? "today's Daily Brief, where their trends, their competitors' recent posts and their own best-performing content have already been analysed together"
+        : "current trending topics";
 
-  const dataBlock = JSON.stringify(sourceData ?? [], null, 2).slice(0, 12000);
+  const dataBlock =
+    source === "brief"
+      ? briefBlock(sourceData)
+      : JSON.stringify(sourceData ?? [], null, 2).slice(0, 12000);
 
   return `You are a social content ideator. Based on ${sourceLabel} below, generate 4-5 fresh content ideas the user could produce next.
 
@@ -135,20 +182,47 @@ export const Route = createFileRoute("/api/ideator-generate")({
         }
 
         const { source, source_data } = body;
-        if (source !== "my_posts" && source !== "competitor" && source !== "trend") {
+        if (
+          source !== "my_posts" &&
+          source !== "competitor" &&
+          source !== "trend" &&
+          source !== "brief"
+        ) {
           return Response.json(
-            { error: 'Missing/invalid "source". Use "my_posts" | "competitor" | "trend"' },
-            { status: 400 },
-          );
-        }
-        if (!Array.isArray(source_data)) {
-          return Response.json(
-            { error: '"source_data" must be an array' },
+            {
+              error:
+                'Missing/invalid "source". Use "my_posts" | "competitor" | "trend" | "brief"',
+            },
             { status: 400 },
           );
         }
 
-        const prompt = buildPrompt(source, source_data);
+        // The brief branch reads its own data: the whole point is one click, so the browser
+        // sends nothing and is not asked to assemble trends and competitors row by row.
+        let sourceData: unknown[];
+        if (source === "brief") {
+          const brief = await loadLatestBrief(request, context);
+          if (!brief) {
+            return Response.json(
+              {
+                error:
+                  "No Daily Brief has been saved yet — open Daily Brief and generate one first.",
+              },
+              { status: 400 },
+            );
+          }
+          sourceData = [brief];
+        } else {
+          if (!Array.isArray(source_data)) {
+            return Response.json(
+              { error: '"source_data" must be an array' },
+              { status: 400 },
+            );
+          }
+          sourceData = source_data;
+        }
+
+        const prompt = buildPrompt(source, sourceData);
 
         // --- Call Anthropic-compatible /messages endpoint ---
         const anthropicUrl = anthropicMessagesUrl(String(baseUrl));

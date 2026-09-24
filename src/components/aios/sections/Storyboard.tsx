@@ -9,12 +9,111 @@ import type { SectionId } from "../Sidebar";
 
 type Character = { name: string; description: string };
 
+/** A row of `/api/scripts-list` — either a script or a storyboard. */
+type LibraryRow = {
+  id: string;
+  title: string;
+  content_pillar: string | null;
+  created_at: number;
+  source_id?: string | null;
+};
+
+/** "24 Sep, 9:15 PM" — these lists are browsed by date. */
+function stamp(ms: number): string {
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return "unknown date";
+  return d.toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
-  const { script, storyboard, setStoryboard } = usePipeline();
+  const { script, setScript, storyboard, setStoryboard } = usePipeline();
   const [loading, setLoading] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+  const [savedStoryboards, setSavedStoryboards] = useState<LibraryRow[]>([]);
+  const [savedScripts, setSavedScripts] = useState<LibraryRow[]>([]);
+  const [openingId, setOpeningId] = useState<string | null>(null);
+
+  /**
+   * Reopen a storyboard that was generated earlier.
+   *
+   * Its `content` is the same `{ shots }` the generator wrote, so nothing is re-derived —
+   * and its row still points at the script it came from, which is how the source script is
+   * put back on screen for a regeneration.
+   */
+  const openStoryboard = async (id: string) => {
+    setOpeningId(id);
+    try {
+      const row = await apiGet<any>(`/api/library/storyboard/${id}`);
+      const parsed = typeof row?.content === "string" ? JSON.parse(row.content) : row?.content;
+      const shots = Array.isArray(parsed?.shots) ? parsed.shots : [];
+      setStoryboard({
+        storyboard_id: row.id,
+        script_id: row.source_id ?? "",
+        shot_count: shots.length,
+        shots,
+      } as StoryboardResult);
+      if (!script && row.source_id) await openScript(row.source_id, true);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setOpeningId(null);
+    }
+  };
+
+  const openScript = async (id: string, quiet = false) => {
+    try {
+      const row = await apiGet<any>(`/api/library/script/${id}`);
+      const parsed = typeof row?.content === "string" ? JSON.parse(row.content) : row?.content;
+      setScript({
+        id: row.id,
+        title: row.title,
+        content_pillar: row.content_pillar ?? null,
+        script: parsed,
+      } as any);
+      if (!quiet) toast.success("Source script selected");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  };
+
+  /**
+   * Load what already exists.
+   *
+   * Ten storyboards and seventeen scripts were sitting in the library while this screen said
+   * "Generate a script first" — it only ever looked at the in-memory pipeline, so a page
+   * reload hid everything the owner had made.
+   */
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [boards, scripts] = await Promise.all([
+          apiGet<LibraryRow[]>("/api/scripts-list?type=storyboard"),
+          apiGet<LibraryRow[]>("/api/scripts-list?type=script"),
+        ]);
+        if (!alive) return;
+        const boardList = Array.isArray(boards) ? boards : [];
+        const scriptList = Array.isArray(scripts) ? scripts : [];
+        setSavedStoryboards(boardList);
+        setSavedScripts(scriptList);
+        if (!storyboard && boardList.length > 0) void openStoryboard(boardList[0].id);
+        else if (!script && scriptList.length > 0) void openScript(scriptList[0].id, true);
+      } catch {
+        /* the generate flow still works if the lists cannot be read */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addCharacter = () => {
     const n = name.trim();
@@ -63,6 +162,12 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
         ...(characters.length ? { characters } : {}),
       });
       setStoryboard(res);
+      // Bring the new row into the list without a reload.
+      apiGet<LibraryRow[]>("/api/scripts-list?type=storyboard")
+        .then((rows) => setSavedStoryboards(Array.isArray(rows) ? rows : []))
+        .catch(() => {
+          /* the storyboard itself is already on screen */
+        });
       toast.success(`Storyboard ready — ${res.shot_count} shots`);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -81,6 +186,63 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
           Break your script into shot-by-shot visuals.
         </p>
       </div>
+
+      {savedStoryboards.length > 0 && (
+        <Card className="p-5">
+          <div className="text-[11px] uppercase tracking-wide text-mute">
+            Saved storyboards ({savedStoryboards.length})
+          </div>
+          <div className="mt-3 max-h-56 space-y-1 overflow-y-auto">
+            {savedStoryboards.map((b) => {
+              const isOpen = storyboard?.storyboard_id === b.id;
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => void openStoryboard(b.id)}
+                  disabled={openingId === b.id}
+                  className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                    isOpen
+                      ? "border-lime text-lime"
+                      : "border-line text-fg2 hover:border-lime hover:text-lime"
+                  }`}
+                >
+                  <span className="truncate">{b.title}</span>
+                  <span className="shrink-0 text-xs text-mute">
+                    {openingId === b.id ? "opening…" : stamp(b.created_at)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {savedScripts.length > 0 && (
+        <Card className="p-5">
+          <div className="text-[11px] uppercase tracking-wide text-mute">
+            Build from a saved script ({savedScripts.length})
+          </div>
+          <div className="mt-3 max-h-44 space-y-1 overflow-y-auto">
+            {savedScripts.map((s) => {
+              const isOpen = script?.id === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => void openScript(s.id)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                    isOpen
+                      ? "border-lime text-lime"
+                      : "border-line text-fg2 hover:border-lime hover:text-lime"
+                  }`}
+                >
+                  <span className="truncate">{s.title}</span>
+                  <span className="shrink-0 text-xs text-mute">{stamp(s.created_at)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       <Card className="p-5">
         {script ? (

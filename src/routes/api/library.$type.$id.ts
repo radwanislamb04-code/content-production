@@ -65,9 +65,12 @@ export const Route = createFileRoute("/api/library/$type/$id")({
           .join(", ");
         const values = Object.values(fields);
         try {
+          // `AND user_id = ?` — the row id was the only thing checked, so anyone signed in
+          // could rewrite anyone else's row by guessing an id. The GET and DELETE handlers
+          // already scoped by user; this one did not.
           await db
-            .prepare(`UPDATE library SET ${setClause} WHERE id = ?`)
-            .bind(...values, id)
+            .prepare(`UPDATE library SET ${setClause} WHERE id = ? AND user_id = ?`)
+            .bind(...values, id, await currentUserId(request, context))
             .run();
           return Response.json({ ok: true });
         } catch {

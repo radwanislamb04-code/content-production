@@ -37,6 +37,59 @@ export const APPEARANCE_DEFAULTS: Appearance = {
 
 const LS_KEY = "aios.appearance";
 
+/** The class the dark palette hangs off — `styles.css` defines `:root` (light) and `.dark`. */
+export const DARK_CLASS = "dark";
+
+/**
+ * The app's own background colours, mirroring `--cos-app` in `styles.css`
+ * (`:root` = light, `.dark` = dark). Kept here so the critical style below can name them;
+ * if the palette's app background ever changes, change it in both places.
+ */
+export const APP_BACKGROUND = { dark: "#030504", light: "#f2f5f2" } as const;
+
+/**
+ * A two-rule style block that goes in `<head>` *before* the app's stylesheet.
+ *
+ * The stylesheet is a separate request. Until it arrives the page paints with the
+ * browser's default canvas, which is white — a second, shorter white flash even when the
+ * class is already right. These two rules paint the canvas the correct colour immediately,
+ * and `:not(.dark)` makes the light case follow the class the script sets.
+ */
+export const CRITICAL_BACKGROUND_CSS =
+  `html{background:${APP_BACKGROUND.dark}}` +
+  `html:not(.${DARK_CLASS}){background:${APP_BACKGROUND.light}}`;
+
+/**
+ * Runs inline in `<head>`, before the stylesheet, to paint the right theme on the very
+ * first frame.
+ *
+ * Without it the server sends `<html>` bare, the base palette is the light one
+ * (`:root { --background: oklch(1 0 0) }`), and the theme only landed in a React effect —
+ * after the first paint and, when the account copy was the source, after a network round
+ * trip. That is the white flash on every reload: light, a pause, then dark.
+ *
+ * An effect cannot fix that; only a blocking inline script can, which is why this is a
+ * string rather than a function. It duplicates as little logic as possible: the storage
+ * key comes from `LS_KEY` above, and the decision mirrors `isDark()`. The shipped text is
+ * executed in `tools/unit-appearance-prepaint.mjs`, so what is tested is what is sent.
+ */
+export const APPEARANCE_PREPAINT_SCRIPT = `(function(){try{
+var d=document.documentElement;
+var raw=null;
+try{raw=localStorage.getItem(${JSON.stringify(LS_KEY)});}catch(e){}
+var a={};
+if(raw){try{a=JSON.parse(raw)||{};}catch(e){a={};}}
+var t=a.theme;
+if(t!=="dark"&&t!=="light"&&t!=="system"){t="dark";}
+var dark=t==="dark";
+if(t==="system"){
+  try{dark=!!(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);}catch(e){dark=false;}
+}
+d.classList.toggle(${JSON.stringify(DARK_CLASS)},dark);
+d.style.colorScheme=dark?"dark":"light";
+d.dataset.reduceMotion=String(a.reduceMotion===true);
+}catch(e){}})();`;
+
 let current: Appearance = { ...APPEARANCE_DEFAULTS };
 let listening = false;
 
@@ -84,7 +137,7 @@ export function applyAppearance(next: Appearance): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   const dark = isDark(next.theme);
-  root.classList.toggle("dark", dark);
+  root.classList.toggle(DARK_CLASS, dark);
   root.style.colorScheme = dark ? "dark" : "light";
   root.dataset.reduceMotion = String(next.reduceMotion);
   try {

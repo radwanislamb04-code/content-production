@@ -11,6 +11,11 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
+import {
+  APPEARANCE_PREPAINT_SCRIPT,
+  CRITICAL_BACKGROUND_CSS,
+  DARK_CLASS,
+} from "@/lib/appearance";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -107,8 +112,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // The dark class is on the element the server sends, so the first paint is already
+    // dark instead of white-then-dark. The inline script below is what corrects it for a
+    // light or "system" preference — before any paint, because it is blocking and sits
+    // ahead of the stylesheet. `suppressHydrationWarning` is required: the script is
+    // allowed to change this element's class before React hydrates it.
+    <html lang="en" className={DARK_CLASS} suppressHydrationWarning>
       <head>
+        <style dangerouslySetInnerHTML={{ __html: CRITICAL_BACKGROUND_CSS }} />
+        <script dangerouslySetInnerHTML={{ __html: APPEARANCE_PREPAINT_SCRIPT }} />
         <HeadContent />
       </head>
       <body>

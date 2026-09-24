@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, EmptyState, Input } from "../ui";
-import { LayoutPanelLeft, Plus, X } from "lucide-react";
+import { LayoutPanelLeft, Plus, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { apiGet, apiPost, errorMessage } from "@/lib/api";
+import { apiDelete, apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { StoryboardResult } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";
@@ -39,6 +39,7 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
   const [savedStoryboards, setSavedStoryboards] = useState<LibraryRow[]>([]);
   const [savedScripts, setSavedScripts] = useState<LibraryRow[]>([]);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   /**
    * Reopen a storyboard that was generated earlier.
@@ -64,6 +65,27 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
       toast.error(errorMessage(err));
     } finally {
       setOpeningId(null);
+    }
+  };
+
+  /**
+   * Delete a saved storyboard.
+   *
+   * The script page and the video prompt page each had a way to clear a row; this list did
+   * not, so a storyboard built from the wrong script could only be dealt with in the
+   * database.
+   */
+  const removeStoryboard = async (id: string) => {
+    setDeleting(id);
+    try {
+      await apiDelete(`/api/library/storyboard/${id}`);
+      setSavedStoryboards((prev) => prev.filter((b) => b.id !== id));
+      if (storyboard?.storyboard_id === id) setStoryboard(null);
+      toast.success("Storyboard deleted");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -196,21 +218,31 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
             {savedStoryboards.map((b) => {
               const isOpen = storyboard?.storyboard_id === b.id;
               return (
-                <button
-                  key={b.id}
-                  onClick={() => void openStoryboard(b.id)}
-                  disabled={openingId === b.id}
-                  className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
-                    isOpen
-                      ? "border-lime text-lime"
-                      : "border-line text-fg2 hover:border-lime hover:text-lime"
-                  }`}
-                >
-                  <span className="truncate">{b.title}</span>
-                  <span className="shrink-0 text-xs text-mute">
-                    {openingId === b.id ? "opening…" : stamp(b.created_at)}
-                  </span>
-                </button>
+                <div key={b.id} className="flex items-center gap-1">
+                  <button
+                    onClick={() => void openStoryboard(b.id)}
+                    disabled={openingId === b.id}
+                    className={`flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                      isOpen
+                        ? "border-lime text-lime"
+                        : "border-line text-fg2 hover:border-lime hover:text-lime"
+                    }`}
+                  >
+                    <span className="truncate">{b.title}</span>
+                    <span className="shrink-0 text-xs text-mute">
+                      {openingId === b.id ? "opening…" : stamp(b.created_at)}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => void removeStoryboard(b.id)}
+                    disabled={deleting === b.id}
+                    aria-label={`Delete ${b.title}`}
+                    title="Delete this storyboard"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line text-mute transition hover:border-err hover:text-err disabled:opacity-50"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               );
             })}
           </div>

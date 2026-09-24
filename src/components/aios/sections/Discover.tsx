@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, Input, EmptyState } from "../ui";
-import { Lightbulb, Plus, Trash2, X } from "lucide-react";
+import { Lightbulb, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { apiDelete, apiFetch, apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { Idea } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";
+import type { LibraryRow } from "@/lib/content-types";
 import { useSidebarOpen } from "@/lib/sidebar";
 
 const SOURCES = [
@@ -30,6 +31,35 @@ type MyPost = {
   url: string;
 };
 
+/** A saved library row as the `Idea` the pipeline and the Script step work with. */
+function fromSaved(row: LibraryRow): Idea & { why_it_works: string; tags: string[] } {
+  let parsed: any = {};
+  try {
+    parsed = row.content ? JSON.parse(String(row.content)) : {};
+  } catch {
+    /* a row with unreadable content still keeps its id and title */
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    why_it_works: String(parsed?.why_it_works ?? ""),
+    tags: Array.isArray(parsed?.tags) ? parsed.tags : [],
+    format: String(parsed?.format ?? "reel"),
+    content_pillar: String(row.content_pillar ?? ""),
+    status: String(row.status ?? "draft"),
+  };
+}
+
+/** "just now", "12m ago", "3h ago" — enough to see which idea is the newest. */
+function stamp(at?: number): string {
+  if (!at) return "";
+  const mins = Math.round((Date.now() - at) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)}h ago`;
+  return `${Math.round(mins / (60 * 24))}d ago`;
+}
+
 export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
   const { ideas, setIdeas, selectedIdea, setSelectedIdea, briefItem, setBriefItem } =
     usePipeline();
@@ -46,6 +76,16 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
   const [pickedFrom, setPickedFrom] = useState<{ text: string; section: string } | null>(null);
   const [picking, setPicking] = useState(false);
   const [deletingIdea, setDeletingIdea] = useState<string | null>(null);
+  /**
+   * The ideas that are already saved.
+   *
+   * A generated batch lived only in React state, so a reload emptied the screen and the
+   * five ideas it had just made were unreachable again — they were in the library, with no
+   * way back to them from the screen that made them. This list is that way back.
+   */
+  const [savedIdeas, setSavedIdeas] = useState<LibraryRow[]>([]);
+  const [savedLoading, setSavedLoading] = useState(true);
+  const [deletingSaved, setDeletingSaved] = useState<string | null>(null);
 
   // Load the real scraped posts as soon as "My Posts" is selected, so the panel
   // shows what will actually feed the idea generator.
@@ -63,6 +103,22 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
       cancelled = true;
     };
   }, [source, myPosts]);
+
+  const refreshSavedIdeas = async () => {
+    try {
+      const rows = await apiGet<LibraryRow[]>("/api/scripts-list?type=idea");
+      setSavedIdeas(Array.isArray(rows) ? rows : []);
+    } catch {
+      /* the list is a convenience; a failed read must not break the page */
+    } finally {
+      setSavedLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshSavedIdeas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * A line sent over from the Daily Brief.
@@ -101,6 +157,7 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
         });
         setIdeas(res.ideas ?? []);
         setPickedFrom({ text: picked.text, section: picked.section });
+        void refreshSavedIdeas();
         toast.success(`Generated ${res.ideas?.length ?? 0} ideas from that brief line`);
       } catch (err) {
         toast.error(errorMessage(err));
@@ -131,7 +188,22 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
     });
   }, [selectedIdea?.title]);
 
-  /** Delete an idea — a batch of five that only needed one still has to be clearable. */
+  /** Delete from the saved list — a batch that only needed one still has to be clearable. */
+  const removeSavedIdea = async (id: string) => {
+    setDeletingSaved(id);
+    try {
+      await apiDelete(`/api/library/idea/${id}`);
+      setSavedIdeas((prev) => prev.filter((i) => i.id !== id));
+      setIdeas(ideas.filter((i) => i.id !== id));
+      if (selectedIdea?.id === id) setSelectedIdea(null);
+      toast.success("Idea deleted");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setDeletingSaved(null);
+    }
+  };
+
   const removeIdea = async (id: string) => {
     setDeletingIdea(id);
     try {
@@ -399,6 +471,57 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
               : "Generate Ideas"}
         </PrimaryBtn>
       </Card>
+
+      {savedLoading ? (
+        <div className="text-sm text-mute">Loading your saved ideas…</div>
+      ) : (
+        savedIdeas.length > 0 && (
+          <Card className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] uppercase tracking-wide text-mute">
+                Saved ideas ({savedIdeas.length})
+              </div>
+              <GhostBtn onClick={() => void refreshSavedIdeas()}>
+                <RefreshCw size={13} /> Refresh
+              </GhostBtn>
+            </div>
+            <div className="mt-3 max-h-52 space-y-1 overflow-y-auto aios-scroll">
+              {savedIdeas.slice(0, 30).map((idea) => {
+                const isSel = selectedIdea?.id === idea.id;
+                return (
+                  <div key={idea.id} className="flex items-center gap-1">
+                    <button
+                      onClick={() => setSelectedIdea({ ...fromSaved(idea) })}
+                      className={`flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                        isSel ? "border-lime text-lime" : "border-line text-fg2 hover:border-lime hover:text-lime"
+                      }`}
+                    >
+                      <span className="truncate">{idea.title}</span>
+                      <span className="shrink-0 text-xs text-mute">
+                        {isSel ? "selected" : stamp(idea.created_at)}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => void removeSavedIdea(idea.id)}
+                      disabled={deletingSaved === idea.id}
+                      aria-label={`Delete ${idea.title}`}
+                      title="Delete this idea"
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line text-mute transition hover:border-err hover:text-err disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+              {savedIdeas.length > 30 && (
+                <div className="pt-1 text-[11px] text-mute">
+                  Showing the newest 30 of {savedIdeas.length}.
+                </div>
+              )}
+            </div>
+          </Card>
+        )
+      )}
 
       {pickedFrom && (
         <Card className="border-lime p-4">

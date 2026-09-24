@@ -102,10 +102,12 @@ export function ScriptHook({ onNav }: { onNav: (id: SectionId) => void }) {
     try {
       const res = await apiPost<ScriptResult>("/api/hook-script-writer", {
         idea_id: selectedIdea.id,
+        // Regenerating with a script open replaces it; without one, this makes a new row.
+        script_id: script?.id,
       });
       setScript(res);
       void refreshSaved();
-      toast.success("Script generated");
+      toast.success(script?.id ? "Script regenerated" : "Script generated");
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {

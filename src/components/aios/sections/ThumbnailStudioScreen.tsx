@@ -271,7 +271,10 @@ export function ThumbnailStudioScreen() {
   //   - External providers (gemini, chatgpt, arena): copy the prompt to the
   //     clipboard, open the site in a new tab, show an inline hint.
   const handleGenerate = async () => {
-    const text = prompt || "";
+    // The preset chips were decoration: `setPreset` flipped a state value that was only
+    // ever read back to highlight the chip, so picking "Neon" changed nothing about the
+    // image. The style now rides along with the prompt the owner wrote.
+    const text = [preset ? `${preset} style.` : "", prompt || ""].filter(Boolean).join(" ");
     setGenerateError(null);
     setInAppHint(null);
 
@@ -753,12 +756,11 @@ export function ThumbnailStudioScreen() {
               )}
               {(site === "workers-ai" || site === "vyceai") && (
                 <Card className="flex items-start gap-2 p-3">
-                  <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warn" />
-                  <span className="text-[11px] text-warn">
-                    In-app generation is not working yet: Workers AI rejects the request (error 5006
-                    — the configured model expects multipart input, we send JSON). Use Gemini,
-                    ChatGPT or arena.ai below instead: the prompt is copied and the site opens in a
-                    new tab.
+                  <AlertTriangle size={14} className="mt-0.5 shrink-0 text-mute" />
+                  <span className="text-[11px] text-mute">
+                    Generation happens in the app. If a request fails, try another model above — or
+                    use Gemini, ChatGPT or arena.ai below: the prompt is copied and the site opens in
+                    a new tab.
                   </span>
                 </Card>
               )}
@@ -790,20 +792,55 @@ export function ThumbnailStudioScreen() {
 
           {tab === "character" && (
             <div className="space-y-3">
-              <EmptyState
-                icon={<User size={20} />}
-                title="No characters yet"
-                description="Add a character cut-out to place it on your thumbnails."
-                action={
+              {/* Only when there really is nothing on file. This card used to render
+                  whenever the tab was opened, so with Enzo available it still announced
+                  "No characters yet" while the controls underneath worked on him. */}
+              {!hasCharacter ? (
+                <EmptyState
+                  icon={<User size={20} />}
+                  title="No characters yet"
+                  description="Add a character cut-out to place it on your thumbnails."
+                  action={
+                    <Link
+                      to="/characters"
+                      className="inline-flex h-10 items-center rounded-lg bg-lime px-4 text-sm font-bold text-app outline-none hover:bg-lime2 focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app"
+                    >
+                      Go to Characters
+                    </Link>
+                  }
+                />
+              ) : (
+                <div className="flex items-center gap-3 rounded-lg border border-line bg-surface p-3">
+                  {characterRef && (
+                    <img
+                      src={characterRef}
+                      alt={characterName || "Character"}
+                      className="h-12 w-12 rounded-md object-cover"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-fg">
+                      {characterName || "Your character"}
+                    </div>
+                    <div className="text-[11px] text-mute">
+                      On file — placed on the thumbnail when the Character layer is on.
+                    </div>
+                  </div>
                   <Link
                     to="/characters"
-                    className="inline-flex h-10 items-center rounded-lg bg-lime px-4 text-sm font-bold text-app outline-none hover:bg-lime2 focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app"
+                    className="ml-auto shrink-0 text-xs text-mute underline hover:text-fg"
                   >
-                    Go to Characters
+                    Change
                   </Link>
-                }
-              />
-              <fieldset disabled className="space-y-3 opacity-50">
+                </div>
+              )}
+              {/* Disabled only when there is nothing to place. It used to be disabled
+                  always, so even with a character chosen, Position/Size/Flip could not be
+                  touched. */}
+              <fieldset
+                disabled={!hasCharacter}
+                className={`space-y-3 ${hasCharacter ? "" : "opacity-50"}`}
+              >
                 <Field label="Position">
                   <Segmented
                     value={charPos}

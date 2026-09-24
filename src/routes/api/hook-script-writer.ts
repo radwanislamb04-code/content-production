@@ -165,6 +165,23 @@ export const Route = createFileRoute("/api/hook-script-writer")({
           return Response.json({ error: 'Missing "idea_id"' }, { status: 400 });
         }
 
+        // Optional: the script being regenerated. Sending it makes "Regenerate" overwrite
+        // that row instead of leaving the previous draft behind — pressing it three times
+        // used to leave three scripts with nearly the same title in the library.
+        const reuseId =
+          typeof (body as any).script_id === "string" && (body as any).script_id.trim()
+            ? (body as any).script_id.trim()
+            : null;
+        let reusedCreatedAt: number | null = null;
+        if (reuseId) {
+          const existing = (await db
+            .prepare("SELECT created_at FROM library WHERE id = ? AND type = 'script' AND user_id = ?")
+            .bind(reuseId, await currentUserId(request, context))
+            .first()) as { created_at: number } | null;
+          if (existing) reusedCreatedAt = existing.created_at;
+          else console.log("[hook-script-writer] script_id not found for this user — creating a new row");
+        }
+
         // --- Fetch idea from library ---
         let idea: IdeaRow | null = null;
         try {
@@ -352,7 +369,7 @@ export const Route = createFileRoute("/api/hook-script-writer")({
         // Store the full structured script (hooks + body + cta + formatted STEP 5
         // output) as JSON in `content`. type/status/content_pillar preserved.
         const now = Date.now();
-        const scriptId = crypto.randomUUID();
+        const scriptId = reusedCreatedAt !== null ? (reuseId as string) : crypto.randomUUID();
         const scriptTitle = `Script: ${idea.title}`;
         const scriptContent = JSON.stringify(script);
         const contentPillar = idea.content_pillar ?? null;
@@ -370,8 +387,8 @@ export const Route = createFileRoute("/api/hook-script-writer")({
                  source_id = excluded.source_id,
                  updated_at = excluded.updated_at`,
             )
-            .bind(scriptId, "script", "draft", contentPillar, scriptTitle, scriptContent, ideaId, now, now,
-              await currentUserId(request, context))
+            .bind(scriptId, "script", "draft", contentPillar, scriptTitle, scriptContent, ideaId,
+              reusedCreatedAt ?? now, now, await currentUserId(request, context))
             .run();
         } catch (err: any) {
           return Response.json(
@@ -391,7 +408,7 @@ export const Route = createFileRoute("/api/hook-script-writer")({
           // Which playbook wrote this: the niche-bound skill, or the generic script
           // shape. Reported rather than implied, so it can be checked from outside.
           skill: { applied: skill.applies, reason: skill.reason, niche: skill.niche },
-          created_at: now,
+          created_at: reusedCreatedAt ?? now,
           updated_at: now,
         });
       },

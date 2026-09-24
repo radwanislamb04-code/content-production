@@ -4,6 +4,7 @@ import { takePendingTemplate } from "@/lib/pending-template";
 import type { SectionId } from "../Sidebar";
 import { toast } from "sonner";
 import { apiFetch, apiPost, errorMessage } from "@/lib/api";
+import { usePipeline } from "../pipeline";
 import {
   Copy,
   FileText,
@@ -51,6 +52,9 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzerResult | null>(null);
   const [otab, setOtab] = useState<OTab>("Hooks");
+  const [saving, setSaving] = useState(false);
+  /** The script row this analysis was saved as, so pressing save twice cannot duplicate it. */
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   // A template chosen on the Templates page arrives here once (see
   // lib/pending-template) and pre-fills the idea box.
@@ -58,6 +62,54 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
     const pending = takePendingTemplate();
     if (pending) setText((prev) => (prev ? prev : pending));
   }, []);
+
+  /**
+   * Turn the analysis into a real script row.
+   *
+   * "Send to Script Section →" only called `onNav("script")` — nothing was saved, so the
+   * Script screen had nothing to show and the work was lost the moment the page changed.
+   * The analysis is already the same shape a script row holds (three hooks, a timestamped
+   * body, a voiceover), so it is written as one, with the title, description and hashtags
+   * kept in `formatted` so nothing the model produced is dropped.
+   */
+  const saveAsScript = async (): Promise<string | null> => {
+    if (!result) return null;
+    if (savedId) return savedId;
+    setSaving(true);
+    try {
+      const id = crypto.randomUUID();
+      await apiFetch("/api/library/script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          title: `Analyzed: ${result.title || "untitled"}`,
+          content: JSON.stringify({
+            hooks: result.hooks,
+            body: result.full_script,
+            cta: "",
+            voiceover_script: result.voiceover_script,
+            selected_hook_index: 0,
+            formatted: [
+              result.title && `TITLE: ${result.title}`,
+              result.description && `DESCRIPTION: ${result.description}`,
+              result.hashtags.length > 0 && `HASHTAGS: ${result.hashtags.join(" ")}`,
+            ]
+              .filter(Boolean)
+              .join("\n\n"),
+            analyzed_from: "Video Analyzer",
+          }),
+        }),
+      });
+      setSavedId(id);
+      return id;
+    } catch (err) {
+      toast.error(errorMessage(err));
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const copy = (value: string) => {
     navigator.clipboard.writeText(value).then(
@@ -86,6 +138,9 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
         hashtags: Array.isArray(res?.hashtags) ? res.hashtags : [],
       });
       if (!opts?.keepTab) setOtab("Hooks");
+      // A new analysis is a new script; the previous save no longer applies to what is on
+      // screen, so the next save must create a row rather than overwrite the old one.
+      setSavedId(null);
       toast.success("Content generated");
     } catch (err) {
       toast.error(errorMessage(err));
@@ -278,8 +333,17 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
             </OutCard>
           )}
 
-          <PrimaryBtn className="w-full" onClick={() => onNav?.("script")}>
-            <Video size={16} /> Send to Script Section →
+          <PrimaryBtn
+            className="w-full"
+            loading={saving}
+            onClick={async () => {
+              const id = await saveAsScript();
+              if (!id) return;
+              toast.success(savedId ? "Already saved" : "Saved as a script");
+              onNav?.("script");
+            }}
+          >
+            <Video size={16} /> {savedId ? "Open in Script →" : "Save as a script → Script"}
           </PrimaryBtn>
         </div>
       )}
@@ -288,6 +352,7 @@ export function VideoAnalyzer({ onNav }: { onNav?: (id: SectionId) => void }) {
 }
 
 function CustomIdeas({ onNav }: { onNav?: (id: SectionId) => void }) {
+  const { setSelectedIdea } = usePipeline();
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [nextId, setNextId] = useState(1);
   const [sending, setSending] = useState(false);
@@ -299,19 +364,65 @@ function CustomIdeas({ onNav }: { onNav?: (id: SectionId) => void }) {
     setNextId((n) => n + 1);
   };
 
+  /**
+   * Save the typed ideas as real idea rows, select the first of them, and open Script.
+   *
+   * This button used to write `idea_%` workspace rows and go to Storyboard — a page that
+   * needs a *script*, never reads those rows, and so answered "generate a script first".
+   * The ideas were unreachable from anywhere. Saving them as library rows (which is what
+   * the Ideator writes too) makes them real: they appear in the saved list, they can be
+   * picked, and the first one is selected here so the next step is one click away.
+   */
   const send = async () => {
     setSending(true);
     try {
-      await apiFetch("/api/workspace/selected_idea", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ideas: finalized.map((i) => i.text.trim()) }),
-      });
-    } catch {
-      /* offline-safe: still move the user forward */
+      const created: { id: string; title: string }[] = [];
+      for (const idea of finalized) {
+        const id = crypto.randomUUID();
+        const title = idea.text.trim().slice(0, 90);
+        await apiFetch("/api/library/idea", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            title,
+            content: JSON.stringify({
+              why_it_works: "Added by hand in the Video Analyzer",
+              tags: ["custom"],
+              format: "reel",
+              source: "custom",
+            }),
+          }),
+        });
+        created.push({ id, title });
+      }
+      if (created.length > 0) {
+        setSelectedIdea({
+          id: created[0].id,
+          title: created[0].title,
+          why_it_works: "Added by hand in the Video Analyzer",
+          tags: ["custom"],
+          format: "reel",
+          content_pillar: "",
+          status: "draft",
+        });
+        await apiFetch("/api/workspace/selected_idea", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ideas: [created[0].title] }),
+        }).catch(() => {
+          /* the selection still holds for this session */
+        });
+        toast.success(
+          `Saved ${created.length} idea${created.length === 1 ? "" : "s"} — first one selected`,
+        );
+      }
+      onNav?.("script");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setSending(false);
     }
-    setSending(false);
-    onNav?.("storyboard");
   };
 
   return (
@@ -326,7 +437,7 @@ function CustomIdeas({ onNav }: { onNav?: (id: SectionId) => void }) {
       <div className="mt-4 space-y-2">
         {ideas.length === 0 && (
           <p className="text-sm text-mute">
-            No ideas yet — add one to send it through to Storyboard.
+            No ideas yet — add one and it will be saved as an idea, then opened in Script.
           </p>
         )}
         {ideas.map((idea) => (
@@ -384,7 +495,7 @@ function CustomIdeas({ onNav }: { onNav?: (id: SectionId) => void }) {
           disabled={sending}
           className="mt-4 h-12 w-full rounded-lg bg-lime text-sm font-bold text-app transition-colors hover:bg-lime2 disabled:opacity-60"
         >
-          {sending ? "Saving..." : "Send to Storyboard →"}
+          {sending ? "Saving…" : "Save as ideas → Script"}
         </button>
       )}
     </Card>

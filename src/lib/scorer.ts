@@ -8,6 +8,7 @@
  */
 
 import { callAi, extractJson } from "./ai";
+import { creatorProfileLine, readCreatorProfile, type CreatorProfile } from "./settings";
 
 export type ScoreAnalysis = {
   score: number;
@@ -37,8 +38,13 @@ export type ScoreOutcome =
   | { ok: true; analysis: ScoreAnalysis }
   | { ok: false; error: string; raw?: string };
 
-export function buildPrompt(d: { type: string; title: string; content: string }): string {
-  return `You are a ruthless but fair content reviewer for a solo creator's short-form video channel (Instagram Reels / YouTube Shorts, handle @enzorico.ai).
+export function buildPrompt(d: {
+  type: string;
+  title: string;
+  content: string;
+  profile: CreatorProfile;
+}): string {
+  return `You are a ruthless but fair content reviewer for a solo creator's short-form video channel (Instagram Reels / YouTube Shorts, ${creatorProfileLine(d.profile)}).
 
 Rate the ${d.type} below and return ONLY JSON:
 {"score":8.2,"breakdown":{"originality":8,"engagement_potential":9,"clarity":7,"actionability":8,"trend_alignment":9},"strengths":["..."],"weaknesses":["..."],"improvement_suggestions":["..."],"recommended_action":"publish|revise|discard","summary":"one or two sentences"}
@@ -116,6 +122,7 @@ export async function scoreItem(
       typeof item.content === "string"
         ? item.content
         : JSON.stringify(item.content ?? "", null, 2),
+    profile: await readCreatorProfile(env, userId),
   });
 
   let analysis: ScoreAnalysis | null = null;

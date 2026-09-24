@@ -5,7 +5,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity";
 import { callAi, extractJson } from "../../lib/ai";
-import { getEnv, readPillars, readPostingTimes } from "../../lib/settings";
+import {
+  creatorProfileLine,
+  getEnv,
+  readCreatorProfile,
+  readPillars,
+  readPostingTimes,
+  type CreatorProfile,
+} from "../../lib/settings";
 import { getWorkspace, putWorkspace } from "../../lib/workspace";
 import { queuePendingWork } from "../../lib/autoqueue";
 
@@ -56,12 +63,14 @@ export const Route = createFileRoute("/api/generate-plan")({
         }
         const { month, notes } = parsed.data;
 
-        const [pillars, times] = await Promise.all([
-          readPillars(env, await currentUserId(request, context)),
-          readPostingTimes(env, await currentUserId(request, context)),
+        const uid = await currentUserId(request, context);
+        const [pillars, times, profile] = await Promise.all([
+          readPillars(env, uid),
+          readPostingTimes(env, uid),
+          readCreatorProfile(env, uid),
         ]);
 
-        const prompt = buildPrompt({ month, pillars, times, notes });
+        const prompt = buildPrompt({ month, pillars, times, notes, profile });
         let text = "";
         let entries: PlanEntry[] | null = null;
 
@@ -232,8 +241,9 @@ function buildPrompt(d: {
   pillars: string[];
   times: { reel: string; story: string; carousel: string };
   notes?: string;
+  profile: CreatorProfile;
 }): string {
-  return `You are the content planner for a solo short-form video creator (Instagram Reels / YouTube Shorts, brand "Content OS", handle @enzorico.ai). Plan the month ${d.month}.
+  return `You are the content planner for a solo short-form video creator (Instagram Reels / YouTube Shorts, ${creatorProfileLine(d.profile)}). Plan the month ${d.month}.
 
 Return ONLY JSON:
 {"entries":[{"date":"YYYY-MM-DD","type":"Reel|Carousel|Story","topic":"specific post idea","pillar":"one of the pillars","time":"HH:MM"}]}

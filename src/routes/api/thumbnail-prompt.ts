@@ -3,7 +3,12 @@ import { putWorkspaceFor } from "../../lib/workspace";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { callAi, extractJson } from "../../lib/ai";
-import { getEnv } from "../../lib/settings";
+import {
+  creatorProfileLine,
+  getEnv,
+  readCreatorProfile,
+  type CreatorProfile,
+} from "../../lib/settings";
 import { putWorkspace } from "../../lib/workspace";
 
 /**
@@ -53,12 +58,13 @@ export const Route = createFileRoute("/api/thumbnail-prompt")({
         }
         const { script, style, saveId } = parsed.data;
 
-        const prompt = buildPrompt(script, style);
+        const uid = await currentUserId(request, context);
+        const prompt = buildPrompt(script, style, await readCreatorProfile(env, uid));
 
         let text: string;
         try {
           text = await callAi(env, prompt, {
-            userId: await currentUserId(request, context), maxTokens: 900 });
+            userId: uid, maxTokens: 900 });
         } catch (err: any) {
           return Response.json(
             { ok: false, error: err?.message ?? String(err) },
@@ -104,8 +110,8 @@ export const Route = createFileRoute("/api/thumbnail-prompt")({
   },
 });
 
-function buildPrompt(script: string, style?: string): string {
-  return `You write thumbnail art direction for a solo creator's short-form videos (brand "Content OS", handle @enzorico.ai). Produce ONE image-generation prompt that a designer or an image model can follow.
+function buildPrompt(script: string, style: string | undefined, profile: CreatorProfile): string {
+  return `You write thumbnail art direction for a solo creator's short-form videos (${creatorProfileLine(profile)}). Produce ONE image-generation prompt that a designer or an image model can follow.
 
 Return ONLY JSON, no prose, exactly these keys:
 {"headline":"3-5 words that go on the thumbnail","subline":"max 6 words, or an empty string","background_prompt":"the scene only, no text","character_note":"how the person should look/pose, or an empty string","text_style":"font weight/placement advice","colour_notes":"palette and contrast","full_prompt":"one paragraph: subject, framing, lighting, palette, background, mood, text placement, lens, 3:2 thumbnail"}

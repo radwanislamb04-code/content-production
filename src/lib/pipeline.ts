@@ -2,10 +2,13 @@ import { OWNER_ID } from "./users";
 import { lastActivityError, logActivity } from "./activity";
 import { callAi } from "./ai";
 import {
+  creatorProfileLine,
   readApifyToken,
+  readCreatorProfile,
   readJsonSetting,
   readSetting,
   SETTINGS_KEYS,
+  type CreatorProfile,
 } from "./settings";
 import { sendTelegramLong } from "./telegram";
 import { getWorkspace, putWorkspace } from "./workspace";
@@ -301,9 +304,18 @@ async function stepBrief(
     }
   }
 
-  const markdown = await callAi(env, buildBriefPrompt({ dateKey, trends, viral, picks, tasks }), {
-    maxTokens: 1600,
-  });
+  // Who this brief is for, read per user — the prompt used to name the owner's
+  // brand and handle for everyone.
+  const profile = await readCreatorProfile(env, userId);
+
+  const markdown = await callAi(
+    env,
+    buildBriefPrompt({ dateKey, trends, viral, picks, tasks, profile }),
+    {
+      maxTokens: 1600,
+      userId,
+    },
+  );
   if (!markdown || markdown.length < 40) {
     throw new Error("The AI returned an empty brief");
   }
@@ -418,9 +430,10 @@ function buildBriefPrompt(d: {
   viral: any[];
   picks: any[];
   tasks: any[];
+  profile: CreatorProfile;
 }): string {
   const list = (rows: string[]) => (rows.length ? rows.join("\n") : "(none)");
-  return `You are the daily brief writer for a solo short-form video creator (Instagram Reels / YouTube Shorts, brand "Content OS", handle @enzorico.ai).
+  return `You are the daily brief writer for a solo short-form video creator (Instagram Reels / YouTube Shorts, ${creatorProfileLine(d.profile)}).
 
 Write the brief for ${d.dateKey} in plain text (no tables, no markup other than "-" bullets) with EXACTLY these section headings, in this order:
 

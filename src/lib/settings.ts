@@ -74,6 +74,11 @@ export const SETTINGS_KEYS = {
   contentPillars: "settings:content:pillars",
   contentPostingTimes: "settings:content:posting-times",
 
+  // Who the channel belongs to — brand, handle, niche, language, reference
+  // creators. One JSON blob because the five fields travel together: every AI
+  // prompt that used to hardcode "Content OS" / "@enzorico.ai" reads this.
+  creatorProfile: "settings:creator:profile",
+
   // Image generation — already live before this module existed.
   imagegenKey: "settings:imagegen:vyceai",
   imagegenModel: "settings:imagegen:default-model",
@@ -317,6 +322,117 @@ export async function readPostingTimes(
     story: pick(raw?.story, DEFAULT_POSTING_TIMES.story),
     carousel: pick(raw?.carousel, DEFAULT_POSTING_TIMES.carousel),
   };
+}
+
+// --------------------------------------------------------- creator profile
+
+/**
+ * Who the channel belongs to.
+ *
+ * These five values were hardcoded inside four different AI prompts (`pipeline`,
+ * `generate-plan`, `thumbnail-prompt`, `scorer`), which meant a second account
+ * could connect its own Instagram and still be told to write for "Content OS"
+ * with handle "@enzorico.ai" and an AI-tools niche. The defaults below are the
+ * original owner's, so nothing changes for the main account until it is edited.
+ */
+export type CreatorProfile = {
+  /** Content brand — what the AI writes for. Not the name of this app. */
+  brand: string;
+  /** Instagram handle, with or without the leading "@". */
+  handle: string;
+  /** The lane the account is in, e.g. "AI updates & tools". */
+  niche: string;
+  /** Language spoken on camera, e.g. "Bangla/Banglish — technical terms in English". */
+  language: string;
+  /** Creators this account studies. Empty means "not specified". */
+  referenceCreators: string[];
+};
+
+export const DEFAULT_CREATOR_PROFILE: CreatorProfile = {
+  brand: "Content OS",
+  handle: "@enzorico.ai",
+  niche: "AI updates & tools",
+  language: "Bangla/Banglish — technical terms stay in English",
+  referenceCreators: [],
+};
+
+const PROFILE_MAX = { brand: 80, handle: 80, niche: 160, language: 160 } as const;
+
+/** One-line form, for prompts that name the creator in a parenthetical. */
+export function creatorProfileLine(profile: CreatorProfile): string {
+  const line = `brand "${profile.brand}", handle ${profile.handle}, niche ${profile.niche}, on-camera language ${profile.language}`;
+  return profile.referenceCreators.length
+    ? `${line}, reference creators ${profile.referenceCreators.join(", ")}`
+    : line;
+}
+
+/** Block form, for prompts that get a dedicated section. */
+export function creatorProfileBlock(profile: CreatorProfile): string {
+  const lines = [
+    "CREATOR",
+    `- Brand: ${profile.brand}`,
+    `- Handle: ${profile.handle}`,
+    `- Niche: ${profile.niche}`,
+    `- Language on camera: ${profile.language}`,
+  ];
+  if (profile.referenceCreators.length) {
+    lines.push(`- Reference creators in this niche: ${profile.referenceCreators.join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
+const cleanText = (value: unknown, max: number, fallback: string): string => {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text ? text.slice(0, max) : fallback;
+};
+
+/**
+ * Coerce whatever is stored (or posted) into a usable profile: strings trimmed
+ * and capped, reference creators accepted as an array or a comma-separated
+ * string, every empty field falling back to the default rather than blanking a
+ * prompt.
+ */
+export function normalizeCreatorProfile(raw: unknown): CreatorProfile {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const rawRefs = Array.isArray(r.referenceCreators)
+    ? r.referenceCreators
+    : typeof r.referenceCreators === "string"
+      ? r.referenceCreators.split(",")
+      : [];
+  const seen = new Set<string>();
+  const referenceCreators: string[] = [];
+  for (const entry of rawRefs) {
+    const name = String(entry ?? "").trim().slice(0, 80);
+    const key = name.toLowerCase();
+    if (!name || seen.has(key)) continue;
+    seen.add(key);
+    referenceCreators.push(name);
+    if (referenceCreators.length >= 20) break;
+  }
+  // Prompts read "handle @name", so store the "@" rather than trusting the caller
+  // to type it.
+  const handle = cleanText(r.handle, PROFILE_MAX.handle - 1, DEFAULT_CREATOR_PROFILE.handle);
+  return {
+    brand: cleanText(r.brand, PROFILE_MAX.brand, DEFAULT_CREATOR_PROFILE.brand),
+    handle: handle.startsWith("@") ? handle : `@${handle}`,
+    niche: cleanText(r.niche, PROFILE_MAX.niche, DEFAULT_CREATOR_PROFILE.niche),
+    language: cleanText(r.language, PROFILE_MAX.language, DEFAULT_CREATOR_PROFILE.language),
+    referenceCreators,
+  };
+}
+
+/** The creator profile for one user, defaults filled in. Never throws. */
+export async function readCreatorProfile(
+  env: any,
+  userId: string = OWNER_ID,
+): Promise<CreatorProfile> {
+  const raw = await readJsonSetting<unknown>(
+    env,
+    SETTINGS_KEYS.creatorProfile,
+    {},
+    userId,
+  );
+  return normalizeCreatorProfile(raw);
 }
 
 /**

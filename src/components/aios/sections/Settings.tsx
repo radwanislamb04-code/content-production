@@ -9,6 +9,7 @@ import { Characters } from "./Characters";
 const NAV = [
   "API Keys",
   "Instagram",
+  "Creator",
   "Telegram",
   "Schedule",
   "Characters",
@@ -72,6 +73,13 @@ type Snapshot = {
   content: {
     pillars: string[];
     postingTimes: { reel: string; story: string; carousel: string };
+  };
+  creator: {
+    brand: string;
+    handle: string;
+    niche: string;
+    language: string;
+    referenceCreators: string[];
   };
 };
 
@@ -162,6 +170,7 @@ export function Settings() {
       <Card className="p-6">
         {tab === "API Keys" && <ApiKeys settings={settings} />}
         {tab === "Instagram" && <InstagramTab settings={settings} />}
+        {tab === "Creator" && <CreatorTab settings={settings} />}
         {tab === "Telegram" && <TelegramTab settings={settings} />}
         {tab === "Characters" && <Characters />}
         {tab === "Schedule" && <ScheduleTab settings={settings} />}
@@ -1027,6 +1036,153 @@ function InstagramTab({
       <div className="flex justify-end">
         <OutlineBtn onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save Instagram"}
+        </OutlineBtn>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ Creator */
+
+/**
+ * Who the channel belongs to. Every AI prompt that used to name one hardcoded
+ * brand and handle reads these five values instead, so a second account stops
+ * being told to write for someone else's channel.
+ *
+ * The handle is deliberately shared with Settings → Instagram: both fields write
+ * the same value server-side (see /api/settings), because a prompt that says
+ * "@a" while the scraper looks at "@b" is exactly how this app has drifted
+ * before.
+ */
+function CreatorTab({ settings }: { settings: ReturnType<typeof useSettings> }) {
+  const { snapshot, loading } = settings;
+  const [brand, setBrand] = useState("");
+  const [handle, setHandle] = useState("");
+  const [niche, setNiche] = useState("");
+  const [language, setLanguage] = useState("");
+  const [refs, setRefs] = useState<string[]>([]);
+  const [add, setAdd] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    setBrand(snapshot.creator.brand ?? "");
+    setHandle(snapshot.creator.handle ?? "");
+    setNiche(snapshot.creator.niche ?? "");
+    setLanguage(snapshot.creator.language ?? "");
+    setRefs(snapshot.creator.referenceCreators ?? []);
+  }, [snapshot]);
+
+  const save = async () => {
+    setSaving(true);
+    await settings.save(
+      {
+        creator: {
+          brand: brand.trim(),
+          handle: handle.trim(),
+          niche: niche.trim(),
+          language: language.trim(),
+          referenceCreators: refs,
+        },
+      },
+      "Creator profile",
+    );
+    setSaving(false);
+  };
+
+  if (loading && !snapshot) {
+    return <div className="text-sm text-mute">Loading settings…</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="text-lg font-semibold text-fg">Creator</div>
+      <div className="text-xs text-mute">
+        Written into the brief, planner, thumbnail and scoring prompts for this
+        account. The app's own name is not the same thing as your brand.
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <div className="mb-1 text-xs text-mute">Brand</div>
+          <Input value={brand} onChange={(e) => setBrand(e.target.value)} />
+          <div className="mt-1 text-[11px] text-mute">
+            What the AI writes for — e.g. “Content OS”.
+          </div>
+        </div>
+        <div>
+          <div className="mb-1 text-xs text-mute">Handle</div>
+          <Input
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            placeholder="@yourhandle"
+          />
+          <div className="mt-1 text-[11px] text-mute">
+            Shared with Settings → Instagram (the competitor check scrapes it).
+          </div>
+        </div>
+        <div className="sm:col-span-2">
+          <div className="mb-1 text-xs text-mute">Niche</div>
+          <Input
+            value={niche}
+            onChange={(e) => setNiche(e.target.value)}
+            placeholder="e.g. AI updates & tools"
+          />
+          <div className="mt-1 text-[11px] text-mute">
+            The lane the account is in — this is what the planner plans for.
+          </div>
+        </div>
+        <div className="sm:col-span-2">
+          <div className="mb-1 text-xs text-mute">Language on camera</div>
+          <Input
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            placeholder="e.g. Bangla/Banglish — technical terms stay in English"
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2 text-xs text-mute">Reference creators</div>
+        <div className="flex flex-wrap gap-2 rounded-lg border border-line bg-surface p-2">
+          {refs.map((c) => (
+            <span
+              key={c}
+              className="inline-flex items-center gap-1 rounded-full border border-line bg-cardx px-3 py-1 text-xs text-lime"
+            >
+              {c}
+              <button
+                onClick={() => setRefs(refs.filter((x) => x !== c))}
+                className="text-mute hover:text-err"
+                aria-label={`Remove ${c}`}
+              >
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+          <input
+            value={add}
+            onChange={(e) => setAdd(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && add.trim()) {
+                setRefs([...refs, add.trim()]);
+                setAdd("");
+              }
+            }}
+            placeholder="+ Add a creator you study"
+            className="h-7 min-w-[140px] flex-1 bg-transparent px-1 text-xs text-fg outline-none placeholder:text-mute"
+          />
+        </div>
+        <div className="mt-1 text-[11px] text-mute">
+          Optional. Creators whose hooks and structure the AI should learn from —
+          not the accounts the competitor check scrapes (that list is in
+          Instagram).
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <OutlineBtn onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save creator profile"}
         </OutlineBtn>
       </div>
     </div>

@@ -7,6 +7,8 @@ import {
   getKv,
   mask,
   maskApifySlots,
+  normalizeCreatorProfile,
+  readCreatorProfile,
   readJsonSetting,
   readPillars,
   readPostingTimes,
@@ -96,6 +98,25 @@ const postSchema = z.object({
        competitors: z.array(z.string().trim().max(200)).max(50).optional(),
      })
      .optional(),
+   creator: z
+     .object({
+       /** Content brand the AI writes for — not the name of this app. */
+       brand: z.string().trim().max(80).optional(),
+       /** Instagram handle; the "@" is added if missing. */
+       handle: z.string().trim().max(80).optional(),
+       /** The account's lane, e.g. "AI updates & tools". */
+       niche: z.string().trim().max(160).optional(),
+       /** Language spoken on camera. */
+       language: z.string().trim().max(160).optional(),
+       /** Creators this account studies — array, or one comma-separated string. */
+       referenceCreators: z
+         .union([
+           z.array(z.string().trim().max(80)).max(20),
+           z.string().trim().max(2000),
+         ])
+         .optional(),
+     })
+     .optional(),
    content: z
      .object({
        /** Content pillars the planner rotates through. */
@@ -147,6 +168,7 @@ async function snapshot(env: any, userId: string) {
     igCompetitors,
     pillars,
     postingTimes,
+    creator,
   ] = await Promise.all([
     readSetting(env, SETTINGS_KEYS.aiBaseUrl, undefined, userId),
     readSetting(env, SETTINGS_KEYS.aiKey, undefined, userId),
@@ -162,6 +184,7 @@ async function snapshot(env: any, userId: string) {
     readJsonSetting<string[]>(env, SETTINGS_KEYS.instagramCompetitors, [], userId),
     readPillars(env, userId),
     readPostingTimes(env, userId),
+    readCreatorProfile(env, userId),
   ]);
 
   return {
@@ -192,6 +215,7 @@ async function snapshot(env: any, userId: string) {
       pillars,
       postingTimes,
     },
+    creator,
   };
 }
 
@@ -305,6 +329,21 @@ export const Route = createFileRoute("/api/settings")({
                 SETTINGS_KEYS.instagramHandle,
                 body.instagram.handle,
                uid);
+              // One rule, two entry points: the handle the AI writes with and the
+              // handle the competitor check scrapes are the same account, so
+              // whichever field was edited updates both. Only a non-empty value
+              // mirrors — clearing the Instagram handle must not silently reset
+              // the creator's to the default.
+              const typed = body.instagram.handle.trim();
+              if (typed) {
+                const current = await readCreatorProfile(env, uid);
+                const merged = normalizeCreatorProfile({ ...current, handle: typed });
+                await writeSetting(
+                  env,
+                  SETTINGS_KEYS.creatorProfile,
+                  JSON.stringify(merged),
+                 uid);
+              }
             }
             if (body.instagram.competitors !== undefined) {
               const cleaned = body.instagram.competitors
@@ -314,6 +353,30 @@ export const Route = createFileRoute("/api/settings")({
                 env,
                 SETTINGS_KEYS.instagramCompetitors,
                 JSON.stringify(cleaned),
+               uid);
+            }
+          }
+
+          /* --- Creator profile (brand · handle · niche · language · references) --- */
+          if (body.creator) {
+            // Merged onto what is stored, so a form that only sends one field
+            // (the Reference-creators box) cannot wipe the rest.
+            const current = await readCreatorProfile(env, uid);
+            const merged = normalizeCreatorProfile({ ...current, ...body.creator });
+            await writeSetting(
+              env,
+              SETTINGS_KEYS.creatorProfile,
+              JSON.stringify(merged),
+             uid);
+            // Same rule as above, from the other side (see the Instagram block).
+            const typed = (body.creator.handle ?? "").trim();
+            if (typed) {
+              // Stored without the "@" here: the scraper strips it anyway and it is
+              // the shape the Instagram field has always held.
+              await writeSetting(
+                env,
+                SETTINGS_KEYS.instagramHandle,
+                typed.replace(/^@+/, ""),
                uid);
             }
           }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, Input, EmptyState } from "../ui";
 import { Lightbulb, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -69,10 +69,19 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
    *
    * That screen only carries the sentence; the generation happens here so the owner
    * lands on the results with the source tabs already pointing at "From Today's Brief".
+   *
+   * The "already dispatched" ref is load-bearing. Clearing `briefItem` is part of this
+   * effect, so the effect runs a second time the moment it clears — and an ordinary
+   * `cancelled` flag would then cancel the request that is still in flight, leaving the
+   * screen on "Generating…" forever with no ideas and no error. The ref says which line
+   * has already been sent, so the second run is a no-op instead of a cancellation.
    */
+  const dispatchedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!briefItem) return;
-    let cancelled = false;
+    if (dispatchedRef.current === briefItem.text) return;
+    dispatchedRef.current = briefItem.text;
+
     const picked = briefItem;
     setBriefItem(null);
     setSource("brief");
@@ -90,19 +99,17 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
             },
           ],
         });
-        if (cancelled) return;
         setIdeas(res.ideas ?? []);
         setPickedFrom({ text: picked.text, section: picked.section });
         toast.success(`Generated ${res.ideas?.length ?? 0} ideas from that brief line`);
       } catch (err) {
-        if (!cancelled) toast.error(errorMessage(err));
+        toast.error(errorMessage(err));
+        // Let the same line be retried instead of silently swallowing it.
+        dispatchedRef.current = null;
       } finally {
-        if (!cancelled) setPicking(false);
+        setPicking(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [briefItem, setBriefItem, setIdeas]);
 
   /** Delete an idea — a batch of five that only needed one still has to be clearable. */

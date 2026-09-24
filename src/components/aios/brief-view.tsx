@@ -20,39 +20,11 @@ export type Brief = {
   };
 };
 
-export const BRIEF_HEADINGS = [
-  "TODAY'S PICKS",
-  "TRENDING NOW",
-  "COMPETITOR WATCH",
-  "HOOK IDEAS",
-  "ACTION ITEMS",
-];
-
-/** Split the AI's plain-text brief into its named sections. */
-export function parseBrief(markdown: string) {
-  const sections: { title: string; items: string[] }[] = [];
-  const intro: string[] = [];
-  let current: { title: string; items: string[] } | null = null;
-
-  for (const raw of String(markdown ?? "").split("\n")) {
-    const line = raw.trim();
-    if (!line) continue;
-    const bare = line
-      .replace(/[*#:]+$/g, "")
-      .trim()
-      .toUpperCase();
-    const hit = BRIEF_HEADINGS.find((h) => bare === h || bare === `${h}:`);
-    if (hit) {
-      current = { title: hit, items: [] };
-      sections.push(current);
-      continue;
-    }
-    const clean = line.replace(/^[-•*]\s*/, "").trim();
-    if (current) current.items.push(clean);
-    else if (clean) intro.push(clean);
-  }
-  return { intro, sections };
-}
+// The splitter moved to `src/lib/brief-parse.ts` so it can be tested without React,
+// and so the heading rules live in one place. Imported for local use *and* re-exported,
+// because every other caller already imports from this module.
+import { BRIEF_HEADINGS, briefPreview, parseBrief } from "@/lib/brief-parse";
+export { BRIEF_HEADINGS, briefPreview, parseBrief };
 
 export function clock(ts: number): string {
   const timeZone = currentTimeZone();
@@ -67,18 +39,6 @@ export function clock(ts: number): string {
   } catch {
     return "—";
   }
-}
-
-/** One readable line describing a brief, for the history list. */
-export function briefPreview(markdown: string, max = 110): string {
-  const { intro, sections } = parseBrief(markdown);
-  const candidate =
-    intro[0] ??
-    sections.flatMap((s) => s.items)[0] ??
-    String(markdown ?? "")
-      .replace(/\s+/g, " ")
-      .trim();
-  return candidate.replace(/^[-•*]\s*/, "").slice(0, max);
 }
 
 /** The brief body: intro paragraph + one card per named section. */

@@ -10,6 +10,7 @@
  * Run from the repo root:  node tools/unit-script-and-skills.mjs
  */
 import { rolldown } from "rolldown";
+import { readFileSync } from "node:fs";
 
 let pass = 0;
 const fails = [];
@@ -104,6 +105,69 @@ check("full script does not print the cta twice", full.split("Comment FIX.").len
 const fullNoCta = sb.fullScriptText({ body: '[0-3s] HOOK: "x"', cta: "Follow for more." });
 check("a body without the cta gets it appended", fullNoCta.endsWith("Follow for more."), fullNoCta);
 check("an empty body falls back to the cta", sb.fullScriptText({ cta: "Only cta." }) === "Only cta.");
+
+/* ------------------------------------------------------- brief-parse.ts */
+console.log("=== brief-parse: a bulleted brief still has sections ===");
+const bp = await bundle("src/lib/brief-parse.ts");
+
+// Exactly the shape the live brief arrived in on 2026-09-24 — headings carried the
+// bullet, which is what collapsed the whole page into one paragraph.
+const bulleted = [
+  "- TODAY'S PICKS",
+  "- Google Trends Bangladesh: weather is #1 at 20K",
+  "- YouTube trending top pick: A24's trailer has 2.9M views",
+  "",
+  "- TRENDING NOW",
+  "- Google Gemini Omni update: rivals are raving",
+  "- JioPC launch by Mukesh Ambani: browser-based cloud computer",
+].join("\n");
+const parsed = bp.parseBrief(bulleted);
+check("bulleted headings are recognised", parsed.sections.length === 2,
+  JSON.stringify(parsed.sections.map((s) => s.title)));
+check("the first section is TODAY'S PICKS", parsed.sections[0]?.title === "TODAY'S PICKS",
+  parsed.sections[0]?.title);
+check("its bullets became items", parsed.sections[0]?.items.length === 2,
+  JSON.stringify(parsed.sections[0]?.items));
+check("nothing leaked into the intro", parsed.intro.length === 0, JSON.stringify(parsed.intro));
+
+const bare = bp.parseBrief("TODAY'S PICKS\n- one\nTRENDING NOW:\n- two");
+check("bare headings still work", bare.sections.length === 2, JSON.stringify(bare.sections));
+const decorated = bp.parseBrief("**HOOK IDEAS**\n- a\n## ACTION ITEMS:\n- b");
+check("bold and hash headings work", decorated.sections.length === 2,
+  JSON.stringify(decorated.sections.map((s) => s.title)));
+const withIntro = bp.parseBrief("Two lines before any heading.\nTODAY'S PICKS\n- x");
+check("prose before the first heading is the intro", withIntro.intro.length === 1 && withIntro.sections.length === 1,
+  JSON.stringify(withIntro.intro));
+check("an item that only looks like a heading is not one",
+  bp.parseBrief("TODAY'S PICKS\n- Trending now is a phrase I use\n- next").sections[0]?.items.length === 2,
+  JSON.stringify(bp.parseBrief("TODAY'S PICKS\n- Trending now is a phrase I use\n- next").sections[0]?.items));
+check("empty markdown yields nothing", bp.parseBrief("").sections.length === 0);
+check("preview still works", typeof bp.briefPreview(bulleted) === "string" && bp.briefPreview(bulleted).length > 0,
+  bp.briefPreview(bulleted));
+
+// And the same check against the brief that is actually live right now.
+try {
+  const token = JSON.parse(readFileSync("../.secrets/access-service-token.json", "utf8"));
+  const res = await fetch("https://content-production-worker.radwanislamb04.workers.dev/api/brief", {
+    headers: {
+      "CF-Access-Client-Id": token.client_id,
+      "CF-Access-Client-Secret": token.client_secret,
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36",
+      Accept: "application/json",
+    },
+  });
+  const body = await res.json();
+  const live = bp.parseBrief(body?.brief?.markdown ?? "");
+  console.log(`  --- live brief ${body?.brief?.date}: ${live.sections.length} sections, ` +
+    `${live.sections.reduce((n, s) => n + s.items.length, 0)} items, ${live.intro.length} intro lines`);
+  check("the live brief parses into sections", live.sections.length >= 3,
+    JSON.stringify(live.sections.map((s) => `${s.title}:${s.items.length}`)));
+  check("every live section has items", live.sections.every((s) => s.items.length > 0),
+    JSON.stringify(live.sections.map((s) => `${s.title}:${s.items.length}`)));
+  check("the live brief is not one blob", live.intro.length <= 1, String(live.intro.length));
+} catch (e) {
+  check("live brief readable (a limit, not a failure)", false, String(e).slice(0, 120));
+}
 
 /* ----------------------------------------------------------- skills.ts */
 console.log("=== skills: who may receive the niche-bound playbook ===");

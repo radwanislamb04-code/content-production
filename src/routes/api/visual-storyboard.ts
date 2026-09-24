@@ -98,9 +98,19 @@ export const Route = createFileRoute("/api/visual-storyboard")({
           return Response.json({ error: "Script not found" }, { status: 404 });
         }
 
-        const characterNames = characters.map((c) => c.name);
-        const characterRefs = characters.length > 0
-          ? `Characters available: ${characterNames.join(", ")}. Reference relevant characters by name in shot visual_description fields when appropriate.`
+        // The description used to be parsed and then dropped — only names reached the
+        // model, so every shot was written for "Enzo", a word it has never seen described.
+        // The prompt now carries what the character actually looks like, and requires that
+        // identity to be written into each shot's image_prompt (which is what gets pasted
+        // into an image model, or handed to /api/generate-image with a reference photo).
+        const characterRefs = characters.length
+          ? [
+              "CHARACTERS (keep them identical in every shot — face, hair, build, wardrobe, age):",
+              ...characters.map((c) =>
+                `- ${c.name}${c.description?.trim() ? `: ${c.description.trim()}` : " — no description on file, so describe them plainly and consistently across shots"}`,
+              ),
+              "Every shot's image_prompt must restate the character's full appearance inline (not just their name), so the prompt still describes the right person once it is copied somewhere else. Note wardrobe changes explicitly per shot; never change the face.",
+            ].join("\n")
           : "No specific characters provided.";
 
         const scriptContentText = scriptRow.content ? (typeof scriptRow.content === "string" ? scriptRow.content : JSON.stringify(scriptRow.content)) : "";

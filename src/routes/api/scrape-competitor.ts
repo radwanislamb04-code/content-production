@@ -4,6 +4,16 @@ import { currentUserId } from "../../lib/users";
 import { logActivity } from "../../lib/activity";
 import { readApifyToken } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
+import { storePosts } from "../../lib/post-performance";
+
+/**
+ * How many posts to ask Apify for per handle.
+ *
+ * Ten was too few to know what a competitor is doing this week: at two posts a day that is
+ * five days of coverage, at three it is three days — and the brief looks back seven. Note
+ * that the API's item count drives the actor's cost, so this is a deliberate trade.
+ */
+const SCRAPE_RESULTS_LIMIT = 25;
 
 type CompetitorPost = {
   caption: string;
@@ -118,28 +128,18 @@ export const Route = createFileRoute("/api/scrape-competitor")({
         const posts = result as CompetitorPost[];
 
         if (db) {
-          console.log("DEBUG: About to insert", posts.length, "posts to DB");
-          for (const post of posts) {
-            await db
-              .prepare(
-                "INSERT INTO post_performance (id, handle, is_own_account, caption, likes, comments, url, posted_at, project_id, scraped_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-              )
-              .bind(
-                crypto.randomUUID(),
-                handle,
-                0,
-                post.caption ?? "",
-                post.likes ?? 0,
-                post.comments ?? 0,
-                post.url ?? "",
-                post.timestamp ?? "",
-                (body as any)?.project_id ?? null,
-                Date.now(),
-              await currentUserId(request, context),
-                )
-              .run();
-          }
-          console.log("DEBUG: DB insert complete");
+          // Pressing this button twice used to store the same post twice — nothing matched
+          // it against what was already there, and the brief ranks by likes, so the copy
+          // came straight back to the top. storePosts matches on the post's URL instead.
+          const storedCount = await storePosts(
+            env,
+            await currentUserId(request, context),
+            handle,
+            posts,
+            false,
+            { projectId: (body as any)?.project_id ?? null },
+          );
+          console.log("DEBUG: stored", storedCount, "of", posts.length, "posts");
         } else {
           console.log("DEBUG: DB is undefined, skipping insert");
         }
@@ -183,7 +183,7 @@ export async function fetchInstagramPosts(
       // The actor's schema requires `usernames` (an array) — sending
       // `{ username }` is rejected with
       // HTTP 400 "Field input.usernames is required".
-      body: JSON.stringify({ usernames: [handle], resultsLimit: 12 }),
+      body: JSON.stringify({ usernames: [handle], resultsLimit: SCRAPE_RESULTS_LIMIT }),
     },
   );
 
@@ -213,7 +213,7 @@ export async function fetchInstagramPosts(
   // Sort by timestamp, most recent first
   posts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-  return posts.slice(0, 10);
+  return posts.slice(0, SCRAPE_RESULTS_LIMIT);
 }
 
 

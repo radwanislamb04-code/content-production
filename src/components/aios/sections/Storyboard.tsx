@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, EmptyState, Input } from "../ui";
 import { LayoutPanelLeft, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { apiPost, errorMessage } from "@/lib/api";
+import { apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { StoryboardResult } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";
@@ -23,6 +23,36 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
     setName("");
     setDesc("");
   };
+
+  /**
+   * Bring in the characters that are already on file.
+   *
+   * They had to be typed in again for every storyboard — the same face, described from
+   * memory, each time. The descriptions that were typed here were then dropped before the
+   * model saw them (names only), so this is where the character's real profile starts
+   * mattering: it goes to the storyboard prompt, and its avatar is what an image model
+   * needs as a reference.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<any[]>("/api/characters")
+      .then((rows) => {
+        if (cancelled || !Array.isArray(rows) || rows.length === 0) return;
+        const onFile = rows
+          .map((row) => {
+            const c = row?.content ?? {};
+            return { name: String(c.name ?? row?.title ?? "").trim(), description: String(c.description ?? "").trim() };
+          })
+          .filter((c) => c.name);
+        if (onFile.length) setCharacters(onFile);
+      })
+      .catch(() => {
+        /* the form still works by hand if this fails */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const generate = async () => {
     if (!script) return;

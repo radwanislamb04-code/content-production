@@ -20,6 +20,15 @@ const bodySchema = z.object({
   prompt: z.string().trim().min(1).max(4000),
   provider: z.enum(["workers-ai", "vyceai"]),
   model: z.string().trim().min(1).max(200).optional(),
+  /**
+   * Reference images — a character's face, wardrobe, style. Up to four, which is what
+   * FLUX.2 accepts; each is a data: URL or a public http(s) URL.
+   *
+   * This is the difference between "a host in a jacket" and "this host, in this jacket".
+   * Without an image the model has never seen the character, so no amount of prompt
+   * wording reproduces their face.
+   */
+  images: z.array(z.string().trim().min(1)).max(4).optional(),
 });
 
 const ALLOWED_WORKERS_AI_MODELS = [
@@ -32,8 +41,33 @@ const DEFAULT_WORKERS_AI_MODEL = ALLOWED_WORKERS_AI_MODELS[0];
 const VYCEAI_MODEL = "grok-imagine-2";
 
 type ProviderResult =
-  | { ok: true; url: string; provider: string; model: string }
+  | { ok: true; url: string; provider: string; model: string; warning?: string }
   | { ok: false; error: string };
+
+/**
+ * An image as a Blob, from a data: URL (a generated image) or a public http(s) URL (how
+ * the app stores a character's avatar).
+ */
+async function imageSourceToBlob(src: string): Promise<Blob | null> {
+  try {
+    const dataUrl = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(src);
+    if (dataUrl) {
+      const bytes = dataUrl[2]
+        ? Buffer.from(dataUrl[3], "base64")
+        : Buffer.from(decodeURIComponent(dataUrl[3]));
+      return new Blob([bytes], { type: dataUrl[1] || "image/png" });
+    }
+    if (/^https?:\/\//i.test(src)) {
+      const res = await fetch(src);
+      if (!res.ok) return null;
+      const buf = await res.arrayBuffer();
+      return new Blob([buf], { type: res.headers.get("content-type") || "image/png" });
+    }
+  } catch {
+    /* unreadable reference — the caller is told, the generation still runs */
+  }
+  return null;
+}
 
 async function blobToDataUrl(blob: Blob): Promise<string> {
   const buffer = Buffer.from(await blob.arrayBuffer());
@@ -59,10 +93,15 @@ async function readVyceaiKey(env: any): Promise<string | null> {
 
 const PROVIDERS: Record<
   "workers-ai" | "vyceai",
-  (args: { prompt: string; model: string | undefined; env: any }) => Promise<ProviderResult>
+  (args: {
+    prompt: string;
+    model: string | undefined;
+    env: any;
+    images?: string[];
+  }) => Promise<ProviderResult>
 > = {
   // Workers AI — no key needed. env.AI.run returns a Blob for image models.
-  "workers-ai": async ({ prompt, model, env }) => {
+  "workers-ai": async ({ prompt, model, env, images }) => {
     if (!env?.AI) {
       return {
         ok: false,
@@ -74,11 +113,45 @@ const PROVIDERS: Record<
         ? DEFAULT_WORKERS_AI_MODEL
         : (model as (typeof ALLOWED_WORKERS_AI_MODELS)[number]);
     try {
-      const result: unknown = await env.AI.run(useModel, { prompt });
+      // FLUX.2 on Workers AI takes multipart form data — even for a prompt-only request —
+      // and reference images ride along as `input_image_0..3`. The previous code sent
+      // `{ prompt }` as JSON, which is not the documented shape for these models.
+      //
+      // Note the model's own limit: each input image must be under 512x512. A larger
+      // avatar is passed through as-is (a Worker cannot resize it) and the provider's
+      // complaint is surfaced to the caller rather than swallowed.
+      const form = new FormData();
+      form.append("prompt", prompt);
+      form.append("width", "1024");
+      form.append("height", "1024");
+      let attached = 0;
+      for (const src of (images ?? []).slice(0, 4)) {
+        const blob = await imageSourceToBlob(src);
+        if (blob) {
+          form.append(`input_image_${attached}`, blob);
+          attached++;
+        }
+      }
+      // FormData does not expose its serialised body or boundary. Passing it through a
+      // Response serialises it and generates the Content-Type the server needs.
+      const wrapped = new Response(form);
+      const result: unknown = await env.AI.run(useModel, {
+        multipart: {
+          body: wrapped.body,
+          contentType: wrapped.headers.get("content-type"),
+        },
+      });
       // Workers AI image models return a Blob (or a ReadableStream in
       // some runtimes). Normalise to a Blob, then to a data URL.
+      // FLUX.2 answers with `{ image: "<base64>" }` — its output schema documents exactly
+      // that, not a Blob. The code only understood a Blob, so every generation through
+      // this provider failed with "unexpected response shape". Both shapes are handled
+      // now, and the fallback names the keys it actually got instead of guessing.
       let blob: Blob;
-      if (result instanceof Blob) {
+      if (result && typeof (result as any).image === "string") {
+        const bytes = Buffer.from((result as any).image, "base64");
+        blob = new Blob([bytes], { type: "image/png" });
+      } else if (result instanceof Blob) {
         blob = result;
       } else if (result instanceof ReadableStream) {
         blob = new Blob([await new Response(result).arrayBuffer()]);
@@ -86,14 +159,25 @@ const PROVIDERS: Record<
         // Some Workers AI SDKs return a Response-like object.
         blob = new Blob([await (result as any).arrayBuffer()]);
       } else {
+        const shape =
+          result && typeof result === "object"
+            ? `keys: ${Object.keys(result as any).join(", ") || "(none)"}`
+            : `type: ${typeof result}`;
         return {
           ok: false,
-          error:
-            "Workers AI returned an unexpected response shape (no image Blob).",
+          error: `Workers AI returned an unexpected response shape (${shape}).`,
         };
       }
       const url = await blobToDataUrl(blob);
-      return { ok: true, url, provider: "workers-ai", model: useModel };
+      return {
+        ok: true,
+        url,
+        provider: "workers-ai",
+        model: useModel,
+        ...(images?.length && !attached
+          ? { warning: "The reference images could not be read, so the character's face was not used." }
+          : {}),
+      };
     } catch (err: any) {
       return {
         ok: false,
@@ -103,7 +187,7 @@ const PROVIDERS: Record<
   },
 
   // VyceAI — custom OpenAI-compatible endpoint. Key from KV or env.
-  vyceai: async ({ prompt, env }) => {
+  vyceai: async ({ prompt, env, images }) => {
     const key = await readVyceaiKey(env);
     if (!key) {
       return {
@@ -139,7 +223,20 @@ const PROVIDERS: Record<
       if (!url) {
         return { ok: false, error: "VyceAI response missing image URL." };
       }
-      return { ok: true, url, provider: "vyceai", model: VYCEAI_MODEL };
+      // This endpoint is text-to-image; it has no documented image input. Saying so beats
+      // silently returning a stranger's face when a character reference was attached.
+      return {
+        ok: true,
+        url,
+        provider: "vyceai",
+        model: VYCEAI_MODEL,
+        ...(images?.length
+          ? {
+              warning:
+                "VyceAI has no reference-image input, so the character reference was ignored. Use Workers AI to keep a face consistent.",
+            }
+          : {}),
+      };
     } catch (err: any) {
       return {
         ok: false,
@@ -160,7 +257,7 @@ export const Route = createFileRoute("/api/generate-image")({
           body = bodySchema.parse(await request.json());
         } catch {
           return Response.json(
-            { ok: false, error: "Invalid body — { prompt, provider, model? }" },
+            { ok: false, error: "Invalid body — { prompt, provider, model?, images? }" },
             { status: 400 },
           );
         }
@@ -185,7 +282,12 @@ export const Route = createFileRoute("/api/generate-image")({
         }
 
         const handler = PROVIDERS[body.provider];
-        const result = await handler({ prompt: body.prompt, model: body.model, env });
+        const result = await handler({
+          prompt: body.prompt,
+          model: body.model,
+          env,
+          images: body.images,
+        });
         const status = result.ok ? 200 : 502;
         return Response.json(result, { status });
       },

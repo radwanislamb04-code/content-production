@@ -186,6 +186,9 @@ export function ThumbnailStudioScreen() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [inAppHint, setInAppHint] = useState<string | null>(null);
+  /** The character's photo, when one is on file — sent as a generation reference. */
+  const [characterRef, setCharacterRef] = useState<string | null>(null);
+  const [characterName, setCharacterName] = useState<string>("");
 
   useEffect(() => {
     apiFetch("/api/settings-imagegen")
@@ -196,6 +199,42 @@ export function ThumbnailStudioScreen() {
       .catch(() => {
         /* ignore — local dev may not have the route wired up */
       });
+  }, []);
+
+  /**
+   * The character's own photo, if one is on file.
+   *
+   * A prompt can describe a person; only an image shows the model who that person is. This
+   * picks up the character marked in_use (falling back to the first one with a picture) so
+   * the reference travels with the request instead of being re-attached by hand each time.
+   * Nothing is sent when there is no picture — a reference that cannot be read is worse
+   * than none, because it makes the result look broken rather than generic.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/characters")
+      .then((r) => r.json())
+      .then((rows) => {
+        if (cancelled || !Array.isArray(rows)) return;
+        const withPhoto = rows
+          .map((row: any) => ({
+            name: String(row?.content?.name ?? row?.title ?? ""),
+            avatar: String(row?.content?.avatar_url ?? "").trim(),
+            inUse: Boolean(row?.content?.in_use),
+          }))
+          .filter((c: any) => c.avatar);
+        const chosen = withPhoto.find((c: any) => c.inUse) ?? withPhoto[0];
+        if (chosen) {
+          setCharacterRef(chosen.avatar);
+          setCharacterName(chosen.name);
+        }
+      })
+      .catch(() => {
+        /* generation still works without a reference */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const hasCharacter = false;
@@ -240,6 +279,11 @@ export function ThumbnailStudioScreen() {
         return;
       }
       setGenerating(true);
+      if (characterRef) {
+        setInAppHint(
+          `Using ${characterName || "your character"}'s photo as the reference — the face should look the same as your other images.`,
+        );
+      }
       try {
         const res = await apiFetch("/api/generate-image", {
           method: "POST",
@@ -248,6 +292,9 @@ export function ThumbnailStudioScreen() {
             prompt: text,
             provider: site,
             model: site === "workers-ai" ? aiModel : undefined,
+            // The character's own photo, attached without being asked for twice. This is
+            // what keeps a face the same from one image to the next.
+            ...(characterRef ? { images: [characterRef] } : {}),
           }),
         });
         const data = await res.json();
@@ -255,6 +302,9 @@ export function ThumbnailStudioScreen() {
           setGenerateError(data?.error ?? `Generate failed (HTTP ${res.status})`);
           return;
         }
+        // The API says plainly when a reference could not be used; passing that on beats
+        // letting the owner wonder why the face changed.
+        if (data.warning) setInAppHint(String(data.warning));
         const targetIndex = selectedVariant ?? 0;
         setVariantImages((prev) => {
           const prior = prev[targetIndex];

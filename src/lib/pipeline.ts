@@ -11,6 +11,7 @@ import { sendTelegramLong } from "./telegram";
 import { getWorkspace, putWorkspace } from "./workspace";
 import { fetchGoogleTrends, fetchYouTubeTrends } from "../routes/api/trends";
 import { fetchInstagramPosts } from "../routes/api/scrape-competitor";
+import { storePosts } from "./post-performance";
 
 /**
  * Content OS — the one pipeline.
@@ -224,39 +225,15 @@ async function stepScrape(
       notes.push(`${handle}: 0${posts[0]?.caption ? ` (${posts[0].caption.slice(0, 50)})` : ""}`);
       continue;
     }
-    try {
-      await db
-        .prepare("DELETE FROM post_performance WHERE handle = ? AND user_id = ?")
-        .bind(handle, userId)
-        .run();
-    } catch {
-      /* table may be empty — nothing to clear */
-    }
-    const isOwn = own && handle === own ? 1 : 0;
-    for (const p of real) {
-      try {
-        await db
-          .prepare(
-            "INSERT INTO post_performance (id, handle, is_own_account, caption, likes, comments, url, posted_at, scraped_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          )
-          .bind(
-            crypto.randomUUID(),
-            handle,
-            isOwn,
-            p.caption ?? "",
-            Number(p.likes) || 0,
-            Number(p.comments) || 0,
-            p.url ?? "",
-            p.timestamp || null,
-            Date.now(),
-          
-                OWNER_ID)
-          .run();
-        stored++;
-      } catch {
-        /* skip a bad row rather than lose the whole run */
-      }
-    }
+    // This used to DELETE every row for the handle and insert the newest ten, so the
+    // brief could never see anything older than the last scrape — the "7-day window"
+    // had nothing to look at. Now each post is matched by URL: seen before → updated,
+    // new → inserted. History accumulates, duplicates cannot.
+    //
+    // `userId`, not the OWNER_ID constant it used to bind: the scrape resolves a token
+    // per user, so attributing every row to the owner was simply wrong for anyone else.
+    // storePosts also drops scraper error text, which used to be stored as a "post".
+    stored += await storePosts(env, userId, handle, real, own === handle);
     notes.push(`${handle}: ${real.length}`);
   }
 
@@ -284,13 +261,19 @@ async function stepBrief(
 
   if (db) {
     try {
+      // Ordered in JS, not by one ORDER BY, because the brief asks two questions:
+      // "what are they posting now" (the last few days, newest first) and "what works"
+      // (all-time top). Ranking by likes answered only the second — which is why the
+      // brief kept leading with an old 151K-like post and never mentioned this week.
       const { results } = await db
         .prepare(
-          "SELECT handle, caption, likes, comments, url FROM post_performance WHERE is_own_account = 0 AND user_id = ? ORDER BY likes DESC LIMIT 5",
+          `SELECT handle, caption, likes, comments, url, posted_at FROM post_performance
+            WHERE is_own_account = 0 AND user_id = ?
+            ORDER BY likes DESC LIMIT 60`,
         )
           .bind(userId)
         .all();
-      viral = results ?? [];
+      viral = rankCompetitorPosts((results ?? []) as any[]);
     } catch {
       /* table empty or missing */
     }
@@ -368,6 +351,67 @@ function normalizeHandle(handle?: string | null): string {
   return String(handle ?? "").trim().replace(/^@+/, "");
 }
 
+/** How far back "recent" reaches when ranking competitor posts. */
+export const COMPETITOR_RECENT_DAYS = 7;
+
+/** "3 days ago" — the brief is read on a phone; the age is the point, the timestamp is not. */
+export function postAge(postedAt: unknown, now: number = Date.now()): string {
+  const t = Date.parse(String(postedAt ?? ""));
+  if (!Number.isFinite(t)) return "";
+  const days = Math.round((now - t) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  return `${Math.round(days / 7)} weeks ago`;
+}
+
+/**
+ * Order competitor posts for the brief: the last few days, newest first, then the best of
+ * everything older.
+ *
+ * Deliberately NOT ranked by likes across the board. A post from yesterday has not had time
+ * to collect the likes a three-week-old post has, so likes-ranking guarantees the fresh ones
+ * lose — the exact failure this replaces.
+ */
+export function rankCompetitorPosts(rows: any[], now: number = Date.now()): any[] {
+  const cutoff = now - COMPETITOR_RECENT_DAYS * 86_400_000;
+  const dated = rows.map((r) => ({ ...r, _t: Date.parse(String(r.posted_at ?? "")) }));
+  const isRecent = (r: any) => Number.isFinite(r._t) && r._t >= cutoff;
+
+  const recent = dated
+    .filter(isRecent)
+    .sort((a, b) => b._t - a._t)
+    .slice(0, 5);
+  const fresh = new Set(recent.map((r) => String(r.url ?? "")));
+  const best = dated
+    .filter((r) => !fresh.has(String(r.url ?? "")))
+    .sort((a, b) => (Number(b.likes) || 0) - (Number(a.likes) || 0))
+    .slice(0, 3);
+
+  return [...recent, ...best];
+}
+
+/** The two competitor groups, labelled so the writer cannot mix them up. */
+function competitorBlock(rows: any[], now: number = Date.now()): string {
+  if (!rows.length) return "(none)";
+  const cutoff = now - COMPETITOR_RECENT_DAYS * 86_400_000;
+  const line = (p: any) =>
+    `${p.handle} (${postAge(p.posted_at, now) || "date unknown"}) — ${p.likes} likes, ` +
+    `${p.comments} comments: ${String(p.caption ?? "").slice(0, 400)}`;
+  const fresh = rows.filter((p) => {
+    const t = Date.parse(String(p.posted_at ?? ""));
+    return Number.isFinite(t) && t >= cutoff;
+  });
+  const older = rows.filter((p) => !fresh.includes(p));
+
+  return [
+    `Posted in the last ${COMPETITOR_RECENT_DAYS} days (newest first — this is what they are doing NOW; read the captions for hook and structure):`,
+    fresh.length ? fresh.map(line).join("\n") : "(nothing in the last few days)",
+    "Their best-performing older posts (context only — not the current direction):",
+    older.length ? older.map(line).join("\n") : "(none)",
+  ].join("\n");
+}
+
 function buildBriefPrompt(d: {
   dateKey: string;
   trends: any;
@@ -389,7 +433,12 @@ ACTION ITEMS
 Rules:
 - Use ONLY the data below. Never invent numbers, names or links.
 - If a section has no data, write exactly: No data yet.
-- At most 5 bullets per section, each under 140 characters.
+ - At most 5 bullets per section, each under 140 characters (COMPETITOR WATCH may use up to
+   5 for the recent posts plus 2 for the older best-performers).
+ - COMPETITOR WATCH: lead with what they posted in the last few days, newest first, and say
+   how old each post is. What they are doing NOW is the point; an old high-view post is
+   context, and belongs below. Read those captions as a writer, not a statistician — say
+   what they did with the hook and the structure, so it can be copied.
 - Keep it tight and skimmable; it is read on a phone.
 
 DATA
@@ -403,16 +452,9 @@ YouTube trending: ${list(
       .slice(0, 5)
       .map((t: any) => `${t.title} (${t.metric || "n/a"})`),
   )}
-Competitor posts by likes: ${list(
-    d.viral.map(
-      (p: any) =>
-        // The caption is the evidence for "how are they writing this" — the hook lives in
-        // the first line and the style in the body. 90 characters showed neither, so the
-        // brief could only ever talk about likes. 400 covers a whole caption; only the
-        // hashtag tail of the very longest ones is dropped.
-        `${p.handle} — ${p.likes} likes, ${p.comments} comments: ${String(p.caption ?? "").slice(0, 400)}`,
-    ),
-  )}
+ Competitor posts (captions are the evidence for how they write — the hook is in the
+ first line, the style in the body, so they are quoted at length on purpose):
+ ${competitorBlock(d.viral)}
 My content in the library: ${list(
     d.picks.map(
       (p: any) =>

@@ -119,7 +119,21 @@ export const Route = createFileRoute("/api/visual-storyboard")({
 
         const systemPrompt = PRODUCTION_READY_STORYBOARD_PROMPTS_SKILL + `\n\n${characterRefs}\n\n${jsonOverride}`;
 
-        const userPrompt = `Script title: ${scriptRow.title}\nScript content:\n${scriptContentText}\n\nGenerate the storyboard shot list.`;
+        // Which of the three hook options actually opens this script. Without saying so,
+        // the storyboard model sees three hooks and may shoot the wrong one.
+        let hookLine = "";
+        try {
+          const parsed = JSON.parse(scriptContentText) as Record<string, any>;
+          const hooks = Array.isArray(parsed?.hooks) ? parsed.hooks : [];
+          const index = Number.isInteger(parsed?.selected_hook_index) ? parsed.selected_hook_index : 0;
+          const chosen = hooks[index];
+          const spoken = typeof chosen === "string" ? chosen : chosen?.spoken;
+          if (spoken) hookLine = `\nThe script opens with hook option ${index + 1} of ${hooks.length}: "${String(spoken).trim()}". Use that one as the opening shot; the other options were not chosen.`;
+        } catch {
+          /* no structured script — the body text still says what it says */
+        }
+
+        const userPrompt = `Script title: ${scriptRow.title}\nScript content:\n${scriptContentText}${hookLine}\n\nGenerate the storyboard shot list.`;
 
         const anthropicUrl = anthropicMessagesUrl(String(baseUrl));
         const requestPayload = {

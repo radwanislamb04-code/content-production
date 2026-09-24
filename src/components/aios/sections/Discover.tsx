@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, Input, EmptyState } from "../ui";
-import { Lightbulb, Plus, X } from "lucide-react";
+import { Lightbulb, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { apiGet, apiPost, errorMessage } from "@/lib/api";
+import { apiDelete, apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { Idea } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";
@@ -31,7 +31,8 @@ type MyPost = {
 };
 
 export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
-  const { ideas, setIdeas, selectedIdea, setSelectedIdea } = usePipeline();
+  const { ideas, setIdeas, selectedIdea, setSelectedIdea, briefItem, setBriefItem } =
+    usePipeline();
   // The selection bar is fixed to the bottom of the viewport, so it has to follow
   // the sidebar exactly like the header does.
   const [sidebarOpen] = useSidebarOpen();
@@ -41,6 +42,10 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"idle" | "sourcing" | "generating">("idle");
   const [myPosts, setMyPosts] = useState<MyPost[] | null>(null);
+  /** The brief line these ideas came from, kept on screen so the batch is traceable. */
+  const [pickedFrom, setPickedFrom] = useState<{ text: string; section: string } | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [deletingIdea, setDeletingIdea] = useState<string | null>(null);
 
   // Load the real scraped posts as soon as "My Posts" is selected, so the panel
   // shows what will actually feed the idea generator.
@@ -58,6 +63,62 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
       cancelled = true;
     };
   }, [source, myPosts]);
+
+  /**
+   * A line sent over from the Daily Brief.
+   *
+   * That screen only carries the sentence; the generation happens here so the owner
+   * lands on the results with the source tabs already pointing at "From Today's Brief".
+   */
+  useEffect(() => {
+    if (!briefItem) return;
+    let cancelled = false;
+    const picked = briefItem;
+    setBriefItem(null);
+    setSource("brief");
+    setPicking(true);
+    (async () => {
+      try {
+        const res = await apiPost<{ ideas: Idea[] }>("/api/ideator-generate", {
+          source: "brief",
+          source_data: [
+            {
+              picked_from_brief: true,
+              date: picked.date,
+              section: picked.section,
+              markdown: `- ${picked.text}`,
+            },
+          ],
+        });
+        if (cancelled) return;
+        setIdeas(res.ideas ?? []);
+        setPickedFrom({ text: picked.text, section: picked.section });
+        toast.success(`Generated ${res.ideas?.length ?? 0} ideas from that brief line`);
+      } catch (err) {
+        if (!cancelled) toast.error(errorMessage(err));
+      } finally {
+        if (!cancelled) setPicking(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [briefItem, setBriefItem, setIdeas]);
+
+  /** Delete an idea — a batch of five that only needed one still has to be clearable. */
+  const removeIdea = async (id: string) => {
+    setDeletingIdea(id);
+    try {
+      await apiDelete(`/api/library/idea/${id}`);
+      setIdeas(ideas.filter((i) => i.id !== id));
+      if (selectedIdea?.id === id) setSelectedIdea(null);
+      toast.success("Idea deleted");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setDeletingIdea(null);
+    }
+  };
 
   const active = SOURCES.find((s) => s.id === source)!;
 
@@ -292,12 +353,14 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
         <PrimaryBtn
           className="mt-5 w-full"
           onClick={generate}
-          loading={loading}
+          loading={loading || picking}
           disabled={
-            (source === "competitor" || source === "trend") && entries.length === 0
+            picking || ((source === "competitor" || source === "trend") && entries.length === 0)
           }
         >
-          {step === "sourcing"
+          {picking
+            ? "Generating from that brief line…"
+            : step === "sourcing"
             ? source === "competitor"
               ? "Fetching competitor data…"
               : source === "my_posts"
@@ -310,6 +373,21 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
               : "Generate Ideas"}
         </PrimaryBtn>
       </Card>
+
+      {pickedFrom && (
+        <Card className="border-lime p-4">
+          <div className="text-[11px] uppercase tracking-wide text-mute">
+            Ideas generated from this line ({pickedFrom.section})
+          </div>
+          <div className="mt-1 text-sm text-fg2">{pickedFrom.text}</div>
+          <button
+            onClick={() => setPickedFrom(null)}
+            className="mt-2 text-xs text-mute underline hover:text-fg"
+          >
+            hide
+          </button>
+        </Card>
+      )}
 
       {ideas.length === 0 ? (
         <EmptyState
@@ -345,7 +423,13 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
                     ))}
                   </div>
                 )}
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex flex-wrap justify-end gap-2">
+                  <GhostBtn
+                    onClick={() => void removeIdea(idea.id)}
+                    disabled={deletingIdea === idea.id}
+                  >
+                    <Trash2 size={13} /> {deletingIdea === idea.id ? "Deleting…" : "Delete"}
+                  </GhostBtn>
                   <GhostBtn onClick={() => setSelectedIdea(idea)}>
                     {isSel ? "✓ Selected" : "Select This Idea →"}
                   </GhostBtn>

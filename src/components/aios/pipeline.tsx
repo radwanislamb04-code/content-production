@@ -6,6 +6,19 @@ import type {
   VideoPromptResult,
 } from "@/lib/content-types";
 
+/**
+ * One bullet the owner picked out of the Daily Brief, on its way to the Ideator.
+ *
+ * The brief is prose; the Ideator wants a source. This is the carrier between the two
+ * screens — set on the brief, read (and cleared) by the Ideator, which then generates
+ * from *that* line instead of the whole brief.
+ */
+export type BriefItem = {
+  text: string;
+  section: string;
+  date: string;
+};
+
 type PipelineState = {
   ideas: Idea[];
   setIdeas: (ideas: Idea[]) => void;
@@ -17,6 +30,8 @@ type PipelineState = {
   setStoryboard: (sb: StoryboardResult | null) => void;
   videoPrompt: VideoPromptResult | null;
   setVideoPrompt: (vp: VideoPromptResult | null) => void;
+  briefItem: BriefItem | null;
+  setBriefItem: (item: BriefItem | null) => void;
 };
 
 const PipelineContext = createContext<PipelineState | null>(null);
@@ -27,6 +42,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   const [script, setScript] = useState<ScriptResult | null>(null);
   const [storyboard, setStoryboard] = useState<StoryboardResult | null>(null);
   const [videoPrompt, setVideoPrompt] = useState<VideoPromptResult | null>(null);
+  const [briefItem, setBriefItem] = useState<BriefItem | null>(null);
 
   const value = useMemo<PipelineState>(
     () => ({
@@ -40,8 +56,10 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       setStoryboard,
       videoPrompt,
       setVideoPrompt,
+      briefItem,
+      setBriefItem,
     }),
-    [ideas, selectedIdea, script, storyboard, videoPrompt],
+    [ideas, selectedIdea, script, storyboard, videoPrompt, briefItem],
   );
 
   return (

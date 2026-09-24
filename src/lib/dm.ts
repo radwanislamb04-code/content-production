@@ -207,7 +207,10 @@ export function libraryText(content: unknown): string {
       if (s) parts.push(s);
     };
     if (Array.isArray(j.hooks) && j.hooks.length) {
-      const h = j.hooks[0];
+      // The hook that opens the script is the chosen one, not always the first — see
+      // src/lib/script-body.ts.
+      const picked = Number.isInteger(j.selected_hook_index) ? j.selected_hook_index : 0;
+      const h = j.hooks[Math.min(Math.max(picked, 0), j.hooks.length - 1)];
       if (typeof h === "string") push(h);
       else if (h && typeof h === "object") push(h.spoken ?? h.text ?? h.text_overlay);
     }

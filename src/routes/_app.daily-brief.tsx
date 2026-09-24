@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useSectionNav } from "@/lib/use-section-nav";
 import { DailyBrief } from "@/components/aios/sections/Placeholders";
 
 export const Route = createFileRoute("/_app/daily-brief")({
@@ -14,5 +15,7 @@ export const Route = createFileRoute("/_app/daily-brief")({
 });
 
 function DailyBriefPage() {
-  return <DailyBrief />;
+  // The brief is where ideas start, so each bullet can hand itself to the Ideator.
+  const onNav = useSectionNav();
+  return <DailyBrief onNav={onNav} />;
 }

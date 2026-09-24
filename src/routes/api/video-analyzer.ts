@@ -4,7 +4,12 @@ import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
 
 // Same skill file as hook-script-writer.ts, same single source (src/lib/skills.ts).
-import { VIRAL_HOOK_SCRIPT_WRITER_SKILL } from "../../lib/skills";
+import { GENERIC_SCRIPT_SYSTEM_PROMPT, skillForAccount } from "../../lib/skills";
+import {
+  creatorProfileBlock,
+  readCreatorProfile,
+  type CreatorProfile,
+} from "../../lib/settings";
 
 type Hook = {
   spoken: string;
@@ -46,8 +51,17 @@ PART 2 — After PART 1, on a new line, output a single JSON code block (fenced 
 
 The JSON must contain exactly 3 hook objects, the hashtags array must contain 3-5 niche hashtags (no # prefix needed, but keep them if the model prefers), be valid and parseable, and match the shape above exactly.`;
 
-function buildTranscriptPrompt(content: string): string {
-  return `You are given a transcript / reference script from an existing short-form video. Analyze it, then produce a NEW, IMPROVED viral version of the same idea — do not just rewrite the words, actually apply the full "Viral Hook & Script Writer" system from your system instructions (proof-first, triple-layer hook, re-hooks, escalation, one CTA, etc.).
+function buildTranscriptPrompt(
+  content: string,
+  skillAttached: boolean,
+  profile: CreatorProfile,
+): string {
+  const opener = skillAttached
+    ? `You are given a transcript / reference script from an existing short-form video. Analyze it, then produce a NEW, IMPROVED viral version of the same idea — do not just rewrite the words, actually apply the full "Viral Hook & Script Writer" system from your system instructions (proof-first, triple-layer hook, re-hooks, escalation, one CTA, etc.).`
+    : `You are given a transcript / reference script from an existing short-form video. Analyze it, then produce a NEW, IMPROVED version of the same idea for the creator described below — do not just rewrite the words; follow the script structure in your system instructions (proof-first opening, triple-layer hook, re-hooks, escalation, one CTA).`;
+  return `${opener}
+
+${creatorProfileBlock(profile)}
 
 REFERENCE TRANSCRIPT / SCRIPT:
 ${content}
@@ -57,8 +71,17 @@ Your job: extract the core idea/payoff from the reference, then write a stronger
 ${JSON_SHAPE_INSTRUCTION}`;
 }
 
-function buildCustomIdeaPrompt(content: string): string {
-  return `Write a viral short-form video script from scratch for the following idea/topic. Apply the full "Viral Hook & Script Writer" system from your system instructions.
+function buildCustomIdeaPrompt(
+  content: string,
+  skillAttached: boolean,
+  profile: CreatorProfile,
+): string {
+  const opener = skillAttached
+    ? `Write a viral short-form video script from scratch for the following idea/topic. Apply the full "Viral Hook & Script Writer" system from your system instructions.`
+    : `Write a short-form video script from scratch for the following idea/topic, for the creator described below. Follow the script structure in your system instructions.`;
+  return `${opener}
+
+${creatorProfileBlock(profile)}
 
 IDEA / TOPIC:
 ${content}
@@ -193,20 +216,25 @@ export const Route = createFileRoute("/api/video-analyzer")({
           return Response.json({ error: 'Missing "content"' }, { status: 400 });
         }
 
+        const uid = await currentUserId(request, context);
+        const profile = await readCreatorProfile(env, uid);
+        const skill = await skillForAccount(env, uid, "hook_script", profile);
         const userPrompt =
           inputType === "transcript"
-            ? buildTranscriptPrompt(content)
-            : buildCustomIdeaPrompt(content);
+            ? buildTranscriptPrompt(content, skill.applies, profile)
+            : buildCustomIdeaPrompt(content, skill.applies, profile);
 
         // --- Call Anthropic-compatible /messages endpoint ---
         // The full skill markdown is passed as the top-level `system` field
         // (standard Anthropic Messages API), which the Manifest proxy passes
-        // through to the model.
+        // through to the model. Same gate as hook-script-writer: a niche-bound
+        // skill stops at the account it was written for.
+        const systemPrompt = skill.text ?? GENERIC_SCRIPT_SYSTEM_PROMPT;
         const anthropicUrl = anthropicMessagesUrl(String(baseUrl));
         const requestPayload = {
           model: "auto",
           max_tokens: 4096,
-          system: VIRAL_HOOK_SCRIPT_WRITER_SKILL,
+          system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
         };
         console.log(
@@ -214,8 +242,10 @@ export const Route = createFileRoute("/api/video-analyzer")({
           anthropicUrl,
           "input_type:",
           inputType,
+          "skill:",
+          skill.reason,
           "system_chars:",
-          VIRAL_HOOK_SCRIPT_WRITER_SKILL.length,
+          systemPrompt.length,
           "user_chars:",
           userPrompt.length,
         );

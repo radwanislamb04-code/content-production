@@ -66,6 +66,7 @@ import { Route as ApiResourcesRouteImport } from './routes/api/resources'
 import { Route as ApiRunPipelineRouteImport } from './routes/api/run-pipeline'
 import { Route as ApiScoreContentRouteImport } from './routes/api/score-content'
 import { Route as ApiScrapeCompetitorRouteImport } from './routes/api/scrape-competitor'
+import { Route as ApiScriptSelectHookRouteImport } from './routes/api/script-select-hook'
 import { Route as ApiScriptsListRouteImport } from './routes/api/scripts-list'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiSettingsRouteImport } from './routes/api/settings'
@@ -374,6 +375,11 @@ const ApiScrapeCompetitorRoute = ApiScrapeCompetitorRouteImport.update({
   path: '/api/scrape-competitor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiScriptSelectHookRoute = ApiScriptSelectHookRouteImport.update({
+  id: '/api/script-select-hook',
+  path: '/api/script-select-hook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiScriptsListRoute = ApiScriptsListRouteImport.update({
   id: '/api/scripts-list',
   path: '/api/scripts-list',
@@ -548,6 +554,7 @@ export interface FileRoutesByFullPath {
   '/api/run-pipeline': typeof ApiRunPipelineRoute
   '/api/score-content': typeof ApiScoreContentRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
+  '/api/script-select-hook': typeof ApiScriptSelectHookRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
   '/api/settings': typeof ApiSettingsRoute
@@ -628,6 +635,7 @@ export interface FileRoutesByTo {
   '/api/run-pipeline': typeof ApiRunPipelineRoute
   '/api/score-content': typeof ApiScoreContentRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
+  '/api/script-select-hook': typeof ApiScriptSelectHookRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
   '/api/settings': typeof ApiSettingsRoute
@@ -711,6 +719,7 @@ export interface FileRoutesById {
   '/api/run-pipeline': typeof ApiRunPipelineRoute
   '/api/score-content': typeof ApiScoreContentRoute
   '/api/scrape-competitor': typeof ApiScrapeCompetitorRoute
+  '/api/script-select-hook': typeof ApiScriptSelectHookRoute
   '/api/scripts-list': typeof ApiScriptsListRoute
   '/api/search': typeof ApiSearchRoute
   '/api/settings': typeof ApiSettingsRoute
@@ -795,6 +804,7 @@ export interface FileRouteTypes {
     | '/api/run-pipeline'
     | '/api/score-content'
     | '/api/scrape-competitor'
+    | '/api/script-select-hook'
     | '/api/scripts-list'
     | '/api/search'
     | '/api/settings'
@@ -875,6 +885,7 @@ export interface FileRouteTypes {
     | '/api/run-pipeline'
     | '/api/score-content'
     | '/api/scrape-competitor'
+    | '/api/script-select-hook'
     | '/api/scripts-list'
     | '/api/search'
     | '/api/settings'
@@ -957,6 +968,7 @@ export interface FileRouteTypes {
     | '/api/run-pipeline'
     | '/api/score-content'
     | '/api/scrape-competitor'
+    | '/api/script-select-hook'
     | '/api/scripts-list'
     | '/api/search'
     | '/api/settings'
@@ -1017,6 +1029,7 @@ export interface RootRouteChildren {
   ApiRunPipelineRoute: typeof ApiRunPipelineRoute
   ApiScoreContentRoute: typeof ApiScoreContentRoute
   ApiScrapeCompetitorRoute: typeof ApiScrapeCompetitorRoute
+  ApiScriptSelectHookRoute: typeof ApiScriptSelectHookRoute
   ApiScriptsListRoute: typeof ApiScriptsListRoute
   ApiSearchRoute: typeof ApiSearchRoute
   ApiSettingsRoute: typeof ApiSettingsRoute
@@ -1440,6 +1453,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiScrapeCompetitorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/script-select-hook': {
+      id: '/api/script-select-hook'
+      path: '/api/script-select-hook'
+      fullPath: '/api/script-select-hook'
+      preLoaderRoute: typeof ApiScriptSelectHookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/scripts-list': {
       id: '/api/scripts-list'
       path: '/api/scripts-list'
@@ -1730,6 +1750,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRunPipelineRoute: ApiRunPipelineRoute,
   ApiScoreContentRoute: ApiScoreContentRoute,
   ApiScrapeCompetitorRoute: ApiScrapeCompetitorRoute,
+  ApiScriptSelectHookRoute: ApiScriptSelectHookRoute,
   ApiScriptsListRoute: ApiScriptsListRoute,
   ApiSearchRoute: ApiSearchRoute,
   ApiSettingsRoute: ApiSettingsRoute,

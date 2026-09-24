@@ -13,7 +13,9 @@
 import { Jimp } from "jimp";
 
 const SRC = "/home/wuying/.accio/accounts/7098022703/agents/DID-82AD6B-9282AD6BU1789667-8704-896742/project/media-output/img-mucjmj9k-46b23256.png";
-const OUT_MASTER = "/home/wuying/.accio/accounts/7098022703/agents/DID-82AD6B-9282AD6BU1789667-8704-896742/project/media-output/img-mucjmj9k-46b23256-bright.png";
+// A new master file rather than an overwrite: the previous one (-bright) is what the
+// owner may already have handed to the Meta app form, so both stay recoverable.
+const OUT_MASTER = "/home/wuying/.accio/accounts/7098022703/agents/DID-82AD6B-9282AD6BU1789667-8704-896742/project/media-output/img-mucjmj9k-46b23256-brighter.png";
 
 /**
  * Where the mark lands: same hue, fully saturated, lifted lightness.
@@ -21,9 +23,15 @@ const OUT_MASTER = "/home/wuying/.accio/accounts/7098022703/agents/DID-82AD6B-92
  * Chosen by rendering candidates side by side and looking at them, because "brighter" is a
  * judgement, not a formula. Lifting lightness alone (#cff183) went pale and lost the punch;
  * this keeps the mark's own hue at 100% saturation, which reads brighter *and* more vivid.
+ *
+ * Second pass (owner asked for brighter again): 0.58 → 0.70, i.e. #beff29 (luminance 226)
+ * → #d0ff66 (234). Candidates 0.64 / 0.70 / 0.76 were drawn at 32px and 96px on both the
+ * dark (#070a08) and light (#eef2ee) app backgrounds — see brightness-preview.mjs and
+ * media-output/logo-brightness-candidates.png. 0.70 is the last step where the 32px sidebar
+ * mark still holds up on the light theme; 0.76 goes pale there.
  */
 const TARGET_SATURATION = 1.0;
-const TARGET_LIGHTNESS = 0.58;
+const TARGET_LIGHTNESS = 0.70;
 
 function rgbToHsl(r, g, b) {
   r /= 255; g /= 255; b /= 255;

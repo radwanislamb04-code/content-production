@@ -71,9 +71,35 @@ async function loadLatestBrief(request: Request, context: any): Promise<any | nu
   }
 }
 
+/**
+ * One line the owner picked out of the brief.
+ *
+ * `source: "brief"` normally means "read the latest brief for me". When the browser
+ * hands over `source_data` instead, it is a single bullet the owner clicked in the
+ * brief — so the ideas must come from that line and not widen back out to the whole
+ * document, which is what they had already read.
+ */
+function isPickedBriefItem(value: unknown): boolean {
+  return Boolean(
+    value && typeof value === "object" && (value as Record<string, any>).picked_from_brief === true,
+  );
+}
+
 /** The brief is prose plus signals, not a JSON array — send it as the writer wrote it. */
 function briefBlock(sourceData: unknown[]): string {
   const brief = (sourceData?.[0] ?? {}) as Record<string, any>;
+  if (isPickedBriefItem(brief)) {
+    const line = String(brief.markdown ?? "").slice(0, 1200);
+    return [
+      `ONE LINE THE OWNER PICKED OUT OF THE DAILY BRIEF (${brief.date ?? "latest"}${
+        brief.section ? `, section: ${brief.section}` : ""
+      }):`,
+      line || "(empty line)",
+      "",
+      "They chose this line themselves, so stay on it: every idea must be a way to turn THIS",
+      "signal into a post. Do not widen back out to the rest of the brief.",
+    ].join("\n");
+  }
   const markdown = String(brief.markdown ?? "").slice(0, 9000);
   const signals = JSON.stringify(brief.context ?? {}, null, 1).slice(0, 4000);
   return [
@@ -86,13 +112,16 @@ function briefBlock(sourceData: unknown[]): string {
 }
 
 function buildPrompt(source: Source, sourceData: unknown[]): string {
+  const picked = source === "brief" && isPickedBriefItem(sourceData?.[0]);
   const sourceLabel =
     source === "my_posts"
       ? "the user's own recent posts"
       : source === "competitor"
       ? "recent posts from a competitor account"
       : source === "brief"
-        ? "today's Daily Brief, where their trends, their competitors' recent posts and their own best-performing content have already been analysed together"
+        ? picked
+          ? "one line the user picked out of today's Daily Brief"
+          : "today's Daily Brief, where their trends, their competitors' recent posts and their own best-performing content have already been analysed together"
         : "current trending topics";
 
   const dataBlock =
@@ -200,7 +229,10 @@ export const Route = createFileRoute("/api/ideator-generate")({
         // The brief branch reads its own data: the whole point is one click, so the browser
         // sends nothing and is not asked to assemble trends and competitors row by row.
         let sourceData: unknown[];
-        if (source === "brief") {
+        if (source === "brief" && Array.isArray(source_data) && source_data.length > 0) {
+          // A specific line picked in the brief — generate from that, not the document.
+          sourceData = source_data;
+        } else if (source === "brief") {
           const brief = await loadLatestBrief(request, context);
           if (!brief) {
             return Response.json(

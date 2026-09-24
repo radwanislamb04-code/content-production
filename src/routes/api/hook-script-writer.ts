@@ -4,8 +4,13 @@ import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
 
 // The skill text comes from .claude/skills/viral-hook-script-writer.md at build time —
-// edit the markdown, not a copy of it (see src/lib/skills.ts).
-import { VIRAL_HOOK_SCRIPT_WRITER_SKILL } from "../../lib/skills";
+// edit the markdown, not a copy of it (see src/lib/skills.ts). Whether this account may
+// receive it at all is decided per user by `skillForAccount`: the file is written for one
+// niche and built from the owner's competitor research, so another account gets the
+// generic script shape plus its own Creator profile instead.
+import { GENERIC_SCRIPT_SYSTEM_PROMPT, skillForAccount } from "../../lib/skills";
+import { creatorProfileBlock, readCreatorProfile, type CreatorProfile } from "../../lib/settings";
+import { isThinBody, MIN_SCRIPT_BEATS, selectHook, type ScriptContent } from "../../lib/script-body";
 
 type IdeaRow = {
   id: string;
@@ -25,17 +30,24 @@ type Hook = {
   text_overlay: string;
 };
 
-type ScriptPayload = {
+type ScriptPayload = ScriptContent & {
   hooks: Hook[];
   body: string;
   cta: string;
-  formatted?: string;
-  voiceover_script?: string;
 };
 
 
-function buildUserPrompt(title: string, ideaContext: string): string {
-  return `Write a viral short-form video script for the following content idea. Apply the full "Viral Hook & Script Writer" system from your system instructions.
+function buildUserPrompt(
+  title: string,
+  ideaContext: string,
+  opts: { skillAttached: boolean; profile: CreatorProfile },
+): string {
+  const opener = opts.skillAttached
+    ? `Write a viral short-form video script for the following content idea. Apply the full "Viral Hook & Script Writer" system from your system instructions.`
+    : `Write a short-form video script for the following content idea, for the creator described below. Follow the script structure in your system instructions.`;
+  return `${opener}
+
+${creatorProfileBlock(opts.profile)}
 
 IDEA TITLE:
 ${title}
@@ -56,36 +68,12 @@ PART 2 — After PART 1, on a new line, output a single JSON code block (fenced 
     { "spoken": "spoken line 2", "formula": "...", "visual": "...", "text_overlay": "..." },
     { "spoken": "spoken line 3", "formula": "...", "visual": "...", "text_overlay": "..." }
   ],
-  "body": "the full script broken into hook / setup / delivery / cta sections, combined as one string with \\n line breaks between beats",
+  "body": "the COMPLETE script, one beat per line, each line starting with its timestamp and label, e.g. [0-3s] HOOK: ... then the setup, delivery and re-hook beats, and a final [..] CTA: ... beat. At least four lines. Never just the hook line.",
   "cta": "the final call-to-action line"
 }
 \`\`\`
 
 The JSON must contain exactly 3 hook objects, be valid and parseable, and match the shape above exactly.`;
-}
-
-function buildVoiceoverScript(script: ScriptPayload): string {
-  const spokenLines: string[] = [];
-  for (const h of script.hooks || []) {
-    if (h.spoken) spokenLines.push(h.spoken.trim());
-  }
-  if (script.body) {
-    for (const line of script.body.split("\n")) {
-      const spokenPart = line.split(" | ")[0].trim();
-      const noTimestamp = spokenPart.replace(/^\[[^\]]+\]\s+/, "").trim();
-      const noEmoji = noTimestamp.replace(/^([⚡⚠🎮📇🔥]+\s*)*/, "").trim();
-      const noLabel = noEmoji.replace(/^[^:]*:\s*/, "").trim();
-      const noBrackets = noLabel.replace(/\[[^\]]*\]/g, "").trim();
-      const unquoted = noBrackets.replace(/^["'](.*)["']$/, "$1").trim();
-      if (unquoted) spokenLines.push(unquoted);
-    }
-  }
-  if (script.cta) {
-    const ctaClean = script.cta.replace(/^["'](.*)["']$/, "$1").trim();
-    if (ctaClean) spokenLines.push(ctaClean);
-  }
-  const unique = spokenLines.filter((v, i, a) => a.indexOf(v) === i);
-  return unique.join(" ");
 }
 
 function extractScript(rawText: string): ScriptPayload | null {
@@ -136,8 +124,9 @@ function extractScript(rawText: string): ScriptPayload | null {
     const cta = typeof r.cta === "string" ? r.cta : "";
     if (!body) continue;
 
-    const scriptPayload: ScriptPayload = { hooks, body, cta, formatted: rawText, voiceover_script: buildVoiceoverScript({ hooks, body, cta, formatted: rawText }) };
-    return scriptPayload;
+    // The voiceover is built by `selectHook` at the end, from the hook that ends up in
+    // the body — not here, where no hook has been chosen yet.
+    return { hooks, body, cta, formatted: rawText };
   }
 
   return null;
@@ -195,24 +184,34 @@ export const Route = createFileRoute("/api/hook-script-writer")({
           return Response.json({ error: "Idea not found" }, { status: 404 });
         }
 
-        const userPrompt = buildUserPrompt(idea.title, idea.content ?? "");
+        const uid = await currentUserId(request, context);
+        const profile = await readCreatorProfile(env, uid);
+        const skill = await skillForAccount(env, uid, "hook_script", profile);
+        const userPrompt = buildUserPrompt(idea.title, idea.content ?? "", {
+          skillAttached: skill.applies,
+          profile,
+        });
 
         // --- Call Anthropic-compatible /messages endpoint ---
         // The full skill markdown is passed as the top-level `system` field
         // (standard Anthropic Messages API), which the Manifest proxy passes
-        // through to the model.
+        // through to the model. When the skill does not apply to this account, the
+        // generic script shape takes its place and the niche comes from the profile.
+        const systemPrompt = skill.text ?? GENERIC_SCRIPT_SYSTEM_PROMPT;
         const anthropicUrl = anthropicMessagesUrl(String(baseUrl));
         const requestPayload = {
           model: "auto",
           max_tokens: 4096,
-          system: VIRAL_HOOK_SCRIPT_WRITER_SKILL,
+          system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
         };
         console.log(
           "[hook-script-writer] POST",
           anthropicUrl,
+          "skill:",
+          skill.reason,
           "system_chars:",
-          VIRAL_HOOK_SCRIPT_WRITER_SKILL.length,
+          systemPrompt.length,
           "user_chars:",
           userPrompt.length,
         );
@@ -285,7 +284,56 @@ export const Route = createFileRoute("/api/hook-script-writer")({
           .join("\n")
           .trim();
 
-        const script = extractScript(text);
+        let parsedScript = extractScript(text);
+
+        // A body of one line is not a script: the voiceover is built from it and the
+        // storyboard shoots it, so a thin body quietly breaks everything downstream.
+        // One retry, asked plainly — the model sometimes answers the shape question with
+        // a summary instead of the beats.
+        if (parsedScript && isThinBody(String(parsedScript.body ?? ""))) {
+          console.log(
+            "[hook-script-writer] thin body (%d beats) — retrying once",
+            String(parsedScript.body ?? "").split("\n").filter((l) => l.trim()).length,
+          );
+          try {
+            const retryRes = await fetch(anthropicUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`,
+                "anthropic-version": "2023-06-01",
+              },
+              body: JSON.stringify({
+                ...requestPayload,
+                messages: [{
+                  role: "user",
+                  content: `${userPrompt}\n\nIMPORTANT: your previous answer's \"body\" was too short to shoot. Return the COMPLETE script: at least ${MIN_SCRIPT_BEATS} lines in \"body\", one beat per line, each starting with its timestamp and label, ending with the CTA beat.`,
+                }],
+              }),
+            });
+            if (retryRes.ok) {
+              const retryText = (await retryRes.json()) as { content?: Array<{ type: string; text?: string }> };
+              const retryRaw = (retryText.content ?? [])
+                .filter((b) => b.type === "text")
+                .map((b) => b.text ?? "")
+                .join("\n")
+                .trim();
+              const retryScript = extractScript(retryRaw);
+              if (retryScript && !isThinBody(String(retryScript.body ?? ""))) {
+                parsedScript = retryScript;
+                console.log("[hook-script-writer] retry produced a full body");
+              } else {
+                console.log("[hook-script-writer] retry was thin too — keeping the first answer");
+              }
+            }
+          } catch (err: any) {
+            console.log("[hook-script-writer] retry failed:", err?.message ?? String(err));
+          }
+        }
+        // Hook 1 opens the script by default, so a freshly generated script is already
+        // complete and internally consistent — and the owner can move the choice later
+        // without regenerating (POST /api/script-select-hook).
+        const script = parsedScript ? selectHook(parsedScript, 0) : null;
         if (!script) {
           return Response.json(
             {
@@ -340,6 +388,9 @@ export const Route = createFileRoute("/api/hook-script-writer")({
           title: scriptTitle,
           idea_id: idea.id,
           script,
+          // Which playbook wrote this: the niche-bound skill, or the generic script
+          // shape. Reported rather than implied, so it can be checked from outside.
+          skill: { applied: skill.applies, reason: skill.reason, niche: skill.niche },
           created_at: now,
           updated_at: now,
         });

@@ -1,7 +1,9 @@
 import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Check, Copy, Loader2, RefreshCw, Send } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Copy, Loader2, RefreshCw, Send } from "lucide-react";
 import { Card, OutlineBtn, PrimaryBtn } from "../ui";
+import { usePipeline } from "../pipeline";
+import type { SectionId } from "../Sidebar";
 
 /**
  * Daily Brief — reads the real brief from `workspace` (`brief_YYYY-MM-DD`),
@@ -20,7 +22,9 @@ type BriefResponse = {
   error?: string;
 };
 
-export function DailyBriefScreen() {
+export function DailyBriefScreen({ onNav }: { onNav?: (id: SectionId) => void } = {}) {
+  // A bullet taken from here is carried to the Ideator in the shared pipeline state.
+  const { setBriefItem } = usePipeline();
   const [tab, setTab] = useState<"today" | "history">("today");
   const [data, setData] = useState<BriefResponse | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -187,9 +191,24 @@ export function DailyBriefScreen() {
                     ) : (
                       <ul className="space-y-1.5">
                         {s.items.map((item, i) => (
-                          <li key={i} className="flex gap-2 text-sm">
+                          <li key={i} className="flex items-start gap-2 text-sm">
                             <span className="text-mute">•</span>
-                            <span>{item}</span>
+                            <span className="min-w-0 flex-1">{item}</span>
+                            {/*
+                              One bullet becomes one idea. Sending the whole brief made the
+                              Ideator re-read everything the owner had already read here; the
+                              button hands over just the line they stopped at.
+                            */}
+                            <button
+                              onClick={() => {
+                                setBriefItem({ text: item, section: s.title, date: brief.date });
+                                onNav?.("discover");
+                              }}
+                              title="Send this line to the Ideator"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[11px] text-mute transition hover:border-lime hover:text-lime"
+                            >
+                              Ideator <ArrowRight size={11} />
+                            </button>
                           </li>
                         ))}
                       </ul>

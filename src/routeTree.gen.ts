@@ -58,6 +58,7 @@ import { Route as ApiLibraryImportRouteImport } from './routes/api/library-impor
 import { Route as ApiMeRouteImport } from './routes/api/me'
 import { Route as ApiNotificationsRouteImport } from './routes/api/notifications'
 import { Route as ApiPillarsRouteImport } from './routes/api/pillars'
+import { Route as ApiPipelineStatusRouteImport } from './routes/api/pipeline-status'
 import { Route as ApiPlatformVariantsRouteImport } from './routes/api/platform-variants'
 import { Route as ApiPostPerformanceRouteImport } from './routes/api/post-performance'
 import { Route as ApiProjectsRouteImport } from './routes/api/projects'
@@ -335,6 +336,11 @@ const ApiPillarsRoute = ApiPillarsRouteImport.update({
   path: '/api/pillars',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPipelineStatusRoute = ApiPipelineStatusRouteImport.update({
+  id: '/api/pipeline-status',
+  path: '/api/pipeline-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPlatformVariantsRoute = ApiPlatformVariantsRouteImport.update({
   id: '/api/platform-variants',
   path: '/api/platform-variants',
@@ -546,6 +552,7 @@ export interface FileRoutesByFullPath {
   '/api/me': typeof ApiMeRoute
   '/api/notifications': typeof ApiNotificationsRoute
   '/api/pillars': typeof ApiPillarsRoute
+  '/api/pipeline-status': typeof ApiPipelineStatusRoute
   '/api/platform-variants': typeof ApiPlatformVariantsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
@@ -627,6 +634,7 @@ export interface FileRoutesByTo {
   '/api/me': typeof ApiMeRoute
   '/api/notifications': typeof ApiNotificationsRoute
   '/api/pillars': typeof ApiPillarsRoute
+  '/api/pipeline-status': typeof ApiPipelineStatusRoute
   '/api/platform-variants': typeof ApiPlatformVariantsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
@@ -711,6 +719,7 @@ export interface FileRoutesById {
   '/api/me': typeof ApiMeRoute
   '/api/notifications': typeof ApiNotificationsRoute
   '/api/pillars': typeof ApiPillarsRoute
+  '/api/pipeline-status': typeof ApiPipelineStatusRoute
   '/api/platform-variants': typeof ApiPlatformVariantsRoute
   '/api/post-performance': typeof ApiPostPerformanceRoute
   '/api/projects': typeof ApiProjectsRoute
@@ -796,6 +805,7 @@ export interface FileRouteTypes {
     | '/api/me'
     | '/api/notifications'
     | '/api/pillars'
+    | '/api/pipeline-status'
     | '/api/platform-variants'
     | '/api/post-performance'
     | '/api/projects'
@@ -877,6 +887,7 @@ export interface FileRouteTypes {
     | '/api/me'
     | '/api/notifications'
     | '/api/pillars'
+    | '/api/pipeline-status'
     | '/api/platform-variants'
     | '/api/post-performance'
     | '/api/projects'
@@ -960,6 +971,7 @@ export interface FileRouteTypes {
     | '/api/me'
     | '/api/notifications'
     | '/api/pillars'
+    | '/api/pipeline-status'
     | '/api/platform-variants'
     | '/api/post-performance'
     | '/api/projects'
@@ -1021,6 +1033,7 @@ export interface RootRouteChildren {
   ApiMeRoute: typeof ApiMeRoute
   ApiNotificationsRoute: typeof ApiNotificationsRoute
   ApiPillarsRoute: typeof ApiPillarsRoute
+  ApiPipelineStatusRoute: typeof ApiPipelineStatusRoute
   ApiPlatformVariantsRoute: typeof ApiPlatformVariantsRoute
   ApiPostPerformanceRoute: typeof ApiPostPerformanceRoute
   ApiProjectsRoute: typeof ApiProjectsRoute
@@ -1397,6 +1410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPillarsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/pipeline-status': {
+      id: '/api/pipeline-status'
+      path: '/api/pipeline-status'
+      fullPath: '/api/pipeline-status'
+      preLoaderRoute: typeof ApiPipelineStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/platform-variants': {
       id: '/api/platform-variants'
       path: '/api/platform-variants'
@@ -1742,6 +1762,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMeRoute: ApiMeRoute,
   ApiNotificationsRoute: ApiNotificationsRoute,
   ApiPillarsRoute: ApiPillarsRoute,
+  ApiPipelineStatusRoute: ApiPipelineStatusRoute,
   ApiPlatformVariantsRoute: ApiPlatformVariantsRoute,
   ApiPostPerformanceRoute: ApiPostPerformanceRoute,
   ApiProjectsRoute: ApiProjectsRoute,

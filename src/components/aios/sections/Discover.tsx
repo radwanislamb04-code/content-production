@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, Input, EmptyState } from "../ui";
 import { Lightbulb, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { apiDelete, apiGet, apiPost, errorMessage } from "@/lib/api";
+import { apiDelete, apiFetch, apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { Idea } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";
@@ -111,6 +111,25 @@ export function Discover({ onNav }: { onNav: (id: SectionId) => void }) {
       }
     })();
   }, [briefItem, setBriefItem, setIdeas]);
+
+  /**
+   * Remember which idea is selected, server-side.
+   *
+   * The pick used to live only in React state, so nothing else could see it — the
+   * Dashboard's "Continue Working" reads these workspace rows, and only the video
+   * analyser ever wrote them, which is why that card said "Nothing in progress" no matter
+   * how much was actually in progress.
+   */
+  useEffect(() => {
+    const title = selectedIdea?.title?.trim();
+    if (!title) return;
+    void apiFetch("/api/workspace/selected_idea", {
+      method: "PUT",
+      body: JSON.stringify({ ideas: [title] }),
+    }).catch(() => {
+      /* the pick still works for this session; only the Dashboard hand-off is lost */
+    });
+  }, [selectedIdea?.title]);
 
   /** Delete an idea — a batch of five that only needed one still has to be clearable. */
   const removeIdea = async (id: string) => {

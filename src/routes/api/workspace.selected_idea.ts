@@ -38,6 +38,16 @@ export const Route = createFileRoute("/api/workspace/selected_idea")({
               .bind(userId, `idea_${i}`, idea, now)
               .run();
           }
+          // Drop the leftovers. Writing three ideas and then one used to leave idea_1 and
+          // idea_2 behind, so the Dashboard showed a stale second and third entry forever.
+          await db
+            .prepare(
+              `DELETE FROM workspace
+               WHERE user_id = ? AND key LIKE 'idea\_%' ESCAPE '\\'
+                 AND key NOT IN (${parsed.data.ideas.map(() => "?").join(", ") || "''"})`,
+            )
+            .bind(userId, ...parsed.data.ideas.map((_, i) => `idea_${i}`))
+            .run();
           return Response.json({ ok: true, count: parsed.data.ideas.length });
         } catch {
           return new Response("Internal server error", { status: 500 });

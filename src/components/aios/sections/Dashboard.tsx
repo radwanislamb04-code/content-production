@@ -3,6 +3,13 @@ import { Card, OutlineBtn, EmptyState, Pill, SkeletonList } from "../ui";
 import type { SectionId } from "../Sidebar";
 import { apiFetch, apiGet } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
+import {
+  stageSummary,
+  type ContinueItem,
+  type Stage,
+  type StageId,
+  type StageNoun,
+} from "@/lib/pipeline-status";
 import { HeroClock } from "../widgets/HeroClock";
 import { QuoteBar } from "../widgets/QuoteBar";
 import { SetupHealth } from "./SetupHealth";
@@ -34,17 +41,53 @@ const LIB_TYPES = [
 ];
 
 
-const PIPELINE: {
-  label: string;
-  status: "ready" | "pending" | "empty";
-  icon: typeof Lightbulb;
-}[] = [
-  { label: "Discover", status: "ready", icon: Lightbulb },
-  { label: "Script+Hook", status: "ready", icon: PenLine },
-  { label: "Storyboard", status: "pending", icon: LayoutPanelLeft },
-  { label: "Video Prompt", status: "empty", icon: Film },
-  { label: "Planner", status: "empty", icon: Calendar },
-];
+/**
+ * Which icon stands for which stage. The *status* used to live here too, as a literal —
+ * `{ label: "Storyboard", status: "pending" }` — so the card read the same whether the
+ * owner had made nothing or a hundred things. Status now comes from /api/pipeline-status,
+ * which counts the real rows; this is only the decoration.
+ */
+const STAGE_ICON: Record<StageId, typeof Lightbulb> = {
+  discover: Lightbulb,
+  script: PenLine,
+  storyboard: LayoutPanelLeft,
+  video_prompt: Film,
+  planner: Calendar,
+};
+
+/** What each stage's rows are called, singular and plural: "1 script", "18 scripts". */
+const STAGE_NOUN: StageNoun = {
+  discover: { one: "idea", many: "ideas" },
+  script: { one: "script", many: "scripts" },
+  storyboard: { one: "storyboard", many: "storyboards" },
+  video_prompt: { one: "prompt", many: "prompts" },
+  planner: { one: "month planned", many: "months planned" },
+};
+
+type PipelineStatus = {
+  ok: boolean;
+  stages?: Stage[];
+  continue_work?: ContinueItem[];
+  counts?: Record<string, number>;
+  generated_at?: number;
+  error?: string;
+};
+
+/** "as of 4s ago" — the card proves it is live instead of asking to be trusted. */
+function useAgoLabel(at: number) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!at) return;
+    const id = setInterval(() => tick((n) => n + 1), 5000);
+    return () => clearInterval(id);
+  }, [at]);
+  if (!at) return "";
+  const secs = Math.max(0, Math.round((Date.now() - at) / 1000));
+  if (secs < 5) return "just now";
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.round(secs / 60);
+  return mins < 60 ? `${mins}m ago` : `${Math.round(mins / 60)}h ago`;
+}
 
 /** A row of the real `telegram_tasks` table (`done` = already delivered). */
 type TgTask = {
@@ -84,6 +127,13 @@ export function Dashboard({
   onNav: (id: SectionId) => void;
 }) {
   const greeting = useGreeting();
+  // One read, refreshed while the screen is open, feeding every card below that used to
+  // be static: the counts, the pipeline statuses and the continue list.
+  const { data: status, loading: statusLoading, fetchedAt } = useApi<PipelineStatus>(
+    "/api/pipeline-status",
+    { refreshMs: 15000 },
+  );
+  const ago = useAgoLabel(fetchedAt);
   const QUICK: { label: string; Icon: typeof Plus; onClick: () => void }[] = [
     {
       label: "New Project",
@@ -120,50 +170,75 @@ export function Dashboard({
         <QuoteBar />
 
 
-        <StatsRow />
+        <StatsRow counts={status?.counts} />
 
         {/* One honest card instead of guessing why something stopped working. */}
         <SetupHealth />
 
         <Card className="p-5">
-          <div className="mb-4 text-sm font-semibold text-fg2">Pipeline</div>
-          <div className="flex items-center gap-2 overflow-x-auto aios-scroll pb-2">
-            {PIPELINE.map((p, i) => (
-              <div key={p.label} className="flex items-center gap-2">
-                <div className="min-w-[140px] rounded-lg border border-line bg-surface p-3">
-                  <div className="flex items-center gap-2 text-fg">
-                    <p.icon size={14} className="text-lime" />
-                    <span className="text-sm font-medium">{p.label}</span>
-                  </div>
-                  <div className="mt-2">
-                    {p.status === "ready" && (
-                      <span className="text-xs text-lime">✅ Ready</span>
-                    )}
-                    {p.status === "pending" && (
-                      <span className="text-xs text-warn">⏳ Pending</span>
-                    )}
-                    {p.status === "empty" && (
-                      <span className="text-xs text-mute">⚪ Not started</span>
-                    )}
-                  </div>
-                </div>
-                {i < PIPELINE.length - 1 && (
-                  <ArrowRight
-                    size={18}
-                    className={`text-line2 ${
-                      PIPELINE[i].status === "ready" &&
-                      PIPELINE[i + 1].status !== "empty"
-                        ? "text-lime aios-pulse"
-                        : ""
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-semibold text-fg2">Pipeline</div>
+            {!statusLoading && ago && (
+              <div className="text-[11px] text-mute">live · read {ago}</div>
+            )}
           </div>
+          {statusLoading && !status?.stages ? (
+            <SkeletonList rows={1} height={72} />
+          ) : !status?.stages ? (
+            <div className="text-sm text-mute">
+              Could not read the pipeline{status?.error ? ` — ${status.error}` : ""}.
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 overflow-x-auto aios-scroll pb-2">
+              {status.stages.map((stage, i) => {
+                const Icon = STAGE_ICON[stage.id] ?? Lightbulb;
+                const next = status.stages?.[i + 1];
+                return (
+                  <div key={stage.id} className="flex items-center gap-2">
+                    <div className="min-w-[150px] rounded-lg border border-line bg-surface p-3">
+                      <div className="flex items-center gap-2 text-fg">
+                        <Icon size={14} className="text-lime" />
+                        <span className="text-sm font-medium">{stage.label}</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-mute">
+                        {stageSummary(stage, STAGE_NOUN)}
+                      </div>
+                      <div className="mt-2">
+                        {stage.state === "ready" && (
+                          <span className="text-xs text-lime">✅ Ready</span>
+                        )}
+                        {stage.state === "pending" && (
+                          <span className="text-xs text-warn">
+                            ⏳ {stage.waiting} waiting
+                          </span>
+                        )}
+                        {stage.state === "empty" && (
+                          <span className="text-xs text-mute">⚪ Not started</span>
+                        )}
+                      </div>
+                    </div>
+                    {i < (status.stages?.length ?? 0) - 1 && (
+                      <ArrowRight
+                        size={18}
+                        className={`text-line2 ${
+                          stage.state !== "empty" && next?.state !== "empty"
+                            ? "text-lime aios-pulse"
+                            : ""
+                        }`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
 
-        <ContinueWorking onNav={onNav} />
+        <ContinueWorking
+          onNav={onNav}
+          items={status?.continue_work ?? []}
+          loading={statusLoading && !status?.continue_work}
+        />
 
         <RecentGenerations />
 
@@ -235,48 +310,19 @@ function activityLabel(a: ActivityItem) {
   return a.detail ? `${base}: ${a.detail}` : base || "Activity";
 }
 
+/** The activity feed, refreshed on the same idea as the pipeline: it is a live feed. */
 function useActivity() {
-  const [items, setItems] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    apiGet<ActivityItem[]>("/api/activity")
-      .then((rows) => !cancelled && setItems(Array.isArray(rows) ? rows : []))
-      .catch(() => !cancelled && setError(true))
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { items, loading, error };
+  const { data, loading, error } = useApi<ActivityItem[]>("/api/activity", {
+    refreshMs: 20000,
+  });
+  return {
+    items: Array.isArray(data) ? data : [],
+    loading,
+    error,
+  };
 }
 
-function StatsRow() {
-  const [counts, setCounts] = useState<Record<string, number | null>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    LIB_TYPES.forEach((t) => {
-      apiGet<unknown[]>(`/api/library/${t.slug}`)
-        .then((rows) => {
-          if (cancelled) return;
-          setCounts((c) => ({
-            ...c,
-            [t.slug]: Array.isArray(rows) ? rows.length : 0,
-          }));
-        })
-        .catch(() => {
-          if (!cancelled) setCounts((c) => ({ ...c, [t.slug]: 0 }));
-        });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+function StatsRow({ counts }: { counts?: Record<string, number> }) {
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {LIB_TYPES.map((s) => (
@@ -286,7 +332,7 @@ function StatsRow() {
           </div>
           <div className="mt-4 text-xs text-fg2">{s.label}</div>
           <div className="text-[clamp(1.5rem,7vw,2rem)] font-bold leading-tight text-lime">
-            {counts[s.slug] ?? "—"}
+            {counts?.[s.slug] ?? "—"}
           </div>
         </Card>
       ))}
@@ -294,20 +340,29 @@ function StatsRow() {
   );
 }
 
-function ContinueWorking({ onNav }: { onNav: (id: SectionId) => void }) {
-  const [ideas, setIdeas] = useState<{ key: string; value: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    apiGet<{ key: string; value: string }[]>("/api/workspace/selected_idea")
-      .then((rows) => !cancelled && setIdeas(Array.isArray(rows) ? rows : []))
-      .catch(() => !cancelled && setIdeas([]))
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+/**
+ * What to pick up next.
+ *
+ * This read the `idea_%` workspace rows, which only the video analyser ever wrote — so the
+ * normal path (choose an idea in the Ideator) left it saying "Nothing in progress"
+ * forever, while twelve finished scripts sat waiting for storyboards. It now shows the
+ * real next step of the most recent work, with Open landing on the screen that step
+ * belongs to.
+ */
+function ContinueWorking({
+  onNav,
+  items,
+  loading,
+}: {
+  onNav: (id: SectionId) => void;
+  items: ContinueItem[];
+  loading: boolean;
+}) {
+  const ICON: Record<ContinueItem["kind"], typeof Lightbulb> = {
+    idea: Lightbulb,
+    script: PenLine,
+    storyboard: LayoutPanelLeft,
+  };
 
   return (
     <Card className="bg-gradient-to-br from-cardfrom to-cardto p-5">
@@ -318,23 +373,30 @@ function ContinueWorking({ onNav }: { onNav: (id: SectionId) => void }) {
         <div className="mt-3">
           <SkeletonList rows={1} height={48} />
         </div>
-      ) : !ideas.length ? (
+      ) : !items.length ? (
         <div className="mt-3 text-sm text-mute">
-          Nothing in progress — start in Ideator.
+          Nothing waiting — every script has a storyboard. Start something new in the
+          Ideator.
         </div>
       ) : (
         <div className="mt-3 space-y-2">
-          {ideas.slice(0, 3).map((i) => (
-            <div key={i.key} className="flex items-center gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface text-lime">
-                <PenLine size={18} />
+          {items.map((item) => {
+            const Icon = ICON[item.kind] ?? Lightbulb;
+            return (
+              <div key={`${item.kind}-${item.title}`} className="flex items-center gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface text-lime">
+                  <Icon size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm text-fg">{item.title}</div>
+                  <div className="text-[11px] text-mute">{item.reason}</div>
+                </div>
+                <OutlineBtn onClick={() => onNav(item.next as SectionId)}>
+                  {item.nextLabel}
+                </OutlineBtn>
               </div>
-              <div className="min-w-0 flex-1 truncate text-sm text-fg">
-                {i.value}
-              </div>
-              <OutlineBtn onClick={() => onNav("script")}>Open</OutlineBtn>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Card>

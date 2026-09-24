@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Loader2, AlertTriangle, Check, Copy } from "lucide-react";
+import { copyText } from "@/lib/clipboard";
 
 export const FOCUS_RING =
   "outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app";
@@ -573,10 +574,9 @@ export function Skeleton({
 export function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
-    navigator.clipboard.writeText(value).then(
-      () => setCopied(true),
-      () => setCopied(false),
-    );
+    // Through the shared helper: the Clipboard API rejects outright when the document is
+    // not focused, and the legacy path still works there.
+    void copyText(value).then(setCopied);
   }, [value]);
 
   useEffect(() => {

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Card, Pill, PrimaryBtn, GhostBtn, EmptyState, Input } from "../ui";
-import { LayoutPanelLeft, Plus, X, Trash2 } from "lucide-react";
+import { Card, Pill, PrimaryBtn, GhostBtn, OutlineBtn, EmptyState, Input } from "../ui";
+import { Check, Copy, Download, LayoutPanelLeft, Plus, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiDelete, apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { StoryboardResult } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
 import type { SectionId } from "../Sidebar";
+import { buildProjectCsv, csvFileName, downloadCsv } from "@/lib/csv-export";
+import { copyText } from "@/lib/clipboard";
 
 type Character = { name: string; description: string };
 
@@ -34,6 +36,9 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
   const { script, setScript, storyboard, setStoryboard } = usePipeline();
   const [loading, setLoading] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
+  /** Everyone on file, so a character can be clicked into this storyboard. */
+  const [onFile, setOnFile] = useState<Character[]>([]);
+  const [exporting, setExporting] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [savedStoryboards, setSavedStoryboards] = useState<LibraryRow[]>([]);
@@ -137,6 +142,90 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Click a name on file to put it in (or take it out of) this storyboard. */
+  const toggleCharacter = (c: Character) => {
+    setCharacters((prev) =>
+      prev.some((x) => x.name === c.name)
+        ? prev.filter((x) => x.name !== c.name)
+        : [...prev, { name: c.name, description: c.description }],
+    );
+  };
+
+  /** Everything a shot needs for an image or video model, minus the spoken script. */
+  const shotText = (s: any) =>
+    [
+      `Shot ${s.shot_number}${s.duration ? ` (${s.duration})` : ""}`,
+      s.visual_description && `VISUAL:\n${s.visual_description}`,
+      s.image_prompt && `IMAGE PROMPT:\n${s.image_prompt}`,
+      s.text_overlay &&
+        `TEXT OVERLAY: ${s.text_overlay}${s.text_overlay_position ? ` (${s.text_overlay_position})` : ""}`,
+      s.voiceover && `VOICEOVER:\n${s.voiceover}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+  /**
+   * Export this job — script, shots and whatever video prompts exist for the storyboard —
+   * as one CSV, so the whole thing can be handed over in a single file.
+   */
+  const exportCsv = async () => {
+    if (!script && !storyboard) {
+      toast.error("Nothing to export yet");
+      return;
+    }
+    setExporting(true);
+    try {
+      let prompts: any[] = [];
+      let model: string | undefined;
+      let aspectRatio: string | undefined;
+      let quality: string | undefined;
+
+      if (storyboard?.storyboard_id) {
+        const rows = await apiGet<LibraryRow[]>("/api/scripts-list?type=video_prompt");
+        const match = (rows ?? []).find((r) => r.source_id === storyboard.storyboard_id);
+        if (match) {
+          const row = await apiGet<any>(`/api/library/video_prompt/${match.id}`);
+          const parsed = typeof row?.content === "string" ? JSON.parse(row.content) : row?.content;
+          prompts = Array.isArray(parsed?.prompts) ? parsed.prompts : [];
+          model = parsed?.model;
+          aspectRatio = parsed?.aspect_ratio;
+          quality = parsed?.quality;
+        }
+      }
+
+      const content = (script as any)?.script ?? {};
+      const hooks = Array.isArray(content.hooks) ? content.hooks : [];
+      const idx =
+        typeof content.selected_hook_index === "number" ? content.selected_hook_index : 0;
+
+      const csv = buildProjectCsv({
+        script: {
+          id: (script as any)?.id,
+          title: (script as any)?.title,
+          hook: hooks[idx]?.spoken,
+          body: content.body,
+          voiceover: content.voiceover_script,
+          cta: content.cta,
+        },
+        shots: (storyboard as any)?.shots ?? [],
+        prompts,
+        model,
+        aspectRatio,
+        quality,
+      });
+      downloadCsv(csvFileName((script as any)?.title), csv);
+      toast.success(
+        prompts.length > 0
+          ? "CSV exported — script, shots and video prompts"
+          : "CSV exported — script and shots",
+      );
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const addCharacter = () => {
     const n = name.trim();
     if (!n) return;
@@ -159,13 +248,24 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
     apiGet<any[]>("/api/characters")
       .then((rows) => {
         if (cancelled || !Array.isArray(rows) || rows.length === 0) return;
-        const onFile = rows
+        const roster = rows
           .map((row) => {
             const c = row?.content ?? {};
-            return { name: String(c.name ?? row?.title ?? "").trim(), description: String(c.description ?? "").trim() };
+            return {
+              name: String(c.name ?? row?.title ?? "").trim(),
+              description: String(c.description ?? "").trim(),
+              inUse: c.in_use === true,
+            };
           })
           .filter((c) => c.name);
-        if (onFile.length) setCharacters(onFile);
+        if (roster.length) {
+          setOnFile(roster);
+          // The character marked in use is the host, so it is the fair default. Everyone
+          // else waits to be clicked: they used to be pushed in silently, which meant the
+          // list already held faces nobody had chosen — and clicking one did nothing,
+          // because there was nothing to click.
+          setCharacters(roster.filter((c) => c.inUse).map(({ name, description }) => ({ name, description })));
+        }
       })
       .catch(() => {
         /* the form still works by hand if this fails */
@@ -303,24 +403,49 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
                 />
                 <button
                   onClick={addCharacter}
+                  disabled={!name.trim()}
                   aria-label="Add character"
-                  className="grid h-10 w-full place-items-center rounded-lg bg-lime text-app sm:w-10"
+                  title={name.trim() ? "Add this character" : "Type a name first"}
+                  className="grid h-10 w-full place-items-center rounded-lg bg-lime text-app transition disabled:opacity-40 sm:w-10"
                 >
                   <Plus size={16} />
                 </button>
               </div>
+              {onFile.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <span className="text-[11px] uppercase tracking-wide text-mute">On file — click to add</span>
+                  {onFile.map((c) => {
+                    const added = characters.some((x) => x.name === c.name);
+                    return (
+                      <button
+                        key={c.name}
+                        onClick={() => toggleCharacter(c)}
+                        title={added ? `Remove ${c.name}` : c.description || `Add ${c.name}`}
+                        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition ${
+                          added
+                            ? "border-lime text-lime"
+                            : "border-line text-fg2 hover:border-lime hover:text-lime"
+                        }`}
+                      >
+                        {added ? <Check size={11} /> : <Plus size={11} />} {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               {characters.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {characters.map((c, i) => (
                     <span
                       key={`${c.name}-${i}`}
-                      className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1 text-xs text-lime"
+                      className="inline-flex items-center gap-1 rounded-full border border-lime bg-surface px-3 py-1 text-xs text-lime"
                     >
                       {c.name}
                       <button
                         onClick={() =>
                           setCharacters((prev) => prev.filter((_, j) => j !== i))
                         }
+                        aria-label={`Remove ${c.name}`}
                         className="text-mute hover:text-err"
                       >
                         <X size={11} />
@@ -358,8 +483,11 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
         />
       ) : (
         <div className="space-y-4">
-          <div className="text-sm text-fg2">
-            {storyboard.shot_count} shots
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm text-fg2">{storyboard.shot_count} shots</div>
+            <OutlineBtn onClick={() => void exportCsv()} loading={exporting}>
+              <Download size={14} /> Export CSV — script + shots + prompts
+            </OutlineBtn>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {storyboard.shots.map((s) => (
@@ -373,8 +501,8 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
                   {s.transition && <Pill>{s.transition}</Pill>}
                 </div>
                 <Row label="Script" value={s.script_portion} />
-                <Row label="Visual" value={s.visual_description} />
-                <Row label="Image Prompt" value={s.image_prompt} />
+                <Row label="Visual" value={s.visual_description} copyable />
+                <Row label="Image Prompt" value={s.image_prompt} copyable />
                 <Row
                   label="Text Overlay"
                   value={
@@ -388,6 +516,14 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
                   }
                 />
                 <Row label="Voiceover" value={s.voiceover} />
+                <div className="mt-3 flex justify-end">
+                  <GhostBtn
+                    onClick={() => void copyField(shotText(s), `Shot ${s.shot_number}`)}
+                    title="Copies this shot minus the Script line — Visual, Image Prompt, Text Overlay and Voiceover"
+                  >
+                    <Copy size={13} /> Copy shot (without script)
+                  </GhostBtn>
+                </div>
               </Card>
             ))}
           </div>
@@ -401,11 +537,42 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+async function copyField(value: string, what: string) {
+  const ok = await copyText(value);
+  if (ok) toast.success(`${what} copied`);
+  else toast.error("Could not copy — try again with the window in front");
+}
+
+/**
+ * One labelled field of a shot, with a copy button when the text is meant to be pasted
+ * somewhere — the visual description and the image prompt are written to be handed to an
+ * image model, and selecting a paragraph by hand on a phone is the alternative.
+ */
+function Row({
+  label,
+  value,
+  copyable,
+}: {
+  label: string;
+  value?: string;
+  copyable?: boolean;
+}) {
   if (!value) return null;
   return (
     <div className="mt-2">
-      <div className="text-[11px] uppercase tracking-wide text-mute">{label}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[11px] uppercase tracking-wide text-mute">{label}</div>
+        {copyable && (
+          <button
+            onClick={() => void copyField(value, label)}
+            aria-label={`Copy ${label}`}
+            title={`Copy ${label}`}
+            className="grid h-6 w-6 shrink-0 place-items-center rounded border border-line text-mute transition hover:border-lime hover:text-lime"
+          >
+            <Copy size={11} />
+          </button>
+        )}
+      </div>
       <div className="break-words text-sm text-fg2">{value}</div>
     </div>
   );

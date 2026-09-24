@@ -72,6 +72,12 @@ export type VideoPromptResult = {
   prompts: VideoPromptItem[];
 };
 
+/**
+ * A row of the `library` table.
+ *
+ * `source_id` is the chain: a storyboard names the script it came from, a video prompt
+ * names its storyboard (see src/lib/pipeline-facts.ts, which walks the same links).
+ */
 export type LibraryRow = {
   id: string;
   type: string;
@@ -79,6 +85,8 @@ export type LibraryRow = {
   content_pillar: string | null;
   title: string;
   content: string | null;
+  /** The row this one was made from, when there is one. */
+  source_id?: string | null;
   created_at: number;
   updated_at: number;
 };

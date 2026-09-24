@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Card, Pill, PrimaryBtn, GhostBtn, OutlineBtn, Select, EmptyState } from "../ui";
-import { Film, Copy, RefreshCw, Trash2, LayoutPanelLeft } from "lucide-react";
+import { Download, Film, Copy, RefreshCw, Trash2, LayoutPanelLeft } from "lucide-react";
 import { toast } from "sonner";
 import { apiDelete, apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { LibraryRow, StoryboardResult, VideoPromptResult } from "@/lib/content-types";
 import { usePipeline } from "../pipeline";
+import { buildProjectCsv, csvFileName, downloadCsv } from "@/lib/csv-export";
+import { copyText } from "@/lib/clipboard";
 
 const MODELS = ["seedance", "omni", "veo3"] as const;
 const RATIOS = ["9:16", "16:9", "1:1"] as const;
@@ -25,6 +27,10 @@ export function VideoPrompt() {
   const [model, setModel] = useState<string>(MODELS[0]);
   const [aspect, setAspect] = useState<string>(RATIOS[0]);
   const [quality, setQuality] = useState<string>(QUALITIES[1]);
+  // Read-only mirrors so the export can fall back to the selected settings.
+  const model_ = model;
+  const aspect_ = aspect;
+  const quality_ = quality;
   const [loading, setLoading] = useState(false);
 
   const [boards, setBoards] = useState<LibraryRow[]>([]);
@@ -32,6 +38,7 @@ export function VideoPrompt() {
   const [listsLoading, setListsLoading] = useState(true);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const autoOpened = useRef(false);
 
   /** Reopen a stored storyboard — its content is the same `{ shots }` the generator wrote. */
@@ -126,6 +133,80 @@ export function VideoPrompt() {
     }
   };
 
+  /**
+   * One CSV for the whole job: the script it came from, the shots, and these prompts.
+   *
+   * The script and the prompts are fetched here because this page only holds the
+   * storyboard and the prompts it generated — the export should not depend on which
+   * screens the owner happened to open before.
+   */
+  const exportCsv = async () => {
+    if (!storyboard) {
+      toast.error("Load a storyboard first");
+      return;
+    }
+    setExporting(true);
+    try {
+      let scriptPart: Record<string, unknown> = {
+        id: storyboard.script_id,
+        title: storyboard.script_id ? "Script" : undefined,
+      };
+      if (storyboard.script_id) {
+        try {
+          const row = await apiGet<any>(`/api/library/script/${storyboard.script_id}`);
+          const c = typeof row?.content === "string" ? JSON.parse(row.content) : row?.content;
+          const hooks = Array.isArray(c?.hooks) ? c.hooks : [];
+          const idx = typeof c?.selected_hook_index === "number" ? c.selected_hook_index : 0;
+          scriptPart = {
+            id: row.id,
+            title: row.title,
+            hook: hooks[idx]?.spoken,
+            body: c?.body,
+            voiceover: c?.voiceover_script,
+            cta: c?.cta,
+          };
+        } catch {
+          /* a missing script must not stop the shots and prompts from exporting */
+        }
+      }
+
+      let promptRows = videoPrompt?.prompts ?? [];
+      let model = videoPrompt?.model ?? model_;
+      let aspectRatio = videoPrompt?.aspect_ratio ?? aspect;
+      let quality = videoPrompt?.quality ?? quality_;
+      if (promptRows.length === 0) {
+        const match = saved.find((r) => r.source_id === storyboard.storyboard_id);
+        if (match) {
+          const row = await apiGet<any>(`/api/library/video_prompt/${match.id}`);
+          const parsed = typeof row?.content === "string" ? JSON.parse(row.content) : row?.content;
+          promptRows = Array.isArray(parsed?.prompts) ? parsed.prompts : [];
+          model = parsed?.model ?? model;
+          aspectRatio = parsed?.aspect_ratio ?? aspectRatio;
+          quality = parsed?.quality ?? quality;
+        }
+      }
+
+      const csv = buildProjectCsv({
+        script: scriptPart as any,
+        shots: (storyboard as any).shots ?? [],
+        prompts: promptRows,
+        model,
+        aspectRatio,
+        quality,
+      });
+      downloadCsv(csvFileName(String(scriptPart.title ?? "")), csv);
+      toast.success(
+        promptRows.length > 0
+          ? "CSV exported — script, shots and video prompts"
+          : "CSV exported — script and shots",
+      );
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const removePrompt = async (id: string) => {
     setDeleting(id);
     try {
@@ -140,11 +221,10 @@ export function VideoPrompt() {
     }
   };
 
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text).then(
-      () => toast.success("Copied to clipboard"),
-      () => toast.error("Could not copy"),
-    );
+  const copy = async (text: string) => {
+    const ok = await copyText(text);
+    if (ok) toast.success("Copied to clipboard");
+    else toast.error("Could not copy — try again with the window in front");
   };
 
   const stamp = (at?: number) => {
@@ -158,13 +238,20 @@ export function VideoPrompt() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">
-          Video Prompt
-        </h1>
-        <p className="mt-1 text-sm text-mute">
-          Convert storyboard shots into model-ready video prompts.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[clamp(1.5rem,6vw,1.75rem)] font-semibold text-fg">
+            Video Prompt
+          </h1>
+          <p className="mt-1 text-sm text-mute">
+            Convert storyboard shots into model-ready video prompts.
+          </p>
+        </div>
+        {storyboard && (
+          <OutlineBtn onClick={() => void exportCsv()} loading={exporting}>
+            <Download size={14} /> Export CSV
+          </OutlineBtn>
+        )}
       </div>
 
       {boards.length > 0 && (

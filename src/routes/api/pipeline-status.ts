@@ -1,7 +1,8 @@
 import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
 import { getEnv } from "../../lib/settings";
-import { buildPipelineStatus, type PipelineFacts, type RawCount } from "../../lib/pipeline-status";
+import { buildPipelineStatus, type PipelineFacts } from "../../lib/pipeline-status";
+import { gatherPipelineFacts } from "../../lib/pipeline-facts";
 
 /**
  * GET /api/pipeline-status — the live state of the production chain, for the Dashboard.
@@ -28,115 +29,11 @@ export const Route = createFileRoute("/api/pipeline-status")({
         }
         const uid = await currentUserId(request, context);
 
-        const empty: RawCount = { count: 0, newest: null };
-        const facts: PipelineFacts = {
-          ideas: empty,
-          scripts: empty,
-          storyboards: empty,
-          videoPrompts: empty,
-          plans: empty,
-          scriptsWaiting: 0,
-          storyboardsWaiting: 0,
-          nextScript: null,
-          nextStoryboard: null,
-          selectedIdeas: [],
-        };
-
-        /** Scripts no storyboard points at. `source_id` is how a child names its parent. */
-        const waitingSql = (childType: string) => `
-          SELECT COUNT(*) AS n FROM library parent
-          WHERE parent.user_id = ?1 AND parent.type = ?
-            AND NOT EXISTS (
-              SELECT 1 FROM library child
-              WHERE child.user_id = ?1 AND child.type = ?
-                AND child.source_id = parent.id
-            )`;
-
+        // The numbers live in src/lib/pipeline-facts.ts, shared with the evening report
+        // the 20:00 cron sends — one query, so the card and the message cannot disagree.
+        let facts: PipelineFacts;
         try {
-          const [
-            counts,
-            scriptsWaiting,
-            storyboardsWaiting,
-            nextScript,
-            nextStoryboard,
-            plans,
-            pickedIdeas,
-          ] = await Promise.all([
-            db
-              .prepare(
-                `SELECT type, COUNT(*) AS n, MAX(created_at) AS newest FROM library
-                 WHERE user_id = ? AND type IN ('idea','script','storyboard','video_prompt')
-                 GROUP BY type`,
-              )
-              .bind(uid)
-              .all(),
-            db.prepare(waitingSql("storyboard")).bind(uid, "script", "storyboard").first(),
-            db.prepare(waitingSql("video_prompt")).bind(uid, "storyboard", "video_prompt").first(),
-            db
-              .prepare(
-                `SELECT id, title FROM library parent
-                 WHERE parent.user_id = ? AND parent.type = 'script'
-                   AND NOT EXISTS (SELECT 1 FROM library child
-                                   WHERE child.user_id = ? AND child.type = 'storyboard'
-                                     AND child.source_id = parent.id)
-                 ORDER BY parent.created_at DESC LIMIT 1`,
-              )
-              .bind(uid, uid)
-              .first(),
-            db
-              .prepare(
-                `SELECT id, title FROM library parent
-                 WHERE parent.user_id = ? AND parent.type = 'storyboard'
-                   AND NOT EXISTS (SELECT 1 FROM library child
-                                   WHERE child.user_id = ? AND child.type = 'video_prompt'
-                                     AND child.source_id = parent.id)
-                 ORDER BY parent.created_at DESC LIMIT 1`,
-              )
-              .bind(uid, uid)
-              .first(),
-            db
-              .prepare(
-                `SELECT COUNT(*) AS n, MAX(updated_at) AS newest FROM workspace
-                 WHERE user_id = ? AND key LIKE 'calendar_%'`,
-              )
-              .bind(uid)
-              .first(),
-            db
-              .prepare(
-                `SELECT value FROM workspace WHERE user_id = ? AND key LIKE 'idea_%'
-                 ORDER BY updated_at DESC LIMIT 3`,
-              )
-              .bind(uid)
-              .all(),
-          ]);
-
-          const byType: Record<string, RawCount> = {};
-          for (const row of (counts?.results ?? []) as Array<{ type: string; n: number; newest: number | null }>) {
-            byType[row.type] = { count: Number(row.n) || 0, newest: row.newest ?? null };
-          }
-
-          facts.ideas = byType.idea ?? empty;
-          facts.scripts = byType.script ?? empty;
-          facts.storyboards = byType.storyboard ?? empty;
-          facts.videoPrompts = byType.video_prompt ?? empty;
-          facts.plans = {
-            count: Number((plans as any)?.n) || 0,
-            newest: (plans as any)?.newest ?? null,
-          };
-          facts.scriptsWaiting = Number((scriptsWaiting as any)?.n) || 0;
-          facts.storyboardsWaiting = Number((storyboardsWaiting as any)?.n) || 0;
-          facts.nextScript = (nextScript as any)?.id
-            ? { id: String((nextScript as any).id), title: String((nextScript as any).title) }
-            : null;
-          facts.nextStoryboard = (nextStoryboard as any)?.id
-            ? {
-                id: String((nextStoryboard as any).id),
-                title: String((nextStoryboard as any).title),
-              }
-            : null;
-          facts.selectedIdeas = ((pickedIdeas?.results ?? []) as Array<{ value: string }>)
-            .map((r) => String(r.value ?? "").trim())
-            .filter(Boolean);
+          facts = await gatherPipelineFacts(env, uid);
         } catch (err: any) {
           return Response.json(
             { ok: false, error: `Could not read the pipeline: ${err?.message ?? String(err)}` },

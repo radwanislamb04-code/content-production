@@ -15,6 +15,10 @@ import { getWorkspace, putWorkspace } from "./workspace";
 import { fetchGoogleTrends, fetchYouTubeTrends } from "../routes/api/trends";
 import { scrapeHandleWithSlots } from "../routes/api/scrape-competitor";
 import { scrapeStepOutcome } from "./apify-slots";
+import { gatherPipelineFacts } from "./pipeline-facts";
+import { buildEveningReport, type CreditLine } from "./evening-report";
+import { usageFor } from "../routes/api/apify-usage";
+import { listChannels } from "./channels";
 import { storePosts } from "./post-performance";
 
 /**
@@ -28,10 +32,15 @@ import { storePosts } from "./post-performance";
  * the Performance page all read real history instead of inventing it.
  */
 
-export type StepId = "trends" | "scrape" | "brief" | "send";
+export type StepId = "trends" | "scrape" | "brief" | "report" | "send";
 
 export const PIPELINE_STEPS: { id: StepId; label: string; hint: string }[] = [
   { id: "trends", label: "Trends", hint: "Google Trends (BD) + YouTube trending" },
+  {
+    id: "report",
+    label: "Evening report",
+    hint: "what is still open — tasks, backlog, un-scored items, key credit (no scrape)",
+  },
   { id: "scrape", label: "Competitor scrape", hint: "Apify → post_performance" },
   { id: "brief", label: "Compose brief", hint: "AI → workspace brief_YYYY-MM-DD" },
   { id: "send", label: "Send to Telegram", hint: "Deliver the brief" },
@@ -126,6 +135,10 @@ export async function runPipeline(
         briefKey = r.key;
         steps.push({ step: id, ok: true, detail: r.detail, ms: Date.now() - t0 });
         await logActivity(env, "brief", "generated", r.detail);
+      } else if (id === "report") {
+        const r = await stepReport(env, userId);
+        steps.push({ step: id, ok: true, detail: r.detail, items: r.items, ms: Date.now() - t0 });
+        await logActivity(env, "evening-report", "sent", r.detail);
       } else if (id === "send") {
         const r = await stepSend(env, userId);
         telegramSent = r.sent;
@@ -380,6 +393,103 @@ async function stepSend(
   );
   if (!r.ok) throw new Error(r.error ?? "Telegram send failed");
   return { detail: `brief for ${dateKey} sent in ${r.sent} message(s)`, sent: r.sent ?? 0 };
+}
+
+/**
+ * The evening message: what is still open.
+ *
+ * Read-only on purpose — no Apify call, no AI call, no scrape. The 20:00 run used to
+ * repeat the morning's three-handle scrape and compose a second brief; now it reports the
+ * state instead, which is what the owner asked for and costs nothing to produce.
+ */
+async function stepReport(
+  env: any,
+  userId: string = OWNER_ID,
+): Promise<{ detail: string; items: number }> {
+  const db = env?.DB;
+  if (!db) throw new Error("D1 is not bound — cannot build the evening report");
+
+  const facts = await gatherPipelineFacts(env, userId);
+
+  const [openTasks, nextTasks, unscored, channels, automations] = await Promise.all([
+    db
+      .prepare(
+        "SELECT COUNT(*) AS n FROM telegram_tasks WHERE user_id = ? AND COALESCE(done, 0) = 0",
+      )
+      .bind(userId)
+      .first(),
+    db
+      .prepare(
+        `SELECT text, time FROM telegram_tasks WHERE user_id = ? AND COALESCE(done, 0) = 0
+         ORDER BY COALESCE(time, '') ASC, created_at ASC LIMIT 5`,
+      )
+      .bind(userId)
+      .all(),
+    db
+      .prepare("SELECT COUNT(*) AS n FROM library WHERE user_id = ? AND COALESCE(quality_score, 0) = 0")
+      .bind(userId)
+      .first(),
+    listChannels(env, userId),
+    db
+      .prepare("SELECT COUNT(*) AS n FROM dm_automations WHERE user_id = ? AND enabled = 1")
+      .bind(userId)
+      .first()
+      .catch(() => null),
+  ]);
+
+  // Credit, read live when slots exist. Free (it is Apify's own limits endpoint) and the
+  // whole point of a daily check: the owner should hear "your key runs out in three days"
+  // while there is still time to top up.
+  let credit: CreditLine[] = [];
+  try {
+    const slots = await readJsonSetting<any[]>(env, SETTINGS_KEYS.apifySlots, [], userId);
+    credit = (await Promise.all((slots ?? []).map((s, i) => usageFor(s, i)))).map((u) => ({
+      label: u.label,
+      remainingUsd: u.remainingUsd,
+      allowanceUsd: u.allowanceUsd,
+      resetsAt: u.cycle?.endAt ? String(u.cycle.endAt).slice(0, 10) : null,
+      state: u.state,
+    }));
+  } catch (err: any) {
+    console.log("[report] credit check failed:", err?.message ?? String(err));
+  }
+
+  const text = buildEveningReport({
+    dateKey: dhakaDateKey(),
+    counts: {
+      ideas: facts.ideas.count,
+      scripts: facts.scripts.count,
+      storyboards: facts.storyboards.count,
+      prompts: facts.videoPrompts.count,
+    },
+    waiting: { scripts: facts.scriptsWaiting, storyboards: facts.storyboardsWaiting },
+    next: facts.nextScript
+      ? { title: facts.nextScript.title, needs: "storyboard" }
+      : facts.nextStoryboard
+        ? { title: facts.nextStoryboard.title, needs: "video prompt" }
+        : null,
+    tasks: {
+      open: Number((openTasks as any)?.n ?? 0),
+      next: ((nextTasks?.results ?? []) as Array<{ text: string; time: string | null }>).map((t) => ({
+        text: t.text,
+        time: t.time,
+      })),
+    },
+    unscored: Number((unscored as any)?.n ?? 0),
+    credit,
+    instagram: {
+      connected: (channels ?? []).length > 0,
+      username: (channels ?? [])[0]?.username ?? null,
+      automations: Number((automations as any)?.n ?? 0),
+    },
+  });
+
+  const r = await sendTelegramLong(env, text, {}, userId);
+  if (!r.ok) throw new Error(r.error ?? "Telegram send failed");
+  return {
+    detail: `evening check sent in ${r.sent} message(s)`,
+    items: r.sent ?? 0,
+  };
 }
 
 // ---------------------------------------------------------------- helpers

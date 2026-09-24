@@ -56,7 +56,7 @@ const SCHEDULE = [
     cron: "0 14 * * *",
     local: "20:00 Asia/Dhaka",
     label: "Evening check",
-    detail: "competitor scrape → brief → Telegram",
+    detail: "report of open tasks, backlog and key credit → Telegram",
   },
 ];
 
@@ -64,6 +64,7 @@ const STEP_LABELS: Record<string, string> = {
   trends: "Trends",
   scrape: "Competitor scrape",
   brief: "Compose brief",
+  report: "Evening report",
   send: "Send to Telegram",
 };
 

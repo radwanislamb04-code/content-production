@@ -5,7 +5,7 @@ import { PIPELINE_STEPS, runPipeline } from "../../lib/pipeline";
 /**
  * GET  /api/run-pipeline — the step registry (used by AutoPilot to label buttons)
  * POST /api/run-pipeline — run the pipeline on demand
- *      body: { steps?: ("trends" | "scrape" | "brief" | "send")[] }
+ *      body: { steps?: ("trends" | "scrape" | "brief" | "report" | "send")[] }
  *      an empty/absent body runs every step in order.
  *
  * Protected by Cloudflare Access like the rest of /api/*.

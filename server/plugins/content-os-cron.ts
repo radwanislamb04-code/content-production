@@ -5,7 +5,7 @@
 // `wrangler.toml` declares two cron triggers:
 //
 //   "0 2 * * *"   — 02:00 UTC = 08:00 Asia/Dhaka — morning brief
-//   "0 14 * * *"  — 14:00 UTC = 20:00 Asia/Dhaka — evening competitor check
+//   "0 14 * * *"  — 14:00 UTC = 20:00 Asia/Dhaka — evening report (no scrape)
 //
 // Nitro's `cloudflare-module` preset DOES emit a worker `scheduled` export, but
 // that export only forwards to the Nitro hook `cloudflare:scheduled`:
@@ -62,8 +62,14 @@ const FOLLOWUP_CRON = "*/15 * * * *";
 // 08:00 — fresh trends + competitor data, compose the brief, deliver it.
 const MORNING_STEPS = ["trends", "scrape", "brief", "send"];
 
-// 20:00 — refresh competitor data and deliver the evening update.
-const EVENING_STEPS = ["scrape", "brief", "send"];
+// 20:00 — report what is still open.
+//
+// It used to be ["scrape", "brief", "send"]: the same three handles scraped again twelve
+// hours after the morning run, at full price, plus a second brief. That was about half of
+// the Apify spend for data the brief already had. The evening now reads and reports —
+// open tasks, what is waiting to move forward, un-scored items, key credit — and spends
+// nothing. Scraping happens once a day, in the morning.
+const EVENING_STEPS = ["report"];
 
 const CRON_TASKS: Record<string, string[]> = {
   [MORNING_BRIEF_CRON]: MORNING_STEPS,

@@ -31,7 +31,7 @@ This skill is built from analysis of top AI-niche creators (Simone Ferretti, Rou
 
 ## STEP 2 — Pick a Hook Formula (give 3 options from DIFFERENT families)
 
-1. **Reality break** — "This looks real — but it isn't." / "Ei video ta shoot kora hoyni." (photoreal AI output first, UI proof after)
+1. **Reality break** — "This looks real — but it isn't." / "Ei video ta shoot kora hoyni." *(the second wording is a Bangla illustration of the same formula — write in the creator's spoken language)* (photoreal AI output first, UI proof after)
 2. **Before → After** — "This used to take a studio. Now it takes one prompt."
 3. **Result-first / proof hook** — "I got [specific result] in [time]. Here's the system." (proof on screen instantly)
 4. **Contrarian stop** — "Stop using ChatGPT like this. It's killing your output."
@@ -68,7 +68,7 @@ This skill is built from analysis of top AI-niche creators (Simone Ferretti, Rou
 
 | Objective | Template | Use when |
 |---|---|---|
-| Keyword comment | "Comment '[WORD]' — ami tomake [asset] pathiye dibo." | You have a real prompt/tool list/guide to deliver (strongest in AI niche) |
+| Keyword comment | "Comment '[WORD]' and I'll send you the [asset]." *(illustrated in Bangla in the original wording — use the creator's spoken language)* | You have a real prompt/tool list/guide to deliver (strongest in AI niche) |
 | Save | "Save this before your next [action]." | Checklists, prompts, step lists |
 | Send | "Send this to the [specific person] who needs it." | New tool discovery, team workflow |
 | Follow | "Follow for [narrow recurring promise]." | Series content — never generic "follow for more" |
@@ -103,7 +103,7 @@ HOOK OPTIONS (3, from different families):
 ```
 
 ## Language & Tone
-- Match the user's language: Bangla/Banglish idea → natural **spoken** Bangla/Banglish script (tool names and technical terms stay in English); English idea → English.
+- **Write in the creator's spoken language** — the CREATOR block of the request states it, and that line decides. If it says English, every spoken line, on-screen text and caption is English, with no Bangla/Banglish mixing. Tool names and technical terms may stay in English whatever the language. Do not switch language because the idea, a competitor post or an example below happens to be written in another one.
 - Conversational spoken tone — write how people talk. 8th-grade level. Confident, concise, zero hype-words without proof.
 - If the user gives multiple ideas: script the strongest one, say why, and list the rest as one-line hook suggestions.
 

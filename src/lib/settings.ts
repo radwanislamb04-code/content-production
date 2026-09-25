@@ -373,7 +373,13 @@ export function creatorProfileBlock(profile: CreatorProfile): string {
     `- Brand: ${profile.brand}`,
     `- Handle: ${profile.handle}`,
     `- Niche: ${profile.niche}`,
-    `- Language on camera: ${profile.language}`,
+    `- Spoken language: ${profile.language}`,
+    // Said as an instruction rather than as a fact. It used to be a bare "- Language on
+    // camera: Bangla/Banglish …" label, and the script skill's own line — "match the
+    // user's language: Bangla/Banglish idea → spoken Bangla/Banglish" — out-argued it, so
+    // a creator whose profile said Bangla/Banglish kept getting Banglish even when they
+    // wanted English. This line is written to win that argument.
+    `- Write every spoken line, every on-screen text and the caption in ${profile.language}. Do not mix languages, and do not fall back to another language because an example or a rule elsewhere in these instructions uses one — this line decides.`,
   ];
   if (profile.referenceCreators.length) {
     lines.push(`- Reference creators in this niche: ${profile.referenceCreators.join(", ")}`);

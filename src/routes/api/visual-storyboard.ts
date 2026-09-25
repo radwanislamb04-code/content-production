@@ -1,6 +1,10 @@
 import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
-import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
+import {
+  anthropicMessagesUrl,
+  readAiConfig,
+  readCreatorProfile,
+} from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
 
 // Skill text from .claude/skills/production-ready-storyboard-prompts.md; its prose
@@ -117,7 +121,18 @@ export const Route = createFileRoute("/api/visual-storyboard")({
 
         const jsonOverride = `IMPORTANT: Regardless of the OUTPUT FORMAT section above, you MUST respond with ONLY valid JSON in this exact structure: {\"shots\": [{\"shot_number\": int, \"duration\": string, \"script_portion\": string, \"visual_description\": string, \"camera_angle\": string, \"transition\": string, \"image_prompt\": string, \"text_overlay\": string, \"text_overlay_position\": \"top\"|\"center\"|\"bottom\", \"voiceover\": string}]}. Use the skill's quality standards (character consistency, cinematography vocabulary, pacing, safe zones, negative-prompt thinking folded into image_prompt) to inform the CONTENT of each field, but the output must be this JSON shape only — no markdown headers, no prose summary, no extra sections.`;
 
-        const systemPrompt = PRODUCTION_READY_STORYBOARD_PROMPTS_SKILL + `\n\n${characterRefs}\n\n${jsonOverride}`;
+        // Spoken lines and on-screen text follow the creator's language; the fields read by
+        // an image model stay English, because "bright studio, waist-up, 85mm" is the
+        // vocabulary those models are trained on — a translated prompt draws worse pictures.
+        const creator = await readCreatorProfile(
+          env,
+          await currentUserId(request, context),
+        );
+        const languageRule = `LANGUAGE: write "voiceover" and "text_overlay" in ${creator.language} (the creator's on-camera language) — do not mix languages. Write "image_prompt", "visual_description" and "camera_angle" in English regardless, since an image or video model reads them.`;
+
+        const systemPrompt =
+          PRODUCTION_READY_STORYBOARD_PROMPTS_SKILL +
+          `\n\n${characterRefs}\n\n${languageRule}\n\n${jsonOverride}`;
 
         // Which of the three hook options actually opens this script. Without saying so,
         // the storyboard model sees three hooks and may shoot the wrong one.

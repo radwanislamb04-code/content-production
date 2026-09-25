@@ -1,6 +1,11 @@
 import { currentUserId } from "../../lib/users";
 import { createFileRoute } from "@tanstack/react-router";
-import { readAiConfig, anthropicMessagesUrl } from "../../lib/settings";
+import {
+  creatorProfileLine,
+  readAiConfig,
+  readCreatorProfile,
+  anthropicMessagesUrl,
+} from "../../lib/settings";
 import { getEnv } from "../../lib/settings";
 import { getWorkspaceFor } from "../../lib/workspace";
 
@@ -111,7 +116,7 @@ function briefBlock(sourceData: unknown[]): string {
   ].join("\n");
 }
 
-function buildPrompt(source: Source, sourceData: unknown[]): string {
+function buildPrompt(source: Source, sourceData: unknown[], creatorLine = ""): string {
   const picked = source === "brief" && isPickedBriefItem(sourceData?.[0]);
   const sourceLabel =
     source === "my_posts"
@@ -129,7 +134,8 @@ function buildPrompt(source: Source, sourceData: unknown[]): string {
       ? briefBlock(sourceData)
       : JSON.stringify(sourceData ?? [], null, 2).slice(0, 12000);
 
-  return `You are a social content ideator. Based on ${sourceLabel} below, generate 4-5 fresh content ideas the user could produce next.
+  return `You are a social content ideator${creatorLine ? ` for a solo short-form video creator (${creatorLine})` : ""}. Based on ${sourceLabel} below, generate 4-5 fresh content ideas the user could produce next.
+${creatorLine ? `\nTitles and why-now notes must be written in the creator's language stated above, with no mixing.\n` : ""}
 
 SOURCE DATA (${source}):
 ${dataBlock}
@@ -254,7 +260,12 @@ export const Route = createFileRoute("/api/ideator-generate")({
           sourceData = source_data;
         }
 
-        const prompt = buildPrompt(source, sourceData);
+        // The creator line carries the language rule, so ideas come out in the creator's
+        // language instead of drifting with whatever language the source data is in.
+        const creatorLine = creatorProfileLine(
+          await readCreatorProfile(env, await currentUserId(request, context)),
+        );
+        const prompt = buildPrompt(source, sourceData, creatorLine);
 
         // --- Call Anthropic-compatible /messages endpoint ---
         const anthropicUrl = anthropicMessagesUrl(String(baseUrl));

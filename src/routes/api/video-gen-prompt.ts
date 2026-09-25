@@ -128,7 +128,12 @@ export const Route = createFileRoute("/api/video-gen-prompt")({
         // and append JSON-only override instruction
         const jsonOverride = `IMPORTANT: You MUST respond with ONLY valid JSON in this exact structure: {"prompts": [{"shot_number": int, "duration": string, "video_prompt": string, "negative_prompt": string, "camera_motion": string}]}. No markdown headers, no prose, no extra sections. The video_prompt for each shot must explicitly mention the target model ("${model}"), the aspect ratio ("${aspectRatio}"), and the quality level ("${quality}"). Tailor prompt syntax and style to the target model per the skill's model-specific guidance. camera_motion is decided by you for each shot based on cinematic direction vocabulary (e.g., "slow pan left", "static", "dolly in", "tilt up"). Include a negative_prompt with standard exclusions tuned per shot.`;
 
-        const systemPrompt = VIDEO_PROMPT_SKILL + `\n\n${jsonOverride}`;
+        // Video-model prompts are English by convention — those models are trained on
+        // English direction vocabulary ("slow pan left", "dolly in"). Say so rather than
+        // leaving it to luck.
+        const systemPrompt =
+          VIDEO_PROMPT_SKILL +
+          `\n\nLANGUAGE: write every field in English, whatever language the storyboard's own text is in.\n\n${jsonOverride}`;
 
         const userPrompt = `Storyboard title: ${storyboardRow.title}
 Storyboard content (shots):

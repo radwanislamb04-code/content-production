@@ -360,7 +360,10 @@ const PROFILE_MAX = { brand: 80, handle: 80, niche: 160, language: 160 } as cons
 
 /** One-line form, for prompts that name the creator in a parenthetical. */
 export function creatorProfileLine(profile: CreatorProfile): string {
-  const line = `brand "${profile.brand}", handle ${profile.handle}, niche ${profile.niche}, on-camera language ${profile.language}`;
+  // The language is stated as a rule, not a trait. These prompts are the brief, the monthly
+  // plan, the thumbnail direction and the scorer — the surfaces that produce prose. A bare
+  // "on-camera language X" label was enough to be ignored.
+  const line = `brand "${profile.brand}", handle ${profile.handle}, niche ${profile.niche}, and write everything in ${profile.language} (its on-camera language) — do not mix languages`;
   return profile.referenceCreators.length
     ? `${line}, reference creators ${profile.referenceCreators.join(", ")}`
     : line;

@@ -226,7 +226,7 @@ export function AutoPilot() {
             Run the content pipeline on demand, or let the schedule do it.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <OutlineBtn onClick={load} title="Reload the activity log">
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -491,16 +491,16 @@ export function AutoPilot() {
                 key={row.id}
                 className="flex items-start gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-cardhi"
               >
-                <span className="w-24 shrink-0 text-xs text-mute">
+                <span className="w-16 shrink-0 text-xs text-mute sm:w-24">
                   {clock(row.created_at)}
                 </span>
-                <span className="w-32 shrink-0 truncate text-xs text-mute">
+                <span className="hidden w-32 shrink-0 truncate text-xs text-mute sm:inline">
                   {row.module}
                 </span>
-                <span className="w-28 shrink-0 truncate text-xs">
+                <span className="w-20 shrink-0 truncate text-xs sm:w-28">
                   {row.action}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-mute">
+                <span className="min-w-0 flex-1 text-xs text-mute sm:truncate">
                   {row.detail}
                 </span>
               </div>

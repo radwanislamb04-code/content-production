@@ -421,7 +421,7 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
                         key={c.name}
                         onClick={() => toggleCharacter(c)}
                         title={added ? `Remove ${c.name}` : c.description || `Add ${c.name}`}
-                        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition ${
+                        className={`inline-flex items-center gap-1 rounded-full border px-3 py-2 text-xs transition ${
                           added
                             ? "border-lime text-lime"
                             : "border-line text-fg2 hover:border-lime hover:text-lime"
@@ -446,7 +446,7 @@ export function Storyboard({ onNav }: { onNav: (id: SectionId) => void }) {
                           setCharacters((prev) => prev.filter((_, j) => j !== i))
                         }
                         aria-label={`Remove ${c.name}`}
-                        className="text-mute hover:text-err"
+                        className="-m-1.5 grid h-8 w-8 place-items-center rounded text-mute hover:text-err"
                       >
                         <X size={11} />
                       </button>
@@ -567,7 +567,7 @@ function Row({
             onClick={() => void copyField(value, label)}
             aria-label={`Copy ${label}`}
             title={`Copy ${label}`}
-            className="grid h-6 w-6 shrink-0 place-items-center rounded border border-line text-mute transition hover:border-lime hover:text-lime"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded border border-line text-mute transition hover:border-lime hover:text-lime"
           >
             <Copy size={11} />
           </button>

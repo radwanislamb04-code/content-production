@@ -194,7 +194,8 @@ export function Analyst() {
             <div className="border-b border-border px-4 py-3 text-xs uppercase tracking-wide text-mute">
               Top posts by likes
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto overscroll-contain">
+            <table className="w-full min-w-[520px] text-sm">
               <tbody>
                 {data.top.map((p, i) => (
                   <tr key={i} className="border-b border-border last:border-0">
@@ -230,13 +231,15 @@ export function Analyst() {
                 ))}
               </tbody>
             </table>
+            </div>
           </Card>
 
           <Card className="overflow-hidden">
             <div className="border-b border-border px-4 py-3 text-xs uppercase tracking-wide text-mute">
               Accounts tracked
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto overscroll-contain">
+            <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="text-left text-xs text-mute">
                   <th className="px-4 py-2 font-normal">Handle</th>
@@ -261,6 +264,7 @@ export function Analyst() {
                 ))}
               </tbody>
             </table>
+            </div>
           </Card>
 
           {data.best_hours.length > 0 && (

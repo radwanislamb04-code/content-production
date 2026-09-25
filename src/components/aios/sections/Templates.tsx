@@ -99,7 +99,7 @@ export function Templates({ onNav }: { onNav: (id: SectionId) => void }) {
 
       <div className="flex flex-wrap gap-2">
         {CATEGORIES.map((c) => (
-          <button key={c} onClick={() => setCat(c)}>
+          <button className="min-h-9 py-1.5" key={c} onClick={() => setCat(c)}>
             <Pill active={cat === c}>{c}</Pill>
           </button>
         ))}

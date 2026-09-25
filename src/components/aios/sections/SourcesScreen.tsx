@@ -171,7 +171,7 @@ function Toggle({
       aria-label={`${on ? "Disable" : "Enable"} ${label}`}
       disabled={busy}
       onClick={onToggle}
-      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${
+      className={`relative my-2 h-6 w-11 shrink-0 rounded-full border transition-colors outline-none before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-[''] focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${
         on ? "border-lime bg-lime" : "border-line bg-surface"
       }`}
     >

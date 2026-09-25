@@ -110,7 +110,7 @@ export function DailyBriefScreen({ onNav }: { onNav?: (id: SectionId) => void } 
             Built automatically at 08:00 and 20:00 (Asia/Dhaka) and sent to Telegram.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <OutlineBtn onClick={() => load(selected)} disabled={loading}>
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -205,7 +205,7 @@ export function DailyBriefScreen({ onNav }: { onNav?: (id: SectionId) => void } 
                                 onNav?.("discover");
                               }}
                               title="Send this line to the Ideator"
-                              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[11px] text-mute transition hover:border-lime hover:text-lime"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-3 py-2 text-[11px] text-mute transition hover:border-lime hover:text-lime sm:px-2 sm:py-0.5"
                             >
                               Ideator <ArrowRight size={11} />
                             </button>
@@ -228,7 +228,8 @@ export function DailyBriefScreen({ onNav }: { onNav?: (id: SectionId) => void } 
               No briefs have been generated yet.
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto overscroll-contain">
+            <table className="w-full min-w-[520px] text-sm">
               <tbody>
                 {(data?.history ?? []).map((h) => (
                   <tr
@@ -241,7 +242,7 @@ export function DailyBriefScreen({ onNav }: { onNav?: (id: SectionId) => void } 
                     }}
                   >
                     <td className="px-4 py-2.5">{h.date}</td>
-                    <td className="max-w-[420px] truncate px-4 py-2.5 text-mute">
+                    <td className="max-w-[420px] truncate px-4 py-2.5 text-mute sm:max-w-[420px]">
                       {h.preview ?? ""}
                     </td>
                     <td className="px-4 py-2.5 text-right text-mute">{clock(h.updated_at)}</td>
@@ -249,6 +250,7 @@ export function DailyBriefScreen({ onNav }: { onNav?: (id: SectionId) => void } 
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </Card>
       )}

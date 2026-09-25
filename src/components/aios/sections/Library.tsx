@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEscape } from "@/lib/use-escape";
 import {
   Pill,
   Input,
@@ -260,10 +261,10 @@ function LibraryList({ tab }: { tab: Tab }) {
         </div>
         <div className="flex shrink-0 items-center gap-2 text-xs text-mute">
           <span className="hidden sm:inline">Sort</span>
-          <button onClick={() => setSort("newest")}>
+          <button className="min-h-9 px-1" onClick={() => setSort("newest")}>
             <Pill active={sort === "newest"}>Newest</Pill>
           </button>
-          <button onClick={() => setSort("oldest")}>
+          <button className="min-h-9 px-1" onClick={() => setSort("oldest")}>
             <Pill active={sort === "oldest"}>Oldest</Pill>
           </button>
         </div>
@@ -357,7 +358,7 @@ function LibraryRowView({
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="block max-w-full truncate text-left text-[15px] font-semibold text-fg hover:text-lime"
+            className="block max-w-full truncate py-2 text-left text-[15px] font-semibold text-fg hover:text-lime sm:py-0"
           >
             {item.title}
           </button>
@@ -377,7 +378,7 @@ function LibraryRowView({
       <button
         onClick={onDelete}
         aria-label="Delete"
-        className="shrink-0 text-mute transition-colors hover:text-err"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-mute transition-colors hover:text-err"
       >
         <X size={16} />
       </button>
@@ -472,14 +473,16 @@ function DetailModal({
     }
   };
 
+  useEscape(true, onClose);
+
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
+      className="fixed inset-0 z-50 grid place-items-end justify-center bg-black/70 p-4 sm:place-items-center"
       onClick={onClose}
     >
       <Card
         elevated
-        className="max-h-[85vh] w-full max-w-2xl overflow-auto p-5"
+        className="max-h-[85dvh] w-full max-w-2xl overflow-auto overscroll-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
         // eslint-disable-next-line
       >
         <div onClick={(e) => e.stopPropagation()}>

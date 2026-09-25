@@ -379,7 +379,7 @@ export function Planner() {
                                 time: "21:00",
                               })
                             }
-                            className="text-mute opacity-0 transition hover:text-lime group-hover:opacity-100 sm:opacity-100"
+                            className="grid h-8 w-8 place-items-center rounded text-mute transition hover:text-lime sm:h-5 sm:w-5 sm:opacity-0 sm:group-hover:opacity-100"
                             aria-label={`Add post on ${date}`}
                           >
                             <Plus size={12} />
@@ -429,7 +429,7 @@ export function Planner() {
                                   void removeEntry(e);
                                 }}
                                 aria-label={`Remove ${e.topic}`}
-                                className="absolute right-1 top-1 hidden rounded p-0.5 text-mute hover:text-err group-hover:block"
+                                className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded text-mute hover:text-err sm:h-5 sm:w-5 sm:hidden sm:group-hover:block"
                               >
                                 <X size={11} />
                               </button>

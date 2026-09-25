@@ -113,10 +113,10 @@ export function Projects() {
         </button>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex min-w-0 flex-wrap gap-2">
           {FILTERS.map((f) => (
-            <button key={f} onClick={() => setFilter(f)}>
+            <button key={f} className="min-h-9" onClick={() => setFilter(f)}>
               <Pill active={filter === f}>{f}</Pill>
             </button>
           ))}

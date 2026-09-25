@@ -650,7 +650,7 @@ export function ThumbnailStudioScreen() {
         </div>
 
         {/* Controls */}
-        <aside className="aios-scroll max-h-[calc(100dvh-180px)] min-w-0 space-y-3 overflow-y-auto rounded-xl border border-line bg-cardx p-3 lg:sticky lg:top-16">
+        <aside className="aios-scroll min-w-0 space-y-3 overflow-visible rounded-xl border border-line bg-cardx p-3 lg:sticky lg:top-16 lg:max-h-[calc(100dvh-140px)] lg:overflow-y-auto">
           <Tabs
             tabs={[
               { id: "background", label: "Background" },

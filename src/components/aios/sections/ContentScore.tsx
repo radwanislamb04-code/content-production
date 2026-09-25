@@ -184,11 +184,11 @@ export function ContentScore() {
             A 1-10 verdict with a five-part breakdown, scored by the AI and saved on the item.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <Select
             value={selectedId}
             onChange={(e: any) => setSelectedId(e.target.value)}
-            className="max-w-[280px]"
+            className="w-full max-w-none sm:w-auto sm:max-w-[280px]"
           >
             {items.length === 0 && <option value="">No content yet</option>}
             {items.map((i) => (

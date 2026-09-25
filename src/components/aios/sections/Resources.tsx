@@ -159,7 +159,7 @@ export function Resources() {
 
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (
-          <button key={f} onClick={() => setFilter(f)}>
+          <button key={f} className="min-h-9" onClick={() => setFilter(f)}>
             <Pill active={filter === f}>{f}</Pill>
           </button>
         ))}
@@ -418,7 +418,7 @@ function SiteViewer({ site, onClose }: { site: Site; onClose: () => void }) {
       onClick={onClose}
     >
       <div
-        className="flex h-[90vh] w-full max-w-[1100px] flex-col overflow-hidden rounded-xl border border-line bg-cardx"
+        className="flex h-[90dvh] w-full max-w-[1100px] flex-col overflow-hidden rounded-xl border border-line bg-cardx"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-line px-3 py-2.5">
@@ -743,7 +743,7 @@ function SiteModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[460px] rounded-xl border border-line bg-cardx p-5"
+        className="max-h-[85dvh] w-full max-w-[460px] overflow-y-auto overscroll-contain rounded-xl border border-line bg-cardx p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">

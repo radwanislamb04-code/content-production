@@ -128,7 +128,7 @@ export function BriefHistoryScreen() {
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <Card className="max-h-[70vh] overflow-y-auto p-2">
+          <Card className="max-h-[38dvh] overflow-y-auto overscroll-contain p-2 sm:max-h-[70vh]">
             {rows.map((h) => (
               <button
                 key={h.date}

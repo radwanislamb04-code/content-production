@@ -176,7 +176,7 @@ export function TopNav({
                     className="fixed inset-0 z-30"
                     onClick={() => setBellOpen(false)}
                   />
-                  <div className="absolute right-0 top-11 z-40 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-xl border border-line bg-cardx shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+                  <div className="fixed right-3 top-[60px] z-40 max-h-[70dvh] w-[min(360px,calc(100vw-24px))] overflow-y-auto overscroll-contain rounded-xl border border-line bg-cardx shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
                     <div className="border-b border-line px-4 py-2.5 text-[11px] uppercase tracking-wide text-mute">
                       {items.length === 0
                         ? "Notifications"
@@ -613,7 +613,7 @@ function Spotlight({ onClose }: { onClose: () => void }) {
                 ? "What needs doing? Press Enter to save…"
                 : "Search anything, or type an action..."
             }
-            className="h-12 flex-1 bg-transparent text-sm text-fg placeholder:text-mute outline-none"
+            className="h-12 flex-1 bg-transparent text-base text-fg placeholder:text-mute outline-none sm:text-sm"
           />
           {mode === "task" && (
             <button

@@ -528,7 +528,7 @@ function OutCard({
           <button
             onClick={onCopy}
             aria-label="Copy"
-            className="grid h-8 w-8 place-items-center rounded-md text-mute hover:text-lime"
+            className="grid h-10 w-10 place-items-center rounded-md text-mute hover:text-lime"
           >
             <Copy size={14} />
           </button>
@@ -536,7 +536,7 @@ function OutCard({
             <button
               onClick={onRegenerate}
               disabled={regenerating}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line px-2.5 text-xs text-fg2 transition-colors hover:border-lime hover:text-lime disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-1.5 rounded-md border border-line px-3 text-xs text-fg2 transition-colors hover:border-lime hover:text-lime disabled:opacity-60 sm:h-8"
             >
               <RefreshCw
                 size={13}

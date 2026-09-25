@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Content OS" },
       { name: "description", content: "A personal AI-powered content operating system for creators — discover ideas, generate scripts, storyboard shots, and plan releases." },
       { property: "og:title", content: "Content OS" },

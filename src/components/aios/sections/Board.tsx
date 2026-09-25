@@ -241,7 +241,7 @@ export function BoardScreen() {
                     }
                   });
                 }}
-                className="text-mute hover:text-err"
+                className="-m-1.5 grid h-8 w-8 place-items-center rounded text-mute hover:text-err"
               >
                 <Trash2 size={13} />
               </button>
@@ -359,7 +359,7 @@ export function BoardScreen() {
                       list.position - 1000,
                   })
                 }
-                className="grid h-6 w-6 place-items-center rounded text-mute hover:text-lime disabled:opacity-30"
+                className="grid h-9 w-9 place-items-center rounded text-mute hover:text-lime disabled:opacity-30"
               >
                 <ArrowLeft size={12} />
               </button>
@@ -375,7 +375,7 @@ export function BoardScreen() {
                       list.position + 1000,
                   })
                 }
-                className="grid h-6 w-6 place-items-center rounded text-mute hover:text-lime disabled:opacity-30"
+                className="grid h-9 w-9 place-items-center rounded text-mute hover:text-lime disabled:opacity-30"
               >
                 <ArrowRight size={12} />
               </button>
@@ -389,7 +389,7 @@ export function BoardScreen() {
                     return;
                   void act({ action: "delete_list", listId: list.id });
                 }}
-                className="grid h-6 w-6 place-items-center rounded text-mute hover:text-err"
+                className="grid h-9 w-9 place-items-center rounded text-mute hover:text-err"
               >
                 <Trash2 size={12} />
               </button>
@@ -775,7 +775,7 @@ function CardDetail({
                 <button
                   aria-label="Remove item"
                   onClick={() => setChecklist((c) => c.filter((_, j) => j !== i))}
-                  className="text-mute hover:text-err"
+                  className="-m-1.5 grid h-8 w-8 place-items-center rounded text-mute hover:text-err"
                 >
                   <X size={12} />
                 </button>
@@ -823,7 +823,7 @@ function CardDetail({
               <button
                 aria-label={`Unlink ${l.title}`}
                 onClick={() => void act({ action: "unlink_item", linkId: l.id })}
-                className="text-mute hover:text-err"
+                className="-m-1.5 grid h-8 w-8 place-items-center rounded text-mute hover:text-err"
               >
                 <X size={11} />
               </button>
@@ -924,7 +924,7 @@ function CardDetail({
                 <button
                   aria-label={`Remove ${f.name}`}
                   onClick={() => void act({ action: "delete_attachment", attachmentId: f.id })}
-                  className="text-mute hover:text-err"
+                  className="-m-1.5 grid h-8 w-8 place-items-center rounded text-mute hover:text-err"
                 >
                   <X size={12} />
                 </button>

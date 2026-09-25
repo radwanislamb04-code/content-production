@@ -615,7 +615,7 @@ function TelegramTasks() {
                 onClick={() => void setDone(t.id, !t.done)}
                 title={t.done ? "Put it back in the open list" : "Mark as done"}
                 aria-label={t.done ? "Put it back in the open list" : "Mark as done"}
-                className={`mt-[1px] grid h-5 w-5 shrink-0 place-items-center rounded border transition-colors ${
+                className={`mt-1 grid h-9 w-9 shrink-0 place-items-center rounded border transition-colors sm:mt-[1px] sm:h-6 sm:w-6 ${
                   t.done
                     ? "border-lime bg-lime/10 text-lime"
                     : "border-line text-mute hover:border-lime hover:text-lime"
@@ -658,7 +658,7 @@ function TelegramTasks() {
                 onClick={() => void removeTask(t.id)}
                 title="Delete this task"
                 aria-label="Delete this task"
-                className="mt-[1px] grid h-5 w-5 shrink-0 place-items-center rounded text-mute transition-colors hover:text-err"
+                className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded text-mute transition-colors hover:text-err sm:h-6 sm:w-6"
               >
                 <Trash2 size={12} />
               </button>

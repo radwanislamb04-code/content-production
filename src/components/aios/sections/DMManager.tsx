@@ -24,8 +24,7 @@ import {
   Trash2,
   Users,
   X,
-  Zap,
-} from "lucide-react";
+  Zap, ArrowLeft } from "lucide-react";
 
 /**
  * DM Manager — stage 1 (no Meta account needed).
@@ -838,7 +837,7 @@ export function DMManager() {
                      <button
                        onClick={() => void toggle(a)}
                        title={a.enabled ? "Turn off" : "Turn on"}
-                       className={`grid h-6 w-6 place-items-center rounded border border-line ${
+                       className={`grid h-9 w-9 place-items-center rounded border border-line ${
                          a.enabled ? "text-lime" : "text-mute"
                        } hover:border-lime`}
                      >
@@ -851,7 +850,7 @@ export function DMManager() {
                      <button
                        onClick={() => duplicate(a)}
                        title="Use as a template for another post"
-                       className="h-6 rounded border border-line px-1.5 text-[11px] text-fg2 hover:border-lime hover:text-lime"
+                       className="h-9 rounded border border-line px-2.5 text-[11px] text-fg2 hover:border-lime hover:text-lime"
                      >
                        Copy
                      </button>
@@ -865,7 +864,7 @@ export function DMManager() {
                     <button
                       onClick={() => void remove(a)}
                       title="Delete"
-                      className="grid h-6 w-6 place-items-center rounded border border-line text-mute hover:border-err hover:text-err"
+                      className="grid h-9 w-9 place-items-center rounded border border-line text-mute hover:border-err hover:text-err"
                     >
                       <Trash2 size={12} />
                     </button>
@@ -1772,7 +1771,7 @@ function InboxView() {
 
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,320px)_1fr]">
-      <Card className="p-2">
+      <Card className={`p-2 ${current ? "hidden lg:block" : ""}`}>
         {conversations.length === 0 ? (
           <p className="p-3 text-sm text-mute">
             No conversations yet. Run a simulation and it appears here.
@@ -1822,7 +1821,16 @@ function InboxView() {
         )}
       </Card>
 
-      <Card className="space-y-2 p-4">
+      {/* One pane on a phone: list, or thread — never the thread below the whole list. */}
+      <Card className={`${current ? "flex" : "hidden lg:flex"} flex-col space-y-2 p-4`}>
+        {current && (
+          <button
+            onClick={() => setOpenId(null)}
+            className="mb-1 inline-flex h-9 items-center gap-1.5 self-start rounded-md border border-line px-2.5 text-xs text-fg2 lg:hidden"
+          >
+            <ArrowLeft size={13} /> All conversations
+          </button>
+        )}
         {current && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
             <div className="min-w-0">
@@ -1884,11 +1892,11 @@ function InboxView() {
                   : "ml-auto border-lime/40 bg-[rgba(82,255,46,0.06)]"
               }`}
             >
-              <div className="mb-1 flex items-center gap-2 text-[10px] text-mute">
+              <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-mute">
                 <span>{m.direction === "in" ? "them" : "you"}</span>
                 <span>· {m.channel}</span>
                 {m.status !== "sent" && <span>· {m.status}</span>}
-                {m.matched_keyword && <span>· matched “{m.matched_keyword}”</span>}
+                {m.matched_keyword && <span className="max-w-[60%] truncate">· matched “{m.matched_keyword}”</span>}
                 <span>· {when(m.created_at)}</span>
               </div>
               <p className="whitespace-pre-wrap text-[12px] text-fg2">{m.text}</p>

@@ -27,6 +27,7 @@ function AppLayout() {
   // Ctrl/⌘+B is what every editor uses for this, so it costs nothing to support.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
         e.preventDefault();
         setSidebarOpen(!sidebarOpen);
@@ -35,6 +36,12 @@ function AppLayout() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [sidebarOpen, setSidebarOpen]);
+
+  // A phone gets a drawer, and a drawer has to close: navigating, pressing Escape, or a
+  // back gesture. Only the scrim and the links did it, so the drawer stayed open.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   // Apply the stored appearance before the shell paints: the localStorage
   // mirror first (no dark flash), then the account copy.
@@ -45,7 +52,7 @@ function AppLayout() {
 
   return (
     <PipelineProvider>
-      <div className="min-h-screen overflow-x-hidden bg-app text-fg">
+      <div className="min-h-dvh overflow-x-hidden bg-app text-fg" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
         <TopNav title={title} onMenu={() => setMenuOpen(true)} />
 
@@ -64,7 +71,7 @@ function AppLayout() {
         )}
 
         <main
-          className={`min-h-screen pt-[57px] ${
+          className={`min-h-dvh pt-[57px] ${
             sidebarOpen ? "lg:ml-[200px]" : "lg:ml-0"
           }`}
         >

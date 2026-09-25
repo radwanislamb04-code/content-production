@@ -336,7 +336,7 @@ export function ScriptHook({ onNav }: { onNav: (id: SectionId) => void }) {
                     key={i}
                     className={isChosen ? "border-lime p-5" : "p-5"}
                   >
-                    <div className="mb-2 flex items-center gap-2">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
                       <span className="rounded-md bg-lime px-2 py-0.5 text-xs font-bold text-app">
                         Hook {i + 1}
                       </span>

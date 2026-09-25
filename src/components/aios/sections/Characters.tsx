@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input, OutlineBtn, Pill, PrimaryBtn } from "../ui";
 import { Plus, Star, X } from "lucide-react";
 import { toast } from "sonner";
@@ -42,6 +42,13 @@ export function Characters() {
   const [avatar, setAvatar] = useState("");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // The form renders after the grid, which on a phone means below the fold: bring it into
+  // view when it opens instead of leaving the tap looking like it did nothing.
+  const formRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (editing) formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [editing]);
 
   useEffect(() => {
     let alive = true;

@@ -84,7 +84,7 @@ export function Sidebar({
           `open || pinned` here slid the drawer open on a phone, where `pinned`
           defaults to true. */}
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-[80vw] max-w-[240px] flex-col border-r border-line bg-app2 pb-4 transition-transform duration-200 lg:w-[200px] ${
+        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-[80vw] max-w-[240px] flex-col overscroll-contain border-r border-line bg-app2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] transition-transform duration-200 lg:w-[200px] lg:pb-4 lg:pt-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         } ${pinned ? "lg:translate-x-0" : "lg:-translate-x-full"}`}
       >
@@ -142,7 +142,7 @@ export function Sidebar({
                 onClick={() => toggle(group.id)}
                 aria-expanded={isOpen}
                 aria-controls={panelId}
-                className="flex h-8 w-full items-center justify-between rounded-md px-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-mute transition-colors hover:text-fg2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app2"
+                className="flex h-10 w-full items-center justify-between rounded-md px-2.5 text-left text-[10px] lg:h-8 font-semibold uppercase tracking-[0.12em] text-mute transition-colors hover:text-fg2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app2"
               >
                 <span>{group.title}</span>
                 <ChevronDown
@@ -218,7 +218,7 @@ function NavItem({
   const sizeClasses =
     size === "lg"
       ? "h-11 text-sm font-semibold"
-      : "h-9 text-sm";
+      : "h-11 text-sm lg:h-9";
   const iconSize = 18;
   return (
     <Link

@@ -151,12 +151,15 @@ export function Settings() {
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+      {/* A phone gets a scrollable strip of chips; the vertical list is a desktop sidebar
+          pattern and, stacked, it pushed the actual settings below the fold. */}
       <Card className="p-2">
+        <div className="flex gap-1 overflow-x-auto overscroll-contain pb-1 lg:block lg:overflow-visible lg:pb-0">
         {NAV.map((n) => (
           <button
             key={n}
             onClick={() => setTab(n)}
-            className={`flex w-full items-center rounded-md px-3 py-2 text-left text-sm ${
+            className={`flex w-auto shrink-0 items-center whitespace-nowrap rounded-md px-3 py-2 text-left text-sm lg:w-full ${
               tab === n
                 ? "border-l-2 border-l-lime bg-[rgba(82,255,46,0.08)] text-lime"
                 : "text-fg2 hover:text-fg"
@@ -165,6 +168,7 @@ export function Settings() {
             {n}
           </button>
         ))}
+        </div>
       </Card>
 
       <Card className="p-6">
@@ -377,7 +381,7 @@ function ApiKeys({ settings }: { settings: ReturnType<typeof useSettings> }) {
   }
 
   return (
-    <div className="aios-scroll max-h-[70dvh] overflow-y-auto pr-1">
+    <div className="aios-scroll max-h-[70dvh] overflow-y-auto overscroll-contain pr-1">
       <div className="flex items-center justify-between gap-3">
         <div className="text-lg font-semibold text-fg">API Keys</div>
         <OutlineBtn onClick={() => void settings.reload()} className="!px-3">
@@ -597,7 +601,7 @@ function ApiKeys({ settings }: { settings: ReturnType<typeof useSettings> }) {
 
 function TelegramTab({ settings }: { settings: ReturnType<typeof useSettings> }) {
   return (
-    <div className="aios-scroll max-h-[70dvh] overflow-y-auto pr-1">
+    <div className="aios-scroll max-h-[70dvh] overflow-y-auto overscroll-contain pr-1">
       <div className="text-lg font-semibold text-fg">Telegram</div>
       <p className="mt-2 text-sm text-fg2">
         Outgoing notifications: the 08:00 daily brief and the 20:00 competitor
@@ -1009,7 +1013,7 @@ function InstagramTab({
               {c}
               <button
                 onClick={() => setComps(comps.filter((x) => x !== c))}
-                className="text-mute hover:text-err"
+                className="-m-1.5 grid h-8 w-8 place-items-center rounded text-mute hover:text-err"
                 aria-label={`Remove ${c}`}
               >
                 <X size={11} />
@@ -1026,7 +1030,7 @@ function InstagramTab({
               }
             }}
             placeholder="+ Add competitor"
-            className="h-7 min-w-[140px] flex-1 bg-transparent px-1 text-xs text-fg outline-none placeholder:text-mute"
+            className="h-7 min-w-0 flex-1 sm:min-w-[140px] bg-transparent px-1 text-xs text-fg outline-none placeholder:text-mute"
           />
         </div>
         <div className="mt-1 text-[11px] text-mute">
@@ -1153,7 +1157,7 @@ function CreatorTab({ settings }: { settings: ReturnType<typeof useSettings> }) 
               {c}
               <button
                 onClick={() => setRefs(refs.filter((x) => x !== c))}
-                className="text-mute hover:text-err"
+                className="-m-1.5 grid h-8 w-8 place-items-center rounded text-mute hover:text-err"
                 aria-label={`Remove ${c}`}
               >
                 <X size={11} />
@@ -1325,7 +1329,7 @@ function SlotCard({
             type="button"
             onClick={onRemove}
             aria-label={`Remove slot ${slot.id}`}
-            className="text-mute hover:text-err"
+            className="-m-1.5 grid h-8 w-8 place-items-center rounded text-mute hover:text-err"
           >
             <X size={13} />
           </button>

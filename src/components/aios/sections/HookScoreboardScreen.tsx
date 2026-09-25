@@ -122,8 +122,8 @@ export function HookScoreboardScreen() {
       {loading && !data ? (
         <Card className="p-6 text-center text-sm text-mute">Loading…</Card>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <section className="space-y-3">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <section className="min-w-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs uppercase tracking-wide text-fg2">
                 Published posts — ranked by engagement
@@ -159,7 +159,7 @@ export function HookScoreboardScreen() {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Open the post"
-                        className="shrink-0 self-center text-mute hover:text-lime"
+                        className="grid h-10 w-10 shrink-0 place-items-center self-center rounded-md text-mute hover:text-lime"
                       >
                         <ExternalLink size={14} />
                       </a>
@@ -170,7 +170,7 @@ export function HookScoreboardScreen() {
             )}
           </section>
 
-          <section className="space-y-3">
+          <section className="min-w-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs uppercase tracking-wide text-fg2">
                 Hooks written — {hooks.length} across {data?.script_count ?? 0} script
@@ -197,7 +197,7 @@ export function HookScoreboardScreen() {
               <Card className="aios-scroll max-h-[560px] divide-y divide-line overflow-y-auto">
                 {hooks.map((h) => (
                   <div key={h.id} className="p-3">
-                    <div className="text-sm text-fg">“{h.spoken}”</div>
+                    <div className="break-words text-sm text-fg">“{h.spoken}”</div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-mute">
                       <Pill>{h.formula}</Pill>
                       <span className="truncate">{h.script_title}</span>

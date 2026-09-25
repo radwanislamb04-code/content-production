@@ -162,7 +162,7 @@ export function ProfileMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-11 z-50 w-[320px] overflow-hidden rounded-xl border border-line bg-cardx shadow-xl"
+          className="absolute right-0 top-11 z-50 w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-xl border border-line bg-cardx shadow-xl"
         >
           <div className="border-b border-line p-3">
             <div className="text-sm font-semibold text-fg">

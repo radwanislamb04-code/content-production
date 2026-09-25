@@ -130,7 +130,7 @@ export function GhostBtn({
       onClick={onClick}
       disabled={disabled || loading}
       title={title}
-      className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold text-lime transition-colors hover:bg-[rgba(82,255,46,0.08)] ${FOCUS_RING} disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold text-lime transition-colors hover:bg-[rgba(82,255,46,0.08)] ${FOCUS_RING} disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {loading && <Spinner size={13} />}
       {children}
@@ -143,7 +143,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`h-10 w-full rounded-lg border border-line bg-surface px-3.5 text-sm text-fg placeholder:text-mute outline-none transition-all focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${props.className ?? ""}`}
+      className={`h-10 w-full rounded-lg border border-line bg-surface px-3.5 text-base text-fg sm:text-sm placeholder:text-mute outline-none transition-all focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${props.className ?? ""}`}
     />
   );
 }
@@ -152,7 +152,7 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
   return (
     <textarea
       {...props}
-      className={`w-full rounded-lg border border-line bg-surface p-4 text-sm leading-relaxed text-fg placeholder:text-mute outline-none transition-all focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${props.className ?? ""}`}
+      className={`w-full rounded-lg border border-line bg-surface p-4 text-base leading-relaxed text-fg sm:text-sm placeholder:text-mute outline-none transition-all focus:border-lime focus:shadow-[0_0_0_2px_rgba(82,255,46,0.15)] focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${props.className ?? ""}`}
     />
   );
 }
@@ -161,7 +161,7 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
-      className={`h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-fg outline-none focus:border-lime focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${props.className ?? ""}`}
+      className={`h-10 w-full rounded-lg border border-line bg-surface px-3 text-base text-fg sm:text-sm outline-none focus:border-lime focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-app ${props.className ?? ""}`}
     />
   );
 }
@@ -274,6 +274,17 @@ export function Modal({
   const triggerRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
 
+  // Stop the page behind the dialog from scrolling: on a phone a drag inside the panel
+  // used to chain to the page, and the background moved under the modal.
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     triggerRef.current = document.activeElement as HTMLElement | null;
@@ -314,7 +325,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
       <div
         className="absolute inset-0 bg-black/70"
         onClick={onClose}
@@ -326,7 +337,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`relative z-10 max-h-[85dvh] w-full overflow-y-auto rounded-xl border border-line bg-cardx p-5 outline-none ${className || "max-w-lg"}`}
+        className={`relative z-10 max-h-[85dvh] w-full overflow-y-auto overscroll-contain rounded-xl border border-line bg-cardx p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none ${className || "max-w-lg"}`}
       >
         <h2 id={titleId} className="text-[15px] font-semibold text-fg">
           {title}
@@ -402,6 +413,8 @@ export function Tooltip({
       className="relative inline-flex"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
+      // No hover on a phone, so a tap toggles it as well.
+      onClick={() => setOpen((v) => !v)}
       onFocus={() => setOpen(true)}
       onBlur={() => setOpen(false)}
     >
@@ -411,7 +424,7 @@ export function Tooltip({
       <span
         id={id}
         role="tooltip"
-        className={`pointer-events-none absolute bottom-full left-1/2 z-40 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md border border-line bg-cardhi px-2 py-1 text-xs text-fg2 transition-opacity ${
+        className={`pointer-events-none absolute bottom-full left-1/2 z-40 mb-2 w-max max-w-[80vw] -translate-x-1/2 rounded-md border border-line bg-cardhi px-2 py-1 text-xs text-fg2 transition-opacity sm:max-w-none ${
           open ? "opacity-100" : "opacity-0"
         }`}
       >
